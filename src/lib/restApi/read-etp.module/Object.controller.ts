@@ -1,0 +1,362 @@
+// ============================================================================
+// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ============================================================================
+
+import {
+  Controller,
+  Get,
+  InternalServerErrorException,
+  Param,
+  Query,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
+
+import {
+  ApiBearerAuth,
+  ApiDefaultResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiNotAcceptableResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiQuery,
+  ApiQueryOptions,
+  ApiTags,
+  ApiTooManyRequestsResponse
+} from "@nestjs/swagger";
+
+import {
+  byteToString,
+  EtpUri,
+  notEmptyFilter,
+  ODataUtils,
+  ResqmlClient,
+  URI
+} from "../../client/ResqmlClient";
+
+import type { IResqmlDataObject } from "../../client/ResqmlClient";
+
+import {
+  createSession,
+  errorMessageSchema,
+  extractToken,
+  getSchemasForType,
+  HasBearerGuard,
+  OptionalParseBoolPipe,
+  patternString,
+  sliceArray,
+  swaggerServers
+} from "../ControllerUtils";
+
+import {
+  dataObjectTypePattern,
+  datePattern,
+  FindInObjectParams,
+  uuidPattern,
+  validNamePattern,
+  versionQueryParam
+} from "./Resource.controller";
+
+import type { QueryInput } from "../ControllerUtils";
+
+import express from "express";
+
+/**
+ * Sort the response based on the orderBy criteria of the query
+ *
+ * @param {QueryInput} query query containing the orderby criteria
+ * @param {IResqmlDataObject[]} objects lists of objects to send
+ * @returns
+ */
+const sortResponse = (query: QueryInput, objects: IResqmlDataObject[]) => {
+  const orderBy = query.orderby;
+  const sorting = ODataUtils.createODataSorting(
+    typeof orderBy === "string" ? orderBy : ""
+  );
+  if (sorting.length === 0) {
+    return objects;
+  }
+  const comparator = new ODataUtils.OrderByComparator(sorting);
+  return objects.sort(comparator.compareObjects.bind(comparator));
+};
+
+type ObjectResponse = Array<any> | string;
+
+/**
+ * Send the objects corresponding to provided uris in required format
+ *
+ * @param {QueryInput} query
+ * @param {ResqmlClient} client
+ * @param {URI[]} uris
+ * @param {string} format
+ * @param {Map<URI, IResqmlDataObject>} [objects=new Map<URI, IResqmlDataObject>()]
+ * @returns {(Promise<ObjectResponse>)}
+ */
+const sendObjects = async (
+  query: QueryInput,
+  client: ResqmlClient,
+  uris: URI[],
+  format: string,
+  referencedContent: boolean,
+  arrayValues: boolean,
+  objects: Map<URI, IResqmlDataObject> = new Map<URI, IResqmlDataObject>()
+): Promise<ObjectResponse> => {
+  if (!uris) {
+    return Promise.resolve([]);
+  }
+  uris = sliceArray<string>(query.skip, query.top, uris);
+  if (uris.length === 0) {
+    return Promise.resolve([]);
+  }
+  try {
+    if (!format || format === "xml") {
+      const dataObjects = await client.getDataObjects(uris);
+      const xml = dataObjects
+        .map(o =>
+          o && o.data
+            ? byteToString(o.data).replace(
+                `<?xml version="1.0" encoding="UTF-8"?>`,
+                ""
+              )
+            : ""
+        )
+        .join("");
+      return `<?xml version="1.0" encoding="UTF-8"?><DataObjects>${xml}</DataObjects>`;
+    } else if (referencedContent) {
+      const resolvedObjects = await client.getResolvedObjects(
+        uris,
+        objects,
+        arrayValues
+      );
+      return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
+    } else {
+      const json = await client.getObjects(uris);
+      return sortResponse(query, json.filter(notEmptyFilter));
+    }
+  } catch (err) {
+    throw new Error(`Unknown Error`);
+  }
+};
+
+export const formatQueryParam: ApiQueryOptions = {
+  name: "$format",
+  required: false,
+  description: "Expected return format",
+  example: "json",
+  schema: {
+    type: "string",
+    enum: ["xml", "json"],
+    default: "json"
+  }
+};
+
+export const referencedContentQueryParam: ApiQueryOptions = {
+  name: "referencedContent",
+  required: false,
+  description: "If true, includes the content of referenced objects",
+  example: true,
+  schema: {
+    type: "boolean",
+    default: true
+  }
+};
+
+export const arrayValuesQueryParam: ApiQueryOptions = {
+  name: "arrayValues",
+  required: false,
+  description:
+    "If true, includes the content of referenced objects and the content of array values",
+  example: false,
+  schema: {
+    type: "boolean",
+    default: false
+  }
+};
+
+export class EmlCitationDto {
+  @ApiProperty({
+    name: "Title",
+    pattern: patternString(validNamePattern),
+    example: `My Grid`,
+    description: "User friendly name of the object.",
+    maxLength: 2048
+  })
+  Title!: string;
+
+  @ApiProperty({
+    name: "Originator",
+    pattern: patternString(validNamePattern),
+    example: `me`,
+    description: "Creator of the object.",
+    maxLength: 2048
+  })
+  Originator!: string;
+
+  @ApiProperty({
+    name: "Creation",
+    pattern: patternString(datePattern),
+    example: `me`,
+    description: "User creator of the object.",
+    maxLength: 2048
+  })
+  Creation!: string;
+
+  @ApiProperty({
+    name: "Format",
+    pattern: patternString(validNamePattern),
+    example: `[Vendor:Software:version]`,
+    description: "Identify the software that produces the object.",
+    maxLength: 2048
+  })
+  Format!: string;
+}
+
+const schemaVersionPattern = /^[.0-9]+$/;
+
+/**
+ * Describe the Rest information of an eml object
+ *
+ * @export
+ * @class EmlObjectDto
+ */
+export class EmlObjectDto {
+  @ApiProperty({
+    name: "Uuid",
+    pattern: patternString(uuidPattern),
+    example: `68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23`,
+    description: "Unique identifier of the object.",
+    maxLength: 2048
+  })
+  Uuid!: string;
+
+  @ApiProperty({
+    name: "$type",
+    pattern: patternString(dataObjectTypePattern),
+    example: `eml20.obj_EpcExternalPartReference`,
+    description: "Eml data object type.",
+    maxLength: 2048
+  })
+  $type!: string;
+
+  @ApiProperty({
+    name: "SchemaVersion",
+    pattern: patternString(schemaVersionPattern),
+    example: `"2.0.0.20140822"`,
+    description: "Eml schema version",
+    maxLength: 2048
+  })
+  SchemaVersion!: string;
+
+  @ApiProperty({
+    ...getSchemasForType(EmlCitationDto),
+    required: true,
+    name: "Citation",
+    additionalProperties: false
+  })
+  Citation!: EmlCitationDto;
+}
+
+const xmlDocPattern = /^<\?xml.+$/;
+
+@ApiBearerAuth("access-token")
+@UseGuards(HasBearerGuard("jwt"))
+@ApiTags("Resources")
+@ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
+@ApiNotFoundResponse(errorMessageSchema("Not found", 404))
+@ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
+@ApiTooManyRequestsResponse(errorMessageSchema("Too many request", 429))
+@ApiInternalServerErrorResponse(errorMessageSchema(`Unknown Error`, 500))
+@ApiDefaultResponse(errorMessageSchema(`Unknown Error`, 500))
+@Controller("dataspaces/:dataspaceId/resources")
+export default class ObjectsReadAPI {
+  @Get(":dataObjectType/:guid")
+  @ApiOperation({
+    summary: "Get object content.",
+    description: `Get the actual content of a data object formatted as xml or json.`
+  })
+  @ApiQuery(formatQueryParam)
+  @ApiQuery(versionQueryParam)
+  @ApiQuery(referencedContentQueryParam)
+  @ApiQuery(arrayValuesQueryParam)
+  @ApiOperation({ servers: swaggerServers })
+  @ApiOkResponse({
+    description: "Success",
+    content: {
+      "application/x-resqml+xml": {
+        schema: {
+          type: "string",
+          maxLength: 200000,
+          pattern: patternString(xmlDocPattern)
+        }
+      },
+      "application/json": {
+        schema: {
+          type: "array",
+          maxItems: 256,
+          items: getSchemasForType(EmlObjectDto, true)
+        }
+      }
+    }
+  })
+  public async GetDataObject(
+    @Param() params: FindInObjectParams,
+    @Req() request: express.Request,
+    @Res() res: express.Response,
+    @Query("$format") format: "xml" | "json" = "json",
+    @Query("version") version?: string,
+    @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
+    @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false
+  ) {
+    const m = params.dataObjectType.match(
+      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
+    );
+    const uris = [
+      EtpUri.createObjectUri(
+        params.dataspaceId,
+        m?.groups?.domainFamily || "",
+        m?.groups?.domainVersion || "",
+        m?.groups?.dataType || "",
+        params.guid,
+        version
+      ).uri
+    ];
+    if (!format || format === "xml") {
+      res.set("Content-Type", "application/x-resqml+xml");
+    } else {
+      res.set("Content-Type", "application/json");
+    }
+    try {
+      const c = await createSession(extractToken(request));
+      const b = await sendObjects(
+        {},
+        c,
+        uris,
+        format,
+        referencedContent,
+        arrayValues
+      );
+      await c.closeSession();
+      res.send(b);
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err instanceof Error ? err : { description: `Unknown Error` }
+      );
+    }
+  }
+}

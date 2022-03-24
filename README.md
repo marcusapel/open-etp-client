@@ -1,30 +1,55 @@
-# Open ETP Client
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-Typescript client for open-etp-server, including REST API
+- [@osdu/open-etp-client](#osduopen-etp-client)
+  - [Setup](#setup)
+    - [Installation](#installation)
+  - [Contributing](#contributing)
+    - [Integrate with your tools](#integrate-with-your-tools)
+    - [Collaborate with your team](#collaborate-with-your-team)
+    - [Build](#build)
+  - [Tests](#tests)
+    - [Setup a local ETP Server Using docker images](#setup-a-local-etp-server-using-docker-images)
+  - [Code style and validation](#code-style-and-validation)
+    - [Linter and prettier](#linter-and-prettier)
+    - [Validation](#validation)
+  - [Changelog](#changelog)
+    - [Create a package](#create-a-package)
+    - [Publishing](#publishing)
+  - [Usage](#usage)
+    - [XML JSON Utils](#xml-json-utils)
+    - [Rest API](#rest-api)
+    - [Examples](#examples)
 
-## Getting started
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+# @osdu/open-etp-client
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+This library is a client for connecting to ETP servers, serving RESQML data. It provides one main `ResqmlClient` class, which allows to easily perform the main tasks expected from a RESQML ETP client.
+This client is able to get data from a server and send data to it. The exchanges try to optimize the size of messages as negotiated between client and server.
+The data can be obtained as XML string or Javascript objects.
+Most classes functions return promises, allowing to easily chain requests.
 
-## Add your files
+## Setup
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### Installation
 
+This library is available as an npm package. To install it, you will need to have access to the osdu gitlab npm registry.
+https://community.opengroup.org/api/v4/projects/osdu/packages/npm/
+
+Then run:
+
+```sh
+npm install @osdu/open-etp-client
 ```
-cd existing_repo
-git remote add origin https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client.git
-git branch -M main
-git push -uf origin main
-```
 
-## Integrate with your tools
+## Contributing
+
+### Integrate with your tools
 
 - [ ] [Set up project integrations](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/-/settings/integrations)
 
-## Collaborate with your team
+### Collaborate with your team
 
 - [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
 - [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
@@ -32,61 +57,184 @@ git push -uf origin main
 - [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
 - [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
 
-## Test and Deploy
+### Build
 
-Use the built-in continuous integration in GitLab.
+1. Clone it:
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+   ```sh
+   git clone https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client.git
+   ```
 
-***
+2. Configure
+   Copy the `config.user.env.sample` file located at the root of the repository to `config.user.env` file.
+   Edit the new file and fill the requested values.
+   Note: this can be used to override default values located in `config.default.env` file.
 
-# Editing this README
+3. Install / Build
+   You can use the traditional npm commands to build the package:
+   `npm install && npm run build`.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+But also the custom script: `npm run all`.
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+This script performs the different steps:
 
-## Name
-Choose a self-explaining name for your project.
+- Dependencies installation
+- Git hooks installation
+- Build
+- Validation (linter, prettier and tests)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Tests
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+To run all unit tests:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```sh
+npm run test
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+You can specify patterns to run a subset of the tests:
+
+```sh
+npm run test pattern1 pattern2 ...
+```
+
+Run tests sequentially and disable coverage:
+
+```sh
+npm run test:single pattern1 pattern2 ...
+```
+
+### Setup a local ETP Server Using docker images
+
+This is a more native way to run rest server using the Docker images we produce in GitLab. It is a Linux server, installation and updates are faster and closer to the real deployment.
+
+[See image](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/container_registry)
+
+Once setup, run (or copy paste to terminal):
+
+1. `npm run docker:login` one time only to access the ACR
+2. `npm run docker:update` to update to the latest version (download, install)
+3. `npm run docker:compose:start` to run the servers:
+   - eml etp12 (aka OpenEtpServer) is available on `localhost:9004`
+
+## Code style and validation
+
+### Linter and prettier
+
+The source code is analysed (see _.eslintrc.json_ file for configuration) with [eslint](https://eslint.org) and formatted with [prettier](https://prettier.io/).
+
+The CI rely on those to validate code. Each tool can be run separately:
+
+```sh
+npm run lint
+npm run prettier
+```
+
+Or with the validate script mentioned below.
+
+For developers, these tools can be used to automatically fix the code:
+
+```sh
+npm run lint:fix
+npm run prettier:write
+```
+
+Those checks are performed inside the provided git `pre-commit` hook using `lint-staged`.
+
+### Validation
+
+A custom script allows you to run in parallel linter, prettier and tests:
+
+```sh
+npm run validate
+```
+
+Developers can also run the all-in-one fix variant, which will run both tslint and prettier in auto-fix mode as described above.
+
+```sh
+npm run validate:fix
+```
+
+## Changelog
+
+Recently Updated? Please read the changelog.
+
+### Create a package
+
+You can create a package with your changes for testing it in an application:
+
+- Create a package
+
+  After running the build, you can run `npm pack`.
+
+  You will now have a `osdu-open-etp-client-x.x.x.tgz` archive in the root folder, which can be installed.
+
+- Install it locally in a client code
+
+  ```sh
+  npm i /path/to/osdu-open-etp-client/osdu-open-etp-client-x.x.x.tgz
+  ```
+
+### Publishing
+
+To publish a new version of the library, please follow these instructions:
+
+1. Update package version in `package.json` and update `package-lock.json` with `npm i`
+2. Update the changelog (`CHANGELOG.md` file)
+3. Create a PR with message "Bump version to v[new\_version]" (for example: "Bump
+   version to v0.4.2")
+4. Send the PR => the new version will be automatically published when the PR will be approved and completed
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- `openSession()` and `closeSession()` connect/disconnect to the server and create a new session.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+In order to discover and get data from a server the following methods are available:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- `getProjects()` to get the list of projects/dataspace available
+- `getProjectTypes()` to get the list of types available in a project
+- `getDataObjects()` to get data objects directly from the messages, it will typically contains the row server message with XML string content.
+- `getObjects()` to get the object resulting from XML translation into javascript, data object references and data array are not resolved
+- `getResolvedObjects()` get the full objects resulting from the XML translation into Javascript, where data object references and data array are resolved and replaced. This may result in very large objects.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+It is also possible to create and delete projects using:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+- `createProjects()`
+- `deleteProjects()`
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+It is possible to send objects as XML strings using:
 
-## License
-For open source projects, say how it is licensed.
+- `putDataObjects()`
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Several methods are available to get/send arrays, array metadata and subarrays with:
+
+- `getDataArray()` will try to find the best strategy to download an array according to its size
+- `putDataArray()` will try to find the best strategy to send an array according to its size
+
+When an array is too large to fit in memory, the method visitDataArrayValues can be used to visit the values of an array extracted from its subarrays. (see example_statistics)
+
+`startTransaction()`, `commitTransaction()` and `rollbackTransaction()` are available to manage transaction in order to send data in a consistent state.
+
+This is especially important when sending data to a server.
+
+`subscribeNotifications()` and `unSubscribeNotifications()` allow to be notified of changes in the server.
+
+### XML JSON Utils
+
+As part of the conversion from XML to typescript, there is also some capabilities to perform analysis on typescript types with implementation for RESQML schema based types. The two main capabilities are:
+
+- Check that a given typescript object is conforming to a RESQML interface built from the initial XSD schemas
+- [Creation](./src/examples/createGQLSchema.ts) of GraphQL schemas from typescript interface.
+
+The class `ResqmlTypeUtils` amd `WitsmlTypeUtils` implement the RESQML and WITSML type tools, and simply encapsulates the loading of resqml interfaces are. It is also possible to redefine the base class `InterfaceTypeUtils` and pre-load other files.
+
+### Rest API
+
+A [REST server](./src/lib/restApi/RestServer.ts) exposes a REST [API](./src/examples/openAPI.ts) using an ETP server as backend. This rest server is also supporting OData queries available for data and resolved objects.
+
+### Examples
+
+Full examples for both graph and direct request chain are available under [src/examples/](./src/examples/):
+
+- [Example1](./src/examples/example1.ts) shows how to get the resource graph or getting the resources individually
+- [ExampleObject](./src/examples/exampleObject.ts) shows the different options to get and check individual RESQML objects
+- [Statistics](./src/examples/exampleStatistics.ts) shows how to compute the statistics of data arrays when working with large projects

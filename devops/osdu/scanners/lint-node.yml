@@ -1,0 +1,16 @@
+rdms_rest_lint:
+  image: node
+  tags: ["osdu-small"]
+  stage: scan
+  needs: ["rdms_rest_compile-and-unit-test"]
+  script:
+    - npm install
+    - npm run lint
+  only:
+    changes:
+      - devops/**/*
+      - src/**/*
+    refs:
+      - branches
+      - main
+      - merge_requests

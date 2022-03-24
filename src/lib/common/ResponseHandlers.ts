@@ -1,0 +1,603 @@
+// ============================================================================
+// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ============================================================================
+
+/* eslint-disable @typescript-eslint/ban-types */
+import { BaseHandler } from "./BaseHandler";
+import { ErrorCode } from "./EtpTypes";
+import { Energistics, Integer64 } from "../common/Etp12";
+
+/**
+ * Equivalent to setTimeout that allows to modify remaining time
+ * @example const timer = new Timer(()=>alert('foo'), 5000); // init timer with 5 seconds
+ * timer.add(2000); // add 2 seconds
+ *
+ * @export
+ * @class Timer
+ */
+export class Timer {
+  public finished = false;
+  private timer: NodeJS.Timeout | null = null;
+  private callback: Function;
+  private time: number;
+  private start: number;
+
+  /**
+   *Creates an instance of Timer.
+   * @param {Function} callback function to call when timer timeout
+   * @param {number} time (ms)
+   * @memberof Timer
+   */
+  constructor(callback: Function, time: number) {
+    this.callback = callback;
+    this.time = time;
+    this.start = Date.now();
+    this.setTimeout(callback, time);
+  }
+
+  /**
+   * Reset time to given time from now
+   *
+   * @param {number} time (ms)
+   * @memberof Timer
+   */
+  reset(time?: number) {
+    if (!time) {
+      time = this.time;
+    }
+    this.setTimeout(this.callback, time);
+  }
+
+  /**
+   * Cancel timer, function is not executed
+   *
+   * @param {boolean} [executeCallback=false] If true the call back wll be executed
+   * @memberof Timer
+   */
+  cancel(executeCallback = false) {
+    if (!this.finished) {
+      if (this.timer) {
+        clearTimeout(this.timer);
+      }
+      this.finished = true;
+      if (executeCallback) {
+        this.callback();
+      }
+    }
+  }
+
+  /**
+   * Add extra-time to the timer
+   *
+   * @param {number} time (ms)
+   * @memberof Timer
+   */
+  add(time: number) {
+    if (!this.finished) {
+      const diff = Date.now() - this.start;
+      const newTime = this.time - diff + time;
+      this.setTimeout(this.callback, newTime);
+    }
+  }
+
+  /**
+   * Whatever the time left in the timer, no time out will occur before the given time
+   *
+   * @param {number} time (ms)
+   * @memberof Timer
+   */
+  noTimeoutBefore(time: number) {
+    if (!this.finished) {
+      time = Math.max(this.time - (Date.now() - this.start), time);
+      this.setTimeout(this.callback, time);
+    }
+  }
+
+  /**
+   * Time out will occur when time left expired or when the given time expire
+   *
+   * @param {number} time (ms)
+   * @memberof Timer
+   */
+  alwaysTimeoutBefore(time: number) {
+    if (!this.finished) {
+      // add time to time left
+      time = Math.min(this.time - (Date.now() - this.start), time);
+      this.setTimeout(this.callback, time);
+    }
+  }
+
+  private setTimeout(callback: Function, time: number) {
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+    this.finished = false;
+    this.callback = callback;
+    this.time = time;
+    this.timer = setTimeout(() => {
+      this.finished = true;
+      callback();
+    }, time);
+    this.start = Date.now();
+  }
+}
+
+/**
+ * Enhanced version of a map, that can use a timeout that could trigger the automatic
+ * deletion of a key, and a reject callback
+ *
+ * @class ResponseHandler
+ * @extends {Map<number, V>}
+ * @template V
+ */
+class ResponseHandler<V> extends Map<Integer64, V> {
+  private readonly firstMessageTimeout?: number;
+  private readonly subsequentMessageTimeout?: number;
+  private readonly timers: Map<Integer64, Timer> = new Map();
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super();
+    this.firstMessageTimeout = firstMessageTimeout;
+    this.subsequentMessageTimeout = subsequentMessageTimeout;
+  }
+  setRequest(requestId: Integer64, value: V, reject: (err: string) => void) {
+    if (this.firstMessageTimeout) {
+      this.timers.set(
+        requestId,
+        new Timer(() => {
+          reject(
+            `Request ${requestId} has timed out after ${this.firstMessageTimeout}ms`
+          );
+          super.delete(requestId);
+          this.timers.delete(requestId);
+        }, this.firstMessageTimeout)
+      );
+    }
+    return super.set(requestId, value);
+  }
+
+  /**
+   * Reset the message with subsequentMessageTimeout if specified
+   *
+   * @param {number} requestId
+   * @memberof ResponseHandler
+   */
+  onIntermediateMessage(requestId: Integer64) {
+    const timer = this.timers.get(requestId);
+    if (timer && this.subsequentMessageTimeout) {
+      timer.reset(this.subsequentMessageTimeout);
+    }
+  }
+
+  /**
+   * Remove current timer
+   *
+   * @param {number} requestId
+   * @memberof ResponseHandler
+   */
+  onFinalMessage(requestId: Integer64) {
+    this.delete(requestId);
+    const t = this.timers.get(requestId);
+    if (t) {
+      t.cancel(false);
+      this.timers.delete(requestId);
+    }
+  }
+}
+
+/**
+ * Timeout-aware handler that wait for an answer returning a single item.
+ * @example const handler = new SingleResponseHandler<boolean>(1000); //Create
+ * handler.waitForRequest(0).then(value => {}); // wait
+ * handler.onResponse(finalHeader, true); // provide a valid answer
+ * handler.onError(finalHeader, null); // stop with an error
+ *
+ * @export
+ * @class SingleResponseHandler
+ * @extends {(ResponseHandler<{
+ *   resolve: (value: T | PromiseLike<T>) => void;
+ *   reject: (reason: string | undefined) => void;
+ * }>)}
+ * @template T
+ */
+export class SingleResponseHandler<T> extends ResponseHandler<{
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason: string | undefined) => void;
+}> {
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super(firstMessageTimeout, subsequentMessageTimeout);
+  }
+
+  waitForRequest(requestId: Integer64): Promise<T> {
+    return new Promise<T>((resolve, reject) =>
+      this.setRequest(requestId, { resolve, reject }, reject)
+    );
+  }
+
+  onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    value: T
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    if (BaseHandler.isFinalMessage(header)) {
+      request.resolve(value);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+
+  onError(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    error: Energistics.Etp.v12.Datatypes.ErrorInfo | null
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    error
+      ? request.reject(`Server error ${error.code}: ${error.message}`)
+      : request.reject(`Server error`);
+    if (BaseHandler.isFinalMessage(header)) {
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+}
+
+/**
+ * Timeout-aware handler that wait for an answer returning an array.
+ * @example const handler = new ArrayResponseHandler<boolean>(1000); //Create
+ * handler.waitForRequest(0).then(value => {}); // wait
+ * handler.onResponse(finalHeader, [true,false]); // provide a valid answer
+ * handler.onException(finalHeader, message); // stop with an error
+ *
+ * @export
+ * @class ArrayResponseHandler
+ * @extends {(ResponseHandler<{
+ *   resolve: (value: T[] | PromiseLike<T[]>) => void;
+ *   reject: (reason: string | undefined) => void;
+ *   results: T[];
+ * }>)}
+ * @template T
+ */
+export class ArrayResponseHandler<T> extends ResponseHandler<{
+  resolve: (value: T[] | PromiseLike<T[]>) => void;
+  reject: (reason: string | undefined) => void;
+  results: T[];
+}> {
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super(firstMessageTimeout, subsequentMessageTimeout);
+  }
+
+  waitForRequest(requestId: Integer64): Promise<T[]> {
+    return new Promise<T[]>((resolve, reject) =>
+      this.setRequest(requestId, { resolve, reject, results: [] }, reject)
+    );
+  }
+
+  onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    value: T[]
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    //Cannot use request.results.push(...value) with large arrays
+    value.forEach(v => {
+      request.results[request.results.length] = v;
+    });
+    if (BaseHandler.isFinalMessage(header)) {
+      request.resolve(request.results);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+
+  onException(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    if (message.error) {
+      request.reject(
+        `Server error ${message.error.code}: ${message.error.message}`
+      );
+    } else if (
+      message.errors &&
+      message.errors.values().next().done === false
+    ) {
+      const it = message.errors.values().next().value;
+      request.reject(`Server error ${it.code}: ${it.message}`);
+    } else {
+      request.reject(`Server error`);
+    }
+    if (BaseHandler.isFinalMessage(header)) {
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+}
+
+/**
+ * Timeout-aware handler that wait for an answer returning the values of a Map.
+ * @example const handler = new MapResponseHandler<boolean>(1000); //Create
+ * const keys = ["key1", "key2"];
+ * handler.waitForRequest(0,keys).then(value => {}); // wait
+ * const map = new Map<string, boolean>();
+ * map.set("key1", true);
+ * map.set("key2", false);
+ * handler.onResponse(finalHeader, map); // provide a valid answer
+ * handler.onException(finalHeader, message); // stop with an error
+ *
+ * @export
+ * @class MapResponseHandler
+ * @extends {(ResponseHandler<{
+ *   resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
+ *   reject: (reason: string | undefined) => void;
+ *   results: Map<string, T>;
+ *   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
+ *   keys: string[];
+ * }>)}
+ * @template T
+ */
+export class MapResponseHandler<T> extends ResponseHandler<{
+  resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
+  reject: (reason: string | undefined) => void;
+  results: Map<string, T>;
+  errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
+  keys: string[];
+}> {
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super(firstMessageTimeout, subsequentMessageTimeout);
+  }
+
+  waitForRequest(
+    requestId: Integer64,
+    keys: string[]
+  ): Promise<Array<T | null>> {
+    return new Promise<Array<T | null>>((resolve, reject) =>
+      this.setRequest(
+        requestId,
+        { keys, resolve, reject, results: new Map(), errors: new Map() },
+        reject
+      )
+    );
+  }
+
+  /**
+   * Handle a successful response message
+   *
+   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
+   * @param {Map<string, T>} items
+   * @returns {boolean}
+   * @memberof ItemMapResponseHandler
+   */
+  public onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    items: Map<string, T>
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+
+    items.forEach((v, k) => request.results.set(k, v));
+    return this.processLastMapItem(header);
+  }
+
+  /**
+   * Handle an error response message
+   *
+   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
+   * @param {Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>} errors
+   * @returns {boolean}
+   * @memberof ItemMapResponseHandler
+   */
+  public onException(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+
+    if (message.errors.size > 0) {
+      message.errors.forEach((v, k) => request.errors.set(k, v));
+    } else if (message.error) {
+      const str = message.error;
+      request.keys.forEach(v => request.errors.set(v, str));
+    }
+    return this.processLastMapItem(header);
+  }
+
+  /**
+   * Process last message, if some part of the request is successful, resolve the promise, else reject
+   *
+   * @private
+   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
+   * @returns {boolean}
+   * @memberof ItemMapResponseHandler
+   */
+  private processLastMapItem(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+
+    if (!BaseHandler.isFinalMessage(header)) {
+      this.onIntermediateMessage(header.correlationId);
+      return true;
+    }
+
+    if (request.errors.size === request.keys.length) {
+      const errorMessages: string[] = [];
+      request.errors.forEach(v => errorMessages.push(v.message));
+      request.reject(errorMessages.join(","));
+    } else {
+      const values: Array<T | null> = request.keys.map(key => {
+        const item: T | undefined = request.results.get(key);
+        return item === undefined ? null : item;
+      });
+      request.resolve(values);
+    }
+
+    this.onFinalMessage(header.correlationId);
+    return true;
+  }
+}
+
+/**
+ * Timeout-aware handler that wait for an answer returning the values of a Success Map.
+ * @example const handler = new SuccessMapResponseHandler(1000); //Create
+ * const keys = ["key1", "key2"];
+ * handler.waitForRequest(0,keys).then(value => {}); // wait
+ * const map = new Map<string, string>();
+ * map.set("key1", "");
+ * map.set("key2", "");
+ * handler.onResponse(finalHeader, map); // provide a valid answer
+ * handler.onException(finalHeader, message); // stop with an error
+ *
+ * @export
+ * @class SuccessMapResponseHandler
+ * @extends {(ResponseHandler<{
+ *   resolve: (
+ *     value:
+ *       | Energistics.Etp.v12.Datatypes.ErrorInfo[]
+ *       | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
+ *   ) => void;
+ *   reject: (reason: string | undefined) => void;
+ *   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
+ *   keys: string[];
+ * }>)}
+ */
+export class SuccessMapResponseHandler extends ResponseHandler<{
+  resolve: (
+    value:
+      | Energistics.Etp.v12.Datatypes.ErrorInfo[]
+      | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
+  ) => void;
+  reject: (reason: string | undefined) => void;
+  results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
+  keys: string[];
+}> {
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super(firstMessageTimeout, subsequentMessageTimeout);
+  }
+
+  waitForRequest(
+    requestId: Integer64,
+    keys: string[]
+  ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
+    return new Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]>(
+      (resolve, reject) =>
+        this.setRequest(
+          requestId,
+          { keys, resolve, reject, results: new Map() },
+          reject
+        )
+    );
+  }
+
+  onException(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    message.errors.forEach((value, key) => {
+      request.results.set(key, value);
+    });
+    if (BaseHandler.isFinalMessage(header)) {
+      if (message.error) {
+        request.reject(
+          `Server error ${message.error.code}: ${message.error.message}`
+        );
+        return true;
+      }
+      const results: Energistics.Etp.v12.Datatypes.ErrorInfo[] =
+        request.keys.map(k => {
+          const e = request.results.get(k);
+          return e ? e : new Energistics.Etp.v12.Datatypes.ErrorInfo();
+        });
+      request.resolve(results);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+
+  /**
+   * Resolve a string based response message query
+   *
+   * @protected
+   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
+   * @param {Map<string, string>} messages
+   * @returns {boolean}
+   * @memberof SuccessResponseHandler
+   */
+  public onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    messages: Map<string, string>
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+
+    messages.forEach((value, key) => {
+      request.results.set(key, {
+        code: value.length === 0 ? ErrorCode.IS_OK : ErrorCode.EINVALID_STATE,
+        message: value
+      });
+    });
+
+    if (BaseHandler.isFinalMessage(header)) {
+      const errors: Energistics.Etp.v12.Datatypes.ErrorInfo[] =
+        request.keys.map(k => {
+          const e = request.results.get(k);
+          return e ? e : new Energistics.Etp.v12.Datatypes.ErrorInfo();
+        });
+      request.resolve(errors);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+}

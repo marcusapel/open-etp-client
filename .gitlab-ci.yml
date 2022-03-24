@@ -1,0 +1,40 @@
+include:
+  # pipeline logic
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "standard-setup.yml"
+
+  # global
+  - local: "devops/osdu/global/gitlab.yml"
+
+  # build
+  - local: "devops/osdu/build/open-etp-client.yml"
+
+  # scan
+  # fossa
+  - local: "devops/osdu/scanners/fossa-node.yml"
+
+  # lint
+  - local: "devops/osdu/scanners/lint-node.yml"
+
+  # scan for secrets
+  - local: "devops/osdu/scanners/scan-for-secrets-node.yml"
+
+  # containerize
+  # osdu
+  - local: "devops/osdu/containerize/osdu.yml"
+
+  # npm publish
+  - local: "devops/osdu/publish/publish-npm.yml"
+
+  # deploy
+  # azure
+  # - local: "devops/osdu/cloud-providers/azure.yml"
+
+  # aws
+  # - local: "devops/osdu/cloud-providers/aws.yml"
+
+  # gcp
+  # - local: "devops/osdu/cloud-providers/gcp.yml"
+
+  # ibm
+  # - local: "devops/osdu/cloud-providers/ibm.yml"

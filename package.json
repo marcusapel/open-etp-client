@@ -1,0 +1,206 @@
+{
+  "name": "@osdu/open-etp-client",
+  "version": "0.0.1",
+  "description": "ETP Client for RESQML including Javascript object creation",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist/",
+    "CHANGELOG.md",
+    ".npmrc"
+  ],
+  "scripts": {
+    "all": "npm run git:hooks && npm run build && npm run validate",
+    "build:dts": "cpy . dist --cwd=src/lib/mlTypes/xmlns",
+    "build:quick": "git clean -xdff dist && tsc && npm run build:dts",
+    "build": "npm run build:quick && npm run openAPI && npm run docs",
+    "build:noclean": "npx tsc && npm run build:dts && npm run openAPI && typedoc src",
+    "docs": "git clean -xdff docs/ && typedoc src",
+    "openAPI": "npm run env:set -- ts-node src/examples/openApi.ts",
+    "start": "npm run docker:compose:stop:app && npm run env:set -- node dist/src/lib/restApi/RestServer.js",
+    "start:dev": "npm run docker:compose:stop:app && npm run env:set -- ts-node-dev --poll --debug --inspect=9271 -- src/lib/restApi/RestServer.ts",
+    "example1": "npm run env:set -- ts-node src/examples/Example1.ts",
+    "docker:build": "npm run env:set -- docker build -t local_etp-rest-api -f devops/osdu/docker/Dockerfile --pull --build-arg NPM_TOKEN .",
+    "docker:compose:stop:app": "docker rm -f local_etp-rest-api etp-rest-api",
+    "docker:compose:base": "npm run env:set -- docker-compose -f ./devops/osdu/docker-compose/docker-compose.yml",
+    "docker:compose:start": "npm run docker:compose:base -- up -d -V --force-recreate --remove-orphans",
+    "docker:compose:stop": "npm run docker:compose:base -- down --volumes --remove-orphans",
+    "test": "npm run env:set -- jest",
+    "test:debug": "npm run env:set -- node --inspect-brk ./node_modules/jest/bin/jest.js --coverage=false --runInBand",
+    "test:single": "npm run env:set -- jest --coverage=false --runInBand",
+    "test:single:debug": "npm run env:set -- node --inspect-brk ./node_modules/jest/bin/jest.js --coverage=false --runInBand --",
+    "lint": "npm-run-all -nlpc --aggregate-output",
+    "lint:verbose": "eslint -f stylish .",
+    "lint:junit": "eslint -f junit -o lint-junit.xml .",
+    "lint:strict": "npm-run-all -nlpc --aggregate-output lint:verbose:strict",
+    "lint:verbose:strict": "eslint -f stylish .  --max-warnings 0",
+    "lint:junit:strict": "eslint -f junit -o lint-junit.xml . --max-warnings 0",
+    "lint:fix": "eslint --fix",
+    "lint:staged": "lint-staged",
+    "prettier": "prettier",
+    "prettier:filter": "prettier \"**/*.{js,jsx,ts,tsx,json,yaml,yml,graphql,md}\"",
+    "prettier:check": "npm run prettier:filter -- --check",
+    "prettier:write": "npm run prettier:filter -- --write",
+    "validate": "npm-run-all -nlpc --aggregate-output prettier:check lint test",
+    "validate:light": "npm-run-all -nlpc --aggregate-output prettier:check lint",
+    "validate:fix": "npm-run-all -nlsc prettier:write lint:fix",
+    "env:set": "env-cmd --silent -f config.user.env --no-override -- env-cmd -f config.default.env --no-override",
+    "env:print": "npm run env:set -- env",
+    "env:print:npm": "env",
+    "git:commit": "cz",
+    "git:commit:prompt": "commit",
+    "git:hooks:enable": "husky install devops/osdu/husky",
+    "git:hooks:disable": "husky uninstall",
+    "prepare": "husky install devops/osdu/husky",
+    "release:test": "npm run env:set -- npx --no-install semantic-release --no-ci --debug --dry-run",
+    "release": "npm run env:set -- npx --no-install semantic-release --debug",
+    "semantic-release": "semantic-release"
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
+  },
+  "keywords": [
+    "ETP",
+    "RESQML",
+    "Client"
+  ],
+  "author": "Emerson",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client"
+  },
+  "dependencies": {
+    "@nestjs/class-validator": "~0.13.4",
+    "@nestjs/common": "~8.4.0",
+    "@nestjs/core": "~8.4.0",
+    "@nestjs/platform-express": "~8.4.0",
+    "@nestjs/swagger": "~5.2.0",
+    "bunyan": "~1.8.15",
+    "class-transformer": "~0.5.1",
+    "class-validator": "~0.13.2",
+    "events": "~3.3.0",
+    "express": "~4.17.3",
+    "glob": "~7.2.0",
+    "helmet": "~5.0.2",
+    "jsonwebtoken": "~8.5.1",
+    "reflect-metadata": "~0.1.13",
+    "rxjs": "~7.5.5",
+    "sax": "~1.2.4",
+    "swagger-ui-express": "~4.3.0",
+    "ts-morph": "~14.0.0",
+    "uuid": "~8.3.2",
+    "websocket": "~1.0.34",
+    "xml-js": "~1.6.11"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "~16.2.1",
+    "@commitlint/config-conventional": "~16.2.1",
+    "@commitlint/cz-commitlint": "~16.2.1",
+    "@commitlint/prompt": "~16.2.1",
+    "@commitlint/prompt-cli": "~16.2.1",
+    "@semantic-release/changelog": "~6.0.1",
+    "@semantic-release/exec": "~6.0.3",
+    "@semantic-release/git": "~10.0.1",
+    "@semantic-release/gitlab": "~7.0.4",
+    "@semantic-release/npm": "~9.0.1",
+    "@types/bunyan": "~1.8.8",
+    "@types/commander": "~2.12.2",
+    "@types/express": "~4.17.13",
+    "@types/glob": "~7.2.0",
+    "@types/jest": "~27.4.1",
+    "@types/jsonwebtoken": "~8.5.8",
+    "@types/lodash": "~4.14.179",
+    "@types/node": "~14.17.34",
+    "@types/sax": "~1.2.4",
+    "@types/semver": "~7.3.9",
+    "@types/supertest": "~2.0.11",
+    "@types/swagger-ui-express": "~4.1.3",
+    "@types/uuid": "~8.3.4",
+    "@types/validator": "~13.7.1",
+    "@types/websocket": "~1.0.5",
+    "@typescript-eslint/eslint-plugin": "~5.14.0",
+    "@typescript-eslint/parser": "~5.14.0",
+    "commander": "~9.0.0",
+    "commitizen": "~4.2.4",
+    "cpy-cli": "~4.0.0",
+    "doctoc": "~2.1.0",
+    "env-cmd": "~10.1.0",
+    "eslint": "~8.10.0",
+    "eslint-config-prettier": "~8.5.0",
+    "husky": "~7.0.4",
+    "inquirer": "~8.2.1",
+    "jest": "~27.5.1",
+    "jest-junit": "~13.0.0",
+    "lint-staged": "~12.3.5",
+    "npm-run-all": "~4.1.5",
+    "prettier": "~2.5.1",
+    "semantic-release": "~19.0.2",
+    "semver": "~7.3.5",
+    "supertest": "~6.2.2",
+    "ts-jest": "~27.1.3",
+    "ts-node": "~10.4.0",
+    "ts-node-dev": "~1.1.8",
+    "typedoc": "~0.22.13",
+    "typescript": "~4.4.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "globals": {
+      "NODE_ENV": "test",
+      "ts-jest": {
+        "tsconfig": "tsconfig.json",
+        "babelConfig": false,
+        "diagnostics": true
+      }
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist"
+    ],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules",
+      "<rootDir>/dist"
+    ],
+    "testURL": "http://localhost",
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "reporters": [
+      "default",
+      "jest-junit"
+    ],
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/lib/**/*.{ts,tsx}"
+    ],
+    "coverageReporters": [
+      "cobertura",
+      "json",
+      "lcov",
+      "text"
+    ],
+    "coveragePathIgnorePatterns": [
+      "<rootDir>/src/lib/mlTypes/xmlns/",
+      "<rootDir>/src/lib/cxml/spinoffs/",
+      "<rootDir>/src/lib/oDataParser/"
+    ],
+    "testEnvironment": "node"
+  },
+  "engines": {
+    "node": ">=12.16 <18",
+    "npm": ">=6.13 <9"
+  }
+}
