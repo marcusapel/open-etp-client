@@ -1,0 +1,6 @@
+{
+  "*.{js,jsx,ts,tsx}": "eslint",
+  "*.{js,jsx,ts,tsx,json,yaml,yml,md}": "prettier --write",
+  ".prettierrc": "prettier --parser json --write",
+  "README.md": "doctoc README.md"
+}

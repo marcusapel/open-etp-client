@@ -1,0 +1,35 @@
+// ============================================================================
+// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ============================================================================
+
+import * as bunyan from "bunyan";
+
+type LoggerName = "EtpClient";
+
+export default {
+  /**
+   * Get the Logger for the given category
+   * A simple string can be provided as "options", and the logger will have the default attributes,
+   * else the logger can be fully configured with the Bunyan options object
+   *
+   * @param {(string | bunyan.LoggerOptions)} options name of the logger or full logger configuration
+   * @returns Logger
+   */
+  getLogger(options: LoggerName | bunyan.LoggerOptions): any {
+    const opts: bunyan.LoggerOptions =
+      typeof options === "string" ? { name: options } : options;
+    return bunyan.createLogger(opts);
+  }
+};

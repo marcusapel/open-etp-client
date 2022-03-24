@@ -1,0 +1,9 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# The goal of this git hook is to run lint-staged before commiting, to run some checks on the files to commit.
+# This can run prettier to format your files, and eslint to check your code.
+
+# See git hook documentation: https://git-scm.com/docs/githooks#_pre_commit
+
+npx --no-install lint-staged

@@ -1,0 +1,12 @@
+open-etp-client-publish-npm:
+  extends: .skipForTriggeringMergeRequests
+  image: node:latest
+  tags: ["osdu-small"]
+  stage: publish
+  needs: ["rdms_rest_compile-and-unit-test"]
+  script:
+    - echo "@${CI_PROJECT_ROOT_NAMESPACE}:registry=${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/" | tee -a .npmrc
+    - npm install
+    - npm run semantic-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
