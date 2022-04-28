@@ -352,7 +352,7 @@ describe("Resource Graph", () => {
         expect(projects?.filter(r => r.path.includes(path)).length).toBe(0)
       )
       .then(() =>
-        clientWrite.openSession(serverUrl, jwt, undefined, undefined, 100000)
+        clientWrite.openSession(serverUrl, jwt, undefined, undefined, undefined, 100000)
       )
       .then(() => clientWrite.findOrCreateProject(path, path))
       .then(() => client.getProjects())

@@ -65,6 +65,7 @@ import {
   extractToken,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseIntArrayPipe,
   patternString,
   swaggerServers,
@@ -358,14 +359,14 @@ const getObjectDataArrays = async (
       arrays.map(a =>
         a
           ? {
-              uid: a.uid,
-              dimensions: a.dimensions,
-              arrayType: toArrayTypeString(a.logicalArrayType),
-              preferredSubarrayDimensions: a.preferredSubarrayDimensions,
-              storeLastWrite: a.storeLastWrite,
-              storeCreated: a.storeCreated,
-              customData: toJSonCustomData(a.customData)
-            }
+            uid: a.uid,
+            dimensions: a.dimensions,
+            arrayType: toArrayTypeString(a.logicalArrayType),
+            preferredSubarrayDimensions: a.preferredSubarrayDimensions,
+            storeLastWrite: a.storeLastWrite,
+            storeCreated: a.storeCreated,
+            customData: toJSonCustomData(a.customData)
+          }
           : null
       )
     )
@@ -386,7 +387,7 @@ type NumberArray = Int32Array | Float32Array | Float64Array;
 
 function formattedTypedArray<T extends NumberArray>(
   values: number[],
-  t: { new (arr: number[]): T },
+  t: { new(arr: number[]): T },
   format: ArrayFormat
 ): ArrayOutput | undefined {
   if (format === "base64") {
@@ -558,6 +559,7 @@ export const formatQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -640,9 +642,9 @@ export default class DataArrayReadAPI {
       await c.closeSession();
       return d
         ? {
-            ...d,
-            customData: toJSonCustomData(d.customData)
-          }
+          ...d,
+          customData: toJSonCustomData(d.customData)
+        }
         : null;
     } catch (err) {
       throw new InternalServerErrorException(err);

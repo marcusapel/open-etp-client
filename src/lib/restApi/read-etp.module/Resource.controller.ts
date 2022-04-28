@@ -60,9 +60,11 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   findResources,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseDatePipe,
   OptionalParseIntPipe,
   patternString,
@@ -306,7 +308,7 @@ const toJSonResource = (
     targetCount: d.targetCount === null ? undefined : d.targetCount,
     activeStatus:
       d.activeStatus ===
-      Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
+        Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
         ? "Inactive"
         : "Active",
     lastChanged: toDate(d.lastChanged),
@@ -510,6 +512,7 @@ export const depthQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -543,14 +546,14 @@ export default class ResourcesReadAPI {
     @Req() request?: express.Request
   ): Promise<Array<DataspaceDto>> {
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const projects = await c.getProjects();
       const pros = projects
         ? sliceArray<Energistics.Etp.v12.Datatypes.Object.Dataspace>(
-            skip,
-            top,
-            projects
-          ).map(p => toJSonDataspace(p))
+          skip,
+          top,
+          projects
+        ).map(p => toJSonDataspace(p))
         : [];
       await c.closeSession();
       return pros;
