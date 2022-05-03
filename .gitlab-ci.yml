@@ -1,9 +1,10 @@
+# EPAM environment variables for CI/CD
 variables:
   AZURE_REGISTRY: osdumvpcrepmosdwk9cr
   SHA_IMAGE: ${CI_PROJECT_NAME}:${CI_COMMIT_SHA}
   LATEST_IMAGE: ${CI_PROJECT_NAME}:latest
-  AZURE_DEPLOY: "true"
   RDMS_ETP_IMAGE: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main:latest
+  NAMESPACE: reservoir-master
 
 include:
   # pipeline logic
@@ -25,7 +26,7 @@ include:
   - local: "devops/osdu/scanners/lint-node.yml"
 
   # scan for secrets
-  - local: "devops/osdu/scanners/scan-for-secrets-node.yml"
+  #- local: "devops/osdu/scanners/scan-for-secrets-node.yml"
 
   # containerize
   # osdu
@@ -53,6 +54,11 @@ include:
     file: "pipelines/get-vault-secrets.yaml"
   - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
     file: "pipelines/azure-containerize-kaniko.gitlab.yml"
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/azure-aks-deploy-dms.gitlab-ci.yml"
+  # CI approach on cicd-dev
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/ci-merge-dev.gitlab-ci.yml"
 
 azure_containerize:
   stage: containerize
@@ -60,7 +66,7 @@ azure_containerize:
   needs:
     - job: get_azure_epmosdu_env
       artifacts: true
-    - job: rdms_rest_compile-and-unit-test
+    - job: npm_build
       artifacts: true
   variables:
     DOCKERFILE_PATH: $CI_PROJECT_DIR/devops/osdu/docker/Dockerfile.runtime
@@ -70,8 +76,10 @@ azure_containerize:
     AZURE_DOCKER_IMAGE_TAG: $CI_COMMIT_SHORT_SHA
 
 # Removing test stage and part
-rdms_rest_compile-and-unit-test:
-  allow_failure: true
+npm_build:
+  stage: build
+  needs: []
+  image: node:14-alpine
   only:
     changes:
       - devops/**/*
@@ -84,9 +92,15 @@ rdms_rest_compile-and-unit-test:
   script:
     - apk update && apk upgrade && apk add --no-cache python3 && ln -sf python3 /usr/bin/python
     - apk add --update make g++ nodejs npm git
-    - npm ci
+    - npm install
     - npm run build
-    - tar -czvf dist.tgz dist
+    - tar -czf dist.tgz dist node_modules package*
+    - du -sh dist.tgz
   artifacts:
     paths:
       - dist.tgz 
+
+# Spliting test from build
+rdms_rest_compile-and-unit-test:
+  stage: coverage
+  allow_failure: true
