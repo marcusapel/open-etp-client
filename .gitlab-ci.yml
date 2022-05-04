@@ -4,7 +4,9 @@ variables:
   SHA_IMAGE: ${CI_PROJECT_NAME}:${CI_COMMIT_SHA}
   LATEST_IMAGE: ${CI_PROJECT_NAME}:latest
   RDMS_ETP_IMAGE: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main:latest
-  NAMESPACE: reservoir-master
+  #NAMESPACE: reservoir-master
+  DEV_NAMESPACE: reservoir-cicd-dev
+  STABLE_NAMESPACE: reservoir-master
 
 include:
   # pipeline logic
@@ -78,7 +80,6 @@ azure_containerize:
 # Removing test stage and part
 npm_build:
   stage: build
-  needs: []
   image: node:14-alpine
   only:
     changes:
