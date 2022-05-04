@@ -1,0 +1,26 @@
+{{- $namespace := .Release.Namespace }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configMap }}
+  namespace: {{ $namespace }}
+data:
+  # Azure specific
+  CLOUD_PROVIDER: az
+  SERVICE_HOST_PARTITION: http://partition.{{ .Values.coreServicesNamespace | default "osdu-azure" }}/api/partition
+  USE_PARTITION_SERVICE: disabled
+  AZ_LOGGER_LEVEL: INFO
+  RDMS_ETP_PROTOCOL: "ws"
+  RDMS_ETP_HOST: oetp
+  RDMS_ETP_PORT: "9002"
+  RDMS_ETP_PATH: ""
+  # RDMS REST settings
+  {{- with index .Values.configuration 0 }}
+  RDMS_REST_ROOT_PATH: {{ .pathPrefix }}
+  {{- end }}
+  RDMS_REST_MAIN_URL: http://localhost
+  RDMS_REST_PORT: "8003"
+  RDMS_AUTHENTICATION_KEY_BASE: 0000000-0000-0000-0000-000000000000
+  # Secret for ETP connection
+  RDMS_JWT_SECRET: osdu-rddms
+
