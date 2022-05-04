@@ -64,6 +64,7 @@ c2.openSession(
   XmlUtils.createDefaultJWT(),
   undefined,
   undefined,
+  undefined,
   20000000
 )
   .then(() => c2.getProjects())
@@ -115,8 +116,7 @@ c2.openSession(
           })
           .then(() => {
             log(
-              `${uid.pathInResource}: nbValue: ${length}, average : ${
-                length ? average / BigInt(length) : 0
+              `${uid.pathInResource}: nbValue: ${length}, average : ${length ? average / BigInt(length) : 0
               }`
             );
           });
