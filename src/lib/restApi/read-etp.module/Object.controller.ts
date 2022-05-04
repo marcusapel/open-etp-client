@@ -58,6 +58,7 @@ import {
   extractToken,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseBoolPipe,
   patternString,
   sliceArray,
@@ -131,9 +132,9 @@ const sendObjects = async (
         .map(o =>
           o && o.data
             ? byteToString(o.data).replace(
-                `<?xml version="1.0" encoding="UTF-8"?>`,
-                ""
-              )
+              `<?xml version="1.0" encoding="UTF-8"?>`,
+              ""
+            )
             : ""
         )
         .join("");
@@ -276,6 +277,7 @@ const xmlDocPattern = /^<\?xml.+$/;
 
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))

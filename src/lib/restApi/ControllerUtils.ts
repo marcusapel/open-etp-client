@@ -60,9 +60,8 @@ export const routePath = routePathVal;
 const portVal = parseInt(process.env.RDMS_REST_PORT || "8003");
 export const port = portVal;
 
-const swaggerUIUrlVal = `${mainUrl}${
-  port === 80 ? "" : ":" + port
-}${routePath}`;
+const swaggerUIUrlVal = `${mainUrl}${port === 80 ? "" : ":" + port
+  }${routePath}`;
 export const swaggerUIUrl = swaggerUIUrlVal;
 
 export const swaggerServers = [
@@ -178,6 +177,17 @@ export const extractToken = (request?: express.Request): string => {
 };
 
 /**
+ * Extract data-partiton-id value from request
+ *
+ * @param {express.Request} [request]
+ * @returns {string | undefined}
+ */
+export const extractDataPartitionId = (request?: express.Request): string | undefined => {
+  const header: string | undefined = request?.header('data-partition-id');
+  return header;
+};
+
+/**
  * Convert from Regex object to string
  *
  * @param {RegExp} regex
@@ -247,6 +257,27 @@ export const HasBearerGuard: (type?: string | string[]) => CanActivate = (
     }
   };
 };
+
+/**
+ * Check data-partition-id header presence for multipartition mode
+ *
+ * @param {(string | string[])} [type]
+ * @returns
+ */
+export const HasDataPartitonGuard: () => CanActivate = () => {
+  return {
+    canActivate: (context: ExecutionContext) => {
+      if (process.env.RDMS_DATA_PARTITION_MODE === 'single') {
+        return true;
+      } else {
+        const request = context.switchToHttp().getRequest();
+        const dataPartitionIdHeader = extractDataPartitionId(request);
+
+        return !!dataPartitionIdHeader;
+      }
+    }
+  }
+}
 
 /**
  * Pipe to check for boolean arguments when optional
@@ -365,6 +396,7 @@ export const etpServerPort = (): string => serverPort;
  */
 export const createSession = async (
   jwt: string,
+  dataPartitionId?: string,
   options?: IOptions,
   id?: string
 ) => {
@@ -377,7 +409,7 @@ export const createSession = async (
   } else {
     const c = new ResqmlClient(options);
     return c
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, dataPartitionId)
       .then(() => c)
       .catch(err => {
         throw new Error(`Cannot create session with ETP server: ${err}`);
