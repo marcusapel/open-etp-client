@@ -36,6 +36,7 @@ parameters:
   checkoutRepo: self
   cacheVersion: ''
   testAzureMavenCacheOption: ''
+  dockerContext: $(System.DefaultWorkingDirectory)
 
 steps:
   - task: Bash@3
@@ -54,7 +55,7 @@ steps:
         echo "[INFO] BIN_FILE_PATH: $BIN_FILE_PATH"
         echo "##vso[task.setvariable variable=BIN_FILE_PATH;isOutput=true]$BIN_FILE_PATH"
 
-  - template: acr-publish-gcc.yml
+  - template: acr-publish.yml
     parameters:
       environment: ${{ parameters.environment }}
       binFilePath: $(DetectBinScript.BIN_FILE_PATH)
@@ -62,6 +63,7 @@ steps:
       imageRepoName: ${{ parameters.serviceName }}
       artifactName: ${{ parameters.artifactName }}
       dockerFile: ${{ parameters.dockerFile }}
+      dockerContext: ${{ parameters.dockerContext }}
 
   - template: /devops/tasks/aks-deployment-steps.yml@TemplateRepo
     parameters:

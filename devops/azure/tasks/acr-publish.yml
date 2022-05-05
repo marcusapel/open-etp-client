@@ -17,9 +17,10 @@ parameters:
   imageRepoName: ''
   environment: ''
   providerName: ''
-  jarFilePath: ''
+  binFilePath: ''
   artifactName: ''
   dockerFile: ''
+  dockerContext: ''
 
 steps:
   - task: AzureCLI@1
@@ -38,51 +39,31 @@ steps:
         #!/usr/bin/env bash
         set -euo pipefail
 
-        function writeDockerFile() {
-            cat << EOF > Dockerfile
-        FROM ubuntu:21.04 as build
-        ARG DIST_FILE
-        
-        COPY \${DIST_FILE}/dist.tgz /tmp/dist.tgz
-        
-        FROM ubuntu:21.04
-        
-        ARG VERSION=0.1
-        ARG DIST=/source/build/using_docker/dist/
-        
-        LABEL version="\${VERSION}"
-        LABEL vendor="OSDU Reservoir DDMS"
-        LABEL description="Open ETP Server Runtime Image"
-        
-        COPY --from=build /tmp/dist.tgz /tmp/dist.tgz
-        RUN tar -xzvf /tmp/dist.tgz -C /usr/ && rm -rf /tmp/dist.tgz
-        
-        EXPOSE 9002
-        
-        CMD [ "openETPServer", "server", "--start" , "--authN", "none"]
-        EOF
-
-            echo "[INFO] Generated Dockerfile:"
-            cat Dockerfile
-        }
-
         curl -L https://aka.ms/acr/installaad/bash | /bin/bash
         echo "Logging in to the ACR Registry"
         echo "------------------------------------"
         az acr login -n $(CONTAINER_REGISTRY_NAME)
+        ls -l
 
         if [[ ! ${DOCKERFILE} ]]; then
-          writeDockerFile
+          echo "[ERROR] No dockerfile defined"
+          exit 1 
         else
-          cp -v ${{ parameters.artifactName }}/${DOCKERFILE} Dockerfile
+          if ! ls -la ${DOCKERFILE}; then
+            echo "[ERROR] No dockerfile"
+            exit 1
+          fi
         fi
-
+        
         bin_file_name=$(basename $BIN_FILE_PATH)
-        cp -v $BIN_FILE_PATH .
+        cp -v $BIN_FILE_PATH ${{ parameters.dockerContext }}
+
+        pushd ${{ parameters.dockerContext }}
 
         echo "Tagging and Pushing $IMAGE to ACR for BIN $bin_file_name from $BIN_FILE_PATH"
         echo "------------------------------------"
-        docker build --build-arg DIST_FILE=./$bin_file_name -t $IMAGE .
+        docker build --build-arg DIST=./$bin_file_name -t $IMAGE -f ${DOCKERFILE} .
+        popd
 
         docker push $IMAGE
         echo "Show recent tags of repository ${{ parameters.imageRepoName }}"
