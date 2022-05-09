@@ -589,7 +589,7 @@ export default class ResourcesReadAPI {
     @Req() request?: express.Request
   ): Promise<TypeCountDto[] | null> {
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const types = await c.getProjectTypes(
         EtpUri.createDataSpaceUri(params.dataspaceId).uri
       );
@@ -636,7 +636,7 @@ export default class ResourcesReadAPI {
       filter
     };
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -686,7 +686,7 @@ export default class ResourcesReadAPI {
       filter
     };
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -753,7 +753,7 @@ export default class ResourcesReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -820,7 +820,7 @@ export default class ResourcesReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {

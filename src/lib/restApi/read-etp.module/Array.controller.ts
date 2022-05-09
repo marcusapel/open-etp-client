@@ -63,6 +63,7 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   getSchemasForType,
   HasBearerGuard,
   HasDataPartitonGuard,
@@ -326,9 +327,10 @@ process.on("unhandledRejection", (error: Error) => {
 
 const getObjectDataArrays = async (
   uri: string,
-  jwt: string
+  jwt: string,
+  dataPartitionId?: string
 ): Promise<GetObjectDataArraysOutput> => {
-  const c = await createSession(jwt);
+  const c = await createSession(jwt, dataPartitionId);
   const dataArrays = new Map<string, IDataArray>();
   return c
     .getObjectDataArrays(uri, dataArrays)
@@ -602,7 +604,7 @@ export default class DataArrayReadAPI {
       version
     ).uri;
 
-    return getObjectDataArrays(uri, extractToken(request)).catch(
+    return getObjectDataArrays(uri, extractToken(request), extractDataPartitionId(request)).catch(
       (err: Error) => {
         throw new InternalServerErrorException({ description: err.message });
       }
@@ -637,7 +639,7 @@ export default class DataArrayReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const d = await c.getDataArrayMetadata(uri, params.pathInResource);
       await c.closeSession();
       return d
@@ -698,7 +700,7 @@ export default class DataArrayReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const metadata = await c.getDataArrayMetadata(uri, params.pathInResource);
       if (!metadata) {
         throw new InternalServerErrorException({
