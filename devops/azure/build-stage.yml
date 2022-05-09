@@ -4,7 +4,7 @@ parameters:
   - name: checkoutRepo
     default: self
   - name: buildDir
-    default: build
+    default: $(System.DefaultWorkingDirectory)
   - name: copyFileContents
     default: '**dist.tgz**'
   - name: useDockerBuildOnly
@@ -17,98 +17,45 @@ stages:
     variables: 
       artifactName: 'drop'
     jobs:
-      - job: Build_Test_Copy_Publish
-        displayName: Perform Cmake and Ninja Build
-        container:
-          image: ubuntu:21.04
-          options:  "--name ci-container -v /usr/bin/docker:/tmp/docker:ro"
-          env:
-            BOOST_VER: "1.74*"
-            CURL_VER: "7.74*"
-            POSTGRESQL_VER: "13"
-            avro_cpp_build_dir: $(System.DefaultWorkingDirectory)/${{ parameters.buildDir }}
-            AVROCPP_VER: $(avroccp_ver)
-            DEBIAN_FRONTEND: noninteractive
-          volumes:
-            - $(System.DefaultWorkingDirectory)
-          #mountReadVolume:
-          #  tasks: true
-          #  work: true
-          #  externals: true
+      - job: Build_Npm
+        displayName: Npm Build
         pool: 
           vmImage: ubuntu-20.04
         workspace:
           clean: all
-        variables: 
-          avroccp_ver: "1.10.2"
         steps:
           - download: none
           - checkout: ${{ parameters.checkoutRepo }}
             persistCredentials: 'true'
-          - script: |
-                /tmp/docker exec -t -u 0 ci-container \
-                sh -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" -y install sudo"
-            displayName: 'Install Sudo in container (thanks Microsoft!)'
 
-          - task: Cache@2
+          #- task: Cache@2
+          #  inputs:
+          #    key: '${{ parameters.buildDir }} | "$(Agent.OS)"'
+          #    path: $(System.DefaultWorkingDirectory)/${{ parameters.buildDir }}
+          #  displayName: Cache for npm build
+          
+          # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/package/npm?view=azure-devops
+          - task: Npm@1
+            displayName: 'Npm Install'
             inputs:
-              key: '${{ parameters.buildDir }} | "$(Agent.OS)"'
-              path: $(System.DefaultWorkingDirectory)/${{ parameters.buildDir }}
-            displayName: Cache C++ local repo
+              command: install # Required. Command. Default: install
+              workingDir: $(System.DefaultWorkingDirectory) # Working folder that contains package.json. 
+
+          - task: Npm@1
+            displayName: 'Npm Build'
+            inputs:
+              command: custom # Required. Command. Default: install
+              workingDir: $(System.DefaultWorkingDirectory) # Working folder that contains package.json. 
+              customCommand: run build # Required when command = custom. Command and arguments. 
 
           - script: |
-                echo "DEBIAN_FE: ${DEBIAN_FRONTEND}"
-                sudo apt-get update && \
-                    sudo DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -qqq -y --no-install-recommends \
-                    ca-certificates libc6-dev=2.33* gcc=4:10.3* g++=4:10.3* ninja-build=1.10* \
-                    libgomp1=11* cmake=3.* gdb wget libboost-iostreams-dev=${BOOST_VER} libboost-program-options-dev=${BOOST_VER} libsnappy-dev=1.1* \
-                    libboost-filesystem-dev=${BOOST_VER} libboost-regex-dev=${BOOST_VER} libboost-system-dev=${BOOST_VER} \
-                    libboost-thread-dev=${BOOST_VER} libboost-test-dev=${BOOST_VER} libcurl4-openssl-dev=${CURL_VER} \
-                    libhdf5-dev=1.10.6* nlohmann-json3-dev=3.9* libssl-dev=1.1.1* openssl=1.1.1* \
-                    libwebsocketpp-dev=0.8* postgresql-server-dev-${POSTGRESQL_VER} \
-                    gcovr figlet tar gzip &> /dev/null \
-                    && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
-                
-                echo "[INFO] Testing cache dir... Build dir: ${avro_cpp_build_dir}"
-                du -sh ${avro_cpp_build_dir}* || mkdir -p ${avro_cpp_build_dir}
-                
-                pushd "${avro_cpp_build_dir}"
-                wget https://github.com/apache/avro/archive/refs/tags/release-${AVROCPP_VER}.tar.gz -O - | tar -xz
-                mkdir -p "${avro_cpp_build_dir}/avro-release-${AVROCPP_VER}/lang/c++/build"
-                pushd "${avro_cpp_build_dir}/avro-release-${AVROCPP_VER}/lang/c++/build"
-                sudo cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
-                sudo ninja install
-                popd && popd              
-            displayName: 'Build C++ Avro'
-            env:
-              BOOST_VER: "1.74*"
-              CURL_VER: "7.74*"
-              POSTGRESQL_VER: "13"
-              avro_cpp_build_dir: $(System.DefaultWorkingDirectory)/${{ parameters.buildDir }}
-              AVROCPP_VER: $(avroccp_ver)
-              DEBIAN_FRONTEND: noninteractive
-
-          - task: Bash@3
-            displayName: 'Build C++ OpenETPServer'
-            env:
-              BUILD_DIR: $(System.DefaultWorkingDirectory)/${{ parameters.buildDir }}
-            inputs:
-              targetType: 'inline'
-              script: |
-                echo "[INFO] Testing cache dir... Build dir: ${BUILD_DIR}"
-                du -sh ${BUILD_DIR}* || mkdir -p ${BUILD_DIR}
-                pushd ${BUILD_DIR}
-                echo "[INFO] Cleaning up"
-                rm -rf dist tests gcovr
-                du -sh $CI_PROJECT_DIR/build/* || mkdir -p $CI_PROJECT_DIR/build
-                cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE=ON "$(System.DefaultWorkingDirectory)" -DCMAKE_INSTALL_PREFIX="./dist"
-                ninja install "$@"
-                pushd ./dist
-                tar -czvf ${BUILD_DIR}/dist.tgz .
-                popd && popd
+              ls
+              tar -cvzf ${{ parameters.buildDir }}/dist.tgz dist node_modules package*
+              du -sh dist.tgz
+            displayName: 'Packaging dependencies'
 
           - task: CopyFiles@2
-            displayName: 'Copy artifacts for maven deploy to: $(build.artifactstagingdirectory)'
+            displayName: 'Copy artifacts for node deploy to: $(build.artifactstagingdirectory)'
             inputs:
               SourceFolder: ${{ parameters.buildDir }}
               Contents: ${{ parameters.copyFileContents }}

@@ -24,6 +24,9 @@ parameters:
   skipTest: 'false'
   dockerFile: ''
   checkoutRepo: self
+  dockerContext: $(System.DefaultWorkingDirectory)
+  chartPath: ''
+  valuesFile: ''
 
 stages:
 
@@ -50,6 +53,8 @@ stages:
             deploy:
               steps:
               - download: none
+              - checkout: ${{ parameters.checkoutRepo }}
+                persistCredentials: 'true'
 
               - task: DownloadBuildArtifacts@0
                 displayName: 'Pull Build Artifacts'
@@ -71,6 +76,7 @@ stages:
                   chartPath: ${{ parameters.chartPath }}
                   valuesFile: ${{ parameters.valuesFile }}
                   dockerFile: ${{ parameters.dockerFile }}
+                  dockerContext: ${{ parameters.dockerContext }}
                   hldRegPath: ${{ parameters.hldRegPath }}
                   skipDeploy: ${{ parameters.skipDeploy }}
                   skipTest: ${{ parameters.skipTest }}
