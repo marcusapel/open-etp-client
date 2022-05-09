@@ -15,7 +15,7 @@
 {{- $namespace := .Release.Namespace }}
 {{- $pullPolicy := .Values.pullPolicy -}}
 {{- $servicePort := .Values.service.port -}}
-{{- $replicaCount := .Values.replicaCount -}}
+{{- $replicaCount := .Values.global.replicaCount -}}
 {{- $isAutoscalingEnabled := .Values.global.isAutoscalingEnabled}}
 {{- $nodepool := .Values.global.nodepool}}
 {{- $configMap := .Values.configMap -}}
@@ -93,7 +93,9 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
           {{- end }}
+          {{- if or .request .limit }}
           resources:
+          {{- end }}
           {{- if .request }}
             requests:
               cpu: {{ .request.cpu | quote }}
