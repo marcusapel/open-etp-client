@@ -56,6 +56,7 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   getSchemasForType,
   HasBearerGuard,
   HasDataPartitonGuard,
@@ -344,7 +345,7 @@ export default class ObjectsReadAPI {
       res.set("Content-Type", "application/json");
     }
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const b = await sendObjects(
         {},
         c,
