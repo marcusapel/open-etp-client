@@ -43,7 +43,8 @@ import {
   ApiQueryOptions,
   ApiResponseOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiHeader
 } from "@nestjs/swagger";
 
 import {
@@ -512,6 +513,7 @@ export const depthQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
 @UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
