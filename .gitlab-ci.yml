@@ -1,13 +1,3 @@
-# EPAM environment variables for CI/CD
-variables:
-  AZURE_REGISTRY: osdumvpcrepmosdwk9cr
-  SHA_IMAGE: ${CI_PROJECT_NAME}:${CI_COMMIT_SHA}
-  LATEST_IMAGE: ${CI_PROJECT_NAME}:latest
-  RDMS_ETP_IMAGE: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main:latest
-  #NAMESPACE: reservoir-master
-  DEV_NAMESPACE: reservoir-cicd-dev
-  STABLE_NAMESPACE: reservoir-master
-
 include:
   # pipeline logic
   #- project: "osdu/platform/ci-cd-pipelines"
@@ -51,7 +41,7 @@ include:
   # ibm
   # - local: "devops/osdu/cloud-providers/ibm.yml"
 
-### EPAM gitlab ci-cd
+### Internal gitlab ci-cd
   - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
     file: "pipelines/get-vault-secrets.yaml"
   - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
