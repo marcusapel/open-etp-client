@@ -1,8 +1,8 @@
 # Install Reservoir DMS on Azure
 
-## Planning and prerequisites
+## Prerequisites
 
-* Setup Reservoir Open Etp Server, should be up and running
+* Set up [Reservoir Open Etp Server](../../../open-etp-server/). It should be up and running.
 
 ## Install in AKS
 
@@ -20,9 +20,9 @@ helm install reservoir . -f values.yaml -n ${NAMESPACE}
 
 ### Azure DevOps pipeline installation
 
-1. Create and clone repo to your azure devops
-2. Clone and sync community open-etp-client with azure devops repo
-3. Create and launch pipeline.
+1. Create and clone the repo to your Azure DevOps.
+2. Clone and sync community open-etp-client with Azure DevOps repo.
+3. Create and launch the pipeline.
 
 ```bash
 export ADO_PROJECT=<ado-project>
