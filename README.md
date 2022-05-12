@@ -20,6 +20,7 @@
     - [XML JSON Utils](#xml-json-utils)
     - [Rest API](#rest-api)
     - [Examples](#examples)
+  - [Partitioning](#partitioning)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -42,6 +43,8 @@ Then run:
 ```sh
 npm install @osdu/open-etp-client
 ```
+
+[Here](devops/azure/README.md) are the instructions to deploy on Azure.
 
 ## Contributing
 
@@ -66,11 +69,13 @@ npm install @osdu/open-etp-client
    ```
 
 2. Configure
+
    Copy the `config.user.env.sample` file located at the root of the repository to `config.user.env` file.
-   Edit the new file and fill the requested values.
-   Note: this can be used to override default values located in `config.default.env` file.
+   Edit the new file and fill the requested values. Make sure the specified [partition mode](#partitioning) is correct.
+   Note: this can be used to override default values located in `config.default.env` file. 
 
 3. Install / Build
+
    You can use the traditional npm commands to build the package:
    `npm install && npm run build`.
 
@@ -103,15 +108,15 @@ Run tests sequentially and disable coverage:
 npm run test:single pattern1 pattern2 ...
 ```
 
-### Setup a local ETP Server Using docker images
+### Set up a local ETP Server using Docker images
 
-This is a more native way to run rest server using the Docker images we produce in GitLab. It is a Linux server, installation and updates are faster and closer to the real deployment.
+This is a more native way to run the REST server using the Docker images we produce on GitLab. It is a Linux server, and installation and updates are faster and closer to the real deployment.
 
 [See image](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/container_registry)
 
-Once setup, run (or copy paste to terminal):
+Once the server is set up, run (or copy-paste to terminal):
 
-1. `npm run docker:login` one time only to access the ACR
+1. `npm run docker:login` only once to access the ACR
 2. `npm run docker:update` to update to the latest version (download, install)
 3. `npm run docker:compose:start` to run the servers:
    - eml etp12 (aka OpenEtpServer) is available on `localhost:9004`
@@ -120,9 +125,9 @@ Once setup, run (or copy paste to terminal):
 
 ### Linter and prettier
 
-The source code is analysed (see _.eslintrc.json_ file for configuration) with [eslint](https://eslint.org) and formatted with [prettier](https://prettier.io/).
+The source code is analyzed (see _.eslintrc.json_ file for configuration) with [eslint](https://eslint.org) and formatted with [prettier](https://prettier.io/).
 
-The CI rely on those to validate code. Each tool can be run separately:
+The CI relies on those to validate code. Each tool can be run separately:
 
 ```sh
 npm run lint
@@ -142,7 +147,7 @@ Those checks are performed inside the provided git `pre-commit` hook using `lint
 
 ### Validation
 
-A custom script allows you to run in parallel linter, prettier and tests:
+A custom script allows you to run in parallel linter, prettier, and tests:
 
 ```sh
 npm run validate
@@ -192,7 +197,7 @@ In order to discover and get data from a server the following methods are availa
 
 - `getProjects()` to get the list of projects/dataspace available
 - `getProjectTypes()` to get the list of types available in a project
-- `getDataObjects()` to get data objects directly from the messages, it will typically contains the row server message with XML string content.
+- `getDataObjects()` to get data objects directly from the messages, it typically contains the row server message with XML string content.
 - `getObjects()` to get the object resulting from XML translation into javascript, data object references and data array are not resolved
 - `getResolvedObjects()` get the full objects resulting from the XML translation into Javascript, where data object references and data array are resolved and replaced. This may result in very large objects.
 
@@ -238,3 +243,13 @@ Full examples for both graph and direct request chain are available under [src/e
 - [Example1](./src/examples/example1.ts) shows how to get the resource graph or getting the resources individually
 - [ExampleObject](./src/examples/exampleObject.ts) shows the different options to get and check individual RESQML objects
 - [Statistics](./src/examples/exampleStatistics.ts) shows how to compute the statistics of data arrays when working with large projects
+
+## Partitioning
+
+There are two modes of how the ETP client handles partitions. They are the same as [those of the ETP server](../open-etp-server/README.md#partition-modes).
+
+In the **single-partition mode**, the ETP Client deals with a specific partition and does not transmit it to the server.
+
+The **multi-partition mode** allows you to work with several partitions. The ETP Client expects the data partition specified in the `data-partition-id` header in REST requests and transmits the value to the server.
+
+Specify the partition mode in the [config](config.default.env#L34) before building.
