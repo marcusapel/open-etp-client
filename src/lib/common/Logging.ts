@@ -15,8 +15,24 @@
 // ============================================================================
 
 import * as bunyan from "bunyan";
+import { Config } from "../providers/Config"
+import { LoggerFactory } from '../providers/LoggerFactory'
 
 type LoggerName = "EtpClient";
+
+export interface ILogger {
+  debug(data: any): void;
+  info(data: any): void;
+  warning(data: any): void;
+  error(data: any): void;
+}
+
+export abstract class AbstractLogger implements ILogger {
+  public abstract debug(data: any): void;
+  public abstract info(data: any): void;
+  public abstract warning(data: any): void;
+  public abstract error(data: any): void;
+}
 
 export default {
   /**
@@ -28,6 +44,10 @@ export default {
    * @returns Logger
    */
   getLogger(options: LoggerName | bunyan.LoggerOptions): any {
+    if (!!Config.CLOUDPROVIDER) {
+      const CSPLogger = LoggerFactory.resolve(Config.CLOUDPROVIDER);
+      return CSPLogger;
+    }
     const opts: bunyan.LoggerOptions =
       typeof options === "string" ? { name: options } : options;
     return bunyan.createLogger(opts);

@@ -188,6 +188,7 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   constructor(opt?: IOptions) {
+
     this.client.on("log", this.logger.info.bind(this.logger));
     this.client.on("disconnect", this.onSocketDisconnect.bind(this));
     this.client.registerHandler(
