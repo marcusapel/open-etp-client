@@ -107,3 +107,8 @@ configuration:
 #
 annotations:
   commitId: ""
+
+################################################################################
+# If istio enabled
+#
+#istioDnsHost: <your dns host>
