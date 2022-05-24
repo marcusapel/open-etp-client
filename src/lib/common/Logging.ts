@@ -44,8 +44,8 @@ export default {
    * @returns Logger
    */
   getLogger(options: LoggerName | bunyan.LoggerOptions): any {
-    if (!!Config.CLOUDPROVIDER) {
-      const CSPLogger = LoggerFactory.resolve(Config.CLOUDPROVIDER);
+    if (!!Config.CLOUD_PROVIDER) {
+      const CSPLogger = LoggerFactory.resolve(Config.CLOUD_PROVIDER);
       return CSPLogger;
     }
     const opts: bunyan.LoggerOptions =

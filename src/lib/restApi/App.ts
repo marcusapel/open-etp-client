@@ -68,7 +68,7 @@ class ApplicationModule implements NestModule {
 }
 
 export default async function app() {
-  clouds.Config.setCloudProvider(process.env.CLOUDPROVIDER || '');
+  clouds.Config.setCloudProvider(process.env.CLOUD_PROVIDER || '');
   const logger = logging.getLogger("EtpClient");
   const nestApp = await NestFactory.create<NestExpressApplication>(
     ApplicationModule

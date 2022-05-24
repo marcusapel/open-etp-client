@@ -22,15 +22,15 @@ export interface IConfig {
 }
 
 export abstract class Config implements IConfig {
-    public static CLOUDPROVIDER?: string;
+    public static CLOUD_PROVIDER?: string;
 
     public abstract init(): Promise<void>;
 
     public static setCloudProvider(cloudProvider: string | undefined) {
-        Config.CLOUDPROVIDER = cloudProvider;
-        if (!Config.CLOUDPROVIDER) {
+        Config.CLOUD_PROVIDER = cloudProvider;
+        if (!Config.CLOUD_PROVIDER) {
             throw (new Error(
-                'The \"CLOUDPROVIDER\" environment variable has not been set'));
+                'The \"CLOUD_PROVIDER\" environment variable has not been set'));
         }
     }
 }
