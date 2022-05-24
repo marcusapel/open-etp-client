@@ -37,6 +37,6 @@ export abstract class CloudContainer {
             }
         }
 
-        throw Error("Logger has been improperly configured")
+        throw Error("Logger has been improperly configured");
     }
 }

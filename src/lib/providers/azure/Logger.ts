@@ -19,7 +19,6 @@ import { AbstractLogger } from '../../common/Logging';
 import { LoggerFactory } from '../LoggerFactory';
 import { AzureConfig } from './Config';
 import log4js from 'log4js';
-//import * as appinsights from 'applicationinsights';
 
 const getAzureLogger = (): log4js.Logger => {
     log4js.configure({
@@ -39,7 +38,7 @@ const getAzureLogger = (): log4js.Logger => {
 
 @LoggerFactory.register('azure')
 export class Logger extends AbstractLogger {
-    private logger: log4js.Logger
+    private logger: log4js.Logger;
 
     public constructor() {
         super();
