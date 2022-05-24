@@ -15,52 +15,50 @@
 // limitations under the License.
 // ============================================================================
 
-import { AbstractLogger, ILogger } from '../../common/Logging';
-import { AzureConfig } from './Config'
+import { AbstractLogger } from '../../common/Logging';
+import { LoggerFactory } from '../LoggerFactory';
+import { AzureConfig } from './Config';
+import log4js from 'log4js';
 //import * as appinsights from 'applicationinsights';
 
-// } from './Config';
-import { LoggerFactory } from '../LoggerFactory'
+const getAzureLogger = (): log4js.Logger => {
+    log4js.configure({
+        appenders: {
+            out: {
+                type: 'stdout', layout: {
+                    type: 'pattern',
+                    pattern: AzureConfig.AZURE_LOG_FORMAT,
+                }
+            }
+        },
+        categories: { default: { appenders: ['out'], level: AzureConfig.AZURE_LOG_LEVEL } }
+    });
+
+    return log4js.getLogger();
+};
 
 @LoggerFactory.register('azure')
 export class Logger extends AbstractLogger {
+    private logger: log4js.Logger
+
+    public constructor() {
+        super();
+        this.logger = getAzureLogger();
+    }
+
     public debug(data: string): void {
-        console.log(data);
+        this.logger.debug(data);
     }
 
     public info(data: string): void {
-        console.info(data);
-        /*if (!Config.UTEST && AzureConfig.ENABLE_LOGGING_INFO) {
-            if (AzureConfig.AI_INSTRUMENTATION_KEY) {
-                appinsights.defaultClient.trackTrace({ message: JSON.stringify(data) });
-            }
-            // tslint:disable-next-line
-            console.log(data);
-        }*/
+        this.logger.info(data);
     }
 
     public warning(data: string): void {
-        /*if (!Config.UTEST && AzureConfig.ENABLE_LOGGING_ERROR) {
-            if (AzureConfig.AI_INSTRUMENTATION_KEY) {
-                appinsights.defaultClient.trackTrace({ message: JSON.stringify(data) });
-            }
-            // tslint:disable-next-line
-            console.log(data);
-        }*/
-        console.log(data);
+        this.logger.warn(data);
     }
 
     public error(data: string): void {
-        /*if (!Config.UTEST && AzureConfig.ENABLE_LOGGING_ERROR) {
-            if (AzureConfig.AI_INSTRUMENTATION_KEY) {
-                appinsights.defaultClient.trackTrace({ message: JSON.stringify(data) });
-            }
-            // tslint:disable-next-line
-            console.log(data);
-        }*/
-        console.log(data);
+        this.logger.error(data);
     }
 }
-
-
-//  LoggerFactory.build(Config.CLOUDPROVIDER).error(JSON.stringify(error));
