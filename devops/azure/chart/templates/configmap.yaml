@@ -6,10 +6,8 @@ metadata:
   namespace: {{ $namespace }}
 data:
   # Azure specific
-  CLOUD_PROVIDER: az
-  SERVICE_HOST_PARTITION: http://partition.{{ .Values.coreServicesNamespace | default "osdu-azure" }}/api/partition
-  USE_PARTITION_SERVICE: disabled
-  AZ_LOGGER_LEVEL: INFO
+  CLOUD_PROVIDER: azure
+  AZURE_LOG_LEVEL: INFO
   RDMS_ETP_PROTOCOL: "ws"
   RDMS_ETP_HOST: oetp
   RDMS_ETP_PORT: "9002"
