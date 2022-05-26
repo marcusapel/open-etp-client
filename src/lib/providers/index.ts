@@ -15,5 +15,5 @@
 // limitations under the License.
 // ============================================================================
 
-export { Config } from './Config';
+export { Config, ConfigFactory } from './Config';
 export * as azure from './azure';

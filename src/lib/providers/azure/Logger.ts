@@ -20,7 +20,7 @@ import { LoggerFactory } from '../LoggerFactory';
 import { AzureConfig } from './Config';
 import log4js from 'log4js';
 
-const getAzureLogger = (): log4js.Logger => {
+export const getAzureLogger = (): log4js.Logger => {
     log4js.configure({
         appenders: {
             out: {

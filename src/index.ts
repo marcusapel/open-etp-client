@@ -15,4 +15,4 @@
 // ============================================================================
 
 export * from "./lib/client/ResqmlClient";
-export * from "./lib/providers/providers"
+export * from "./lib/providers";

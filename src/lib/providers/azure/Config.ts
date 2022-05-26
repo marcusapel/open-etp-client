@@ -15,8 +15,9 @@
 // limitations under the License.
 // ============================================================================
 
-import { Config } from "../Config";
+import { Config, ConfigFactory } from "../Config";
 
+@ConfigFactory.register('azure')
 export class AzureConfig extends Config {
     public static AZURE_LOG_LEVEL: string = 'debug';
     public static AZURE_LOG_FORMAT: string = '[%d{yyy-MM-dd hh:mm:ss}] %p: %m%n';

@@ -22,11 +22,11 @@ export interface IConfig {
 }
 
 export abstract class Config implements IConfig {
-    public static CLOUD_PROVIDER?: string;
+    public static CLOUD_PROVIDER: string;
 
     public abstract init(): Promise<void>;
 
-    public static setCloudProvider(cloudProvider: string | undefined) {
+    public static setCloudProvider(cloudProvider: string) {
         Config.CLOUD_PROVIDER = cloudProvider;
         if (!Config.CLOUD_PROVIDER) {
             throw (new Error(
@@ -37,6 +37,6 @@ export abstract class Config implements IConfig {
 
 export class ConfigFactory extends CloudContainer {
     public static build(itemKey: string, args: { [key: string]: any; } = {}): IConfig {
-        return CloudContainer.resolve(itemKey, args) as IConfig;
+        return CloudContainer.resolve(itemKey, Config, args) as IConfig;
     }
 }
