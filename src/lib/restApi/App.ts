@@ -31,9 +31,8 @@ import helmet from "helmet";
 
 import { bigIntToString } from "../mlTypes/XmlJsonUtil";
 
+import * as clouds from "../providers";
 import logging from "../common/Logging";
-
-const logger = logging.getLogger("EtpClient");
 
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
@@ -69,6 +68,12 @@ class ApplicationModule implements NestModule {
 }
 
 export default async function app() {
+  clouds.Config.setCloudProvider(process.env.CLOUD_PROVIDER || '');
+  await clouds.ConfigFactory.build(clouds.Config.CLOUD_PROVIDER).init();
+
+  const logger = logging.getLogger("EtpClient");
+  logger.info(`- Initializing ${clouds.Config.CLOUD_PROVIDER} configurations`);
+
   const nestApp = await NestFactory.create<NestExpressApplication>(
     ApplicationModule
   );
@@ -81,7 +86,7 @@ export default async function app() {
     })
   );
 
-  logger.info(`Swagger running on ${swaggerUIUrl}`);
+  logger.info(`- Swagger running on ${swaggerUIUrl}`);
 
   // allows for NestJS's auto documentation feature to be used
   const config = new DocumentBuilder()

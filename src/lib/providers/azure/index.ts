@@ -1,5 +1,6 @@
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2022, EPAM Systems
+// Copyright 2022, Microsoft
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,5 +15,4 @@
 // limitations under the License.
 // ============================================================================
 
-export * from "./lib/client/ResqmlClient";
-export * from "./lib/providers";
+export { Logger as AzureLogger } from './Logger';
