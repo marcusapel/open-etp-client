@@ -5,7 +5,9 @@ rdms_rest_compile-and-unit-test:
   artifacts:
     reports:
       junit: junit.xml
-      cobertura: coverage/cobertura-coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
     paths:
       - coverage/
       - dist.tgz
