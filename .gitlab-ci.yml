@@ -1,6 +1,7 @@
 include:
   # pipeline logic
-  - project: "osdu/platform/ci-cd-pipelines"
+  #- project: "osdu/platform/ci-cd-pipelines"
+  - project: "togp-boot/platform/ci-cd-pipelines"
     file: "standard-setup.yml"
 
   # global
@@ -11,23 +12,24 @@ include:
 
   # scan
   # fossa
-  - local: "devops/osdu/scanners/fossa-node.yml"
+  #- local: "devops/osdu/scanners/fossa-node.yml"
 
   # lint
   - local: "devops/osdu/scanners/lint-node.yml"
 
   # scan for secrets
-  - local: "devops/osdu/scanners/scan-for-secrets-node.yml"
+  #- local: "devops/osdu/scanners/scan-for-secrets-node.yml"
 
   # containerize
   # osdu
-  - local: "devops/osdu/containerize/osdu.yml"
+  #- local: "devops/osdu/containerize/osdu.yml"
 
   # npm publish
   - local: "devops/osdu/publish/publish-npm.yml"
 
   # deploy
   # azure
+  # Comment at first to only run build image.
   # - local: "devops/osdu/cloud-providers/azure.yml"
 
   # aws
@@ -38,3 +40,58 @@ include:
 
   # ibm
   # - local: "devops/osdu/cloud-providers/ibm.yml"
+
+### Internal gitlab ci-cd
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/get-vault-secrets.yaml"
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/azure-containerize-kaniko.gitlab.yml"
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/azure-aks-deploy-dms.gitlab-ci.yml"
+  # CI approach on cicd-dev
+  - project: "togp-boot/osdu-devops/epam-osdu-infra-automation"
+    file: "pipelines/ci-merge-dev.gitlab-ci.yml"
+
+azure_containerize:
+  stage: containerize
+  extends: [ .acr_push ]
+  needs:
+    - job: get_azure_epmosdu_env
+      artifacts: true
+    - job: npm_build
+      artifacts: true
+  variables:
+    DOCKERFILE_PATH: $CI_PROJECT_DIR/devops/osdu/docker/Dockerfile.runtime
+    DOCKERFILE_CONTEXT: $CI_PROJECT_DIR
+    AZURE_ACR: $AZURE_REGISTRY.azurecr.io
+    AZURE_DOCKER_IMAGE_NAME: $CI_PROJECT_NAME
+    AZURE_DOCKER_IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# Removing test stage and part
+npm_build:
+  stage: build
+  image: node:14-alpine
+  only:
+    changes:
+      - devops/**/*
+      - src/**/*
+      - .gitlab-ci.yml
+    refs:
+      - branches
+      - main
+      - merge_requests
+  script:
+    - apk update && apk upgrade && apk add --no-cache python3 && ln -sf python3 /usr/bin/python
+    - apk add --update make g++ nodejs npm git
+    - npm install
+    - npm run build
+    - tar -czf dist.tgz dist node_modules package*
+    - du -sh dist.tgz
+  artifacts:
+    paths:
+      - dist.tgz 
+
+# Spliting test from build
+rdms_rest_compile-and-unit-test:
+  stage: coverage
+  allow_failure: true

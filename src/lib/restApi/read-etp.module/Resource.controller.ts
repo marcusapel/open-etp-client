@@ -43,7 +43,8 @@ import {
   ApiQueryOptions,
   ApiResponseOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiHeader
 } from "@nestjs/swagger";
 
 import {
@@ -60,9 +61,11 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   findResources,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseDatePipe,
   OptionalParseIntPipe,
   patternString,
@@ -306,7 +309,7 @@ const toJSonResource = (
     targetCount: d.targetCount === null ? undefined : d.targetCount,
     activeStatus:
       d.activeStatus ===
-      Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
+        Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
         ? "Inactive"
         : "Active",
     lastChanged: toDate(d.lastChanged),
@@ -510,6 +513,8 @@ export const depthQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -543,14 +548,14 @@ export default class ResourcesReadAPI {
     @Req() request?: express.Request
   ): Promise<Array<DataspaceDto>> {
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const projects = await c.getProjects();
       const pros = projects
         ? sliceArray<Energistics.Etp.v12.Datatypes.Object.Dataspace>(
-            skip,
-            top,
-            projects
-          ).map(p => toJSonDataspace(p))
+          skip,
+          top,
+          projects
+        ).map(p => toJSonDataspace(p))
         : [];
       await c.closeSession();
       return pros;
@@ -586,7 +591,7 @@ export default class ResourcesReadAPI {
     @Req() request?: express.Request
   ): Promise<TypeCountDto[] | null> {
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const types = await c.getProjectTypes(
         EtpUri.createDataSpaceUri(params.dataspaceId).uri
       );
@@ -633,7 +638,7 @@ export default class ResourcesReadAPI {
       filter
     };
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -683,7 +688,7 @@ export default class ResourcesReadAPI {
       filter
     };
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -750,7 +755,7 @@ export default class ResourcesReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {
@@ -817,7 +822,7 @@ export default class ResourcesReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const resources = await findResources(
         c,
         {

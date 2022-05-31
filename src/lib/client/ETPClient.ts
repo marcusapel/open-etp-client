@@ -28,6 +28,7 @@ const PROTOCOL = Energistics.Etp.v12.Datatypes.Protocol;
 
 export interface IClientConfig extends WebSocket.IConfig {
   url: string;
+  dataPartitionId?: string;
   clientId?: string;
   encoding: "binary" | "json";
   authentication: string;
@@ -66,16 +67,16 @@ export class ETPClient extends ETPCore {
       ? config.maxReceivedMessageSize
       : 0;
 
-    const headers = config.clientId
+    let headers: { [key: string]: string } = config.clientId
       ? {
-          Authorization: config.authentication,
-          "client-id": config.clientId,
-          "etp-encoding": encoding
-        }
+        Authorization: config.authentication,
+        "client-id": config.clientId,
+        "etp-encoding": encoding
+      }
       : {
-          Authorization: config.authentication,
-          "etp-encoding": encoding
-        };
+        Authorization: config.authentication,
+        "etp-encoding": encoding
+      };
 
     if (config.noHeaders) {
       this.host = `${this.host}?etp-encoding=${encoding}`;
@@ -84,6 +85,13 @@ export class ETPClient extends ETPCore {
       }
       if (headers.Authorization) {
         this.host = `${this.host}&Authorization=${headers.Authorization}`;
+      }
+      if (config.dataPartitionId) {
+        this.host = `${this.host}&data-partition-id=${config.dataPartitionId}`;
+      }
+    } else {
+      if (config.dataPartitionId) {
+        headers['data-partition-id'] = config.dataPartitionId;
       }
     }
 
@@ -150,8 +158,7 @@ export class ETPClient extends ETPCore {
     messageBody: Energistics.Etp.v12.Protocol.Core.OpenSession
   ) {
     this.log(
-      `Opened Session ${stringifyUuid(messageBody.serverInstanceId)} with ${
-        this.host
+      `Opened Session ${stringifyUuid(messageBody.serverInstanceId)} with ${this.host
       }`
     );
     this.sessionId = messageBody.serverInstanceId;
@@ -236,8 +243,8 @@ export class ETPClient extends ETPCore {
         );
         message = header
           ? reader.readDatum(
-              this.schemaCache.find(header.protocol, header.messageType)
-            )
+            this.schemaCache.find(header.protocol, header.messageType)
+          )
           : null;
       }
     } else {

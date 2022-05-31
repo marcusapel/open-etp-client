@@ -38,7 +38,8 @@ import {
   ApiQuery,
   ApiQueryOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiHeader
 } from "@nestjs/swagger";
 
 import {
@@ -56,8 +57,10 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseBoolPipe,
   patternString,
   sliceArray,
@@ -131,9 +134,9 @@ const sendObjects = async (
         .map(o =>
           o && o.data
             ? byteToString(o.data).replace(
-                `<?xml version="1.0" encoding="UTF-8"?>`,
-                ""
-              )
+              `<?xml version="1.0" encoding="UTF-8"?>`,
+              ""
+            )
             : ""
         )
         .join("");
@@ -276,6 +279,8 @@ const xmlDocPattern = /^<\?xml.+$/;
 
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -342,7 +347,7 @@ export default class ObjectsReadAPI {
       res.set("Content-Type", "application/json");
     }
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const b = await sendObjects(
         {},
         c,
