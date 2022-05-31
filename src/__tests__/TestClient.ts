@@ -35,10 +35,15 @@ import type {
 
 import * as controlUtils from "../lib/restApi/ControllerUtils";
 
+import logging from "../lib/common/Logging";
+
 export const serverProtocol = process.env.RDMS_ETP_PROTOCOL || "ws";
 export const serverHost = process.env.RDMS_ETP_HOST || "localhost";
 export const serverPath = process.env.RDMS_ETP_PATH || "";
 export const serverPort = process.env.RDMS_ETP_PORT || "9004";
+
+export const dataPatitionMode = process.env.RDMS_DATA_PARTITION_MODE || "single";
+export const testDataPartitionId = process.env.RDMS_TEST_DATA_PARTITION_ID;
 
 const routePath = controlUtils.routePath;
 
@@ -50,7 +55,6 @@ const failOnUnexpectedError = (err: Error) => {
   expect(err).toBeFalsy();
 };
 
-import * as bunyan from "bunyan";
 import { execSync } from "child_process";
 import http from "http";
 
@@ -58,7 +62,16 @@ function sleep(milliseconds: number) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-const logger = bunyan.createLogger({ name: "Jest" });
+const logger = logging.getLogger("EtpClient");
+
+describe("Valid data partition", () => {
+  it("Non empty parameters", () => {
+    expect(dataPatitionMode).not.toBeFalsy();
+    if (dataPatitionMode === "multipartition") {
+      expect(testDataPartitionId).not.toBeFalsy();
+    }
+  });
+});
 
 describe("Valid url components", () => {
   it("Non empty parameters", () => {
@@ -186,7 +199,7 @@ describe("Ping", () => {
     const c2 = new ResqmlClient();
     c2.setCallsTraceability(false);
     await c2
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(() => c2.ping())
       .then(res => expect(res).not.toBeNull())
       .then(() => c2.closeSession());
@@ -257,7 +270,7 @@ describe("Resource Graph", () => {
 
   it("Projects", done => {
     client.setCallsTraceability(true);
-    client.openSession(serverUrl, jwt).then(() =>
+    client.openSession(serverUrl, jwt, testDataPartitionId).then(() =>
       client.getProjects().then(projects => {
         expect(client.isConnected()).toBe(true);
         expect(projects).not.toBeNull();
@@ -273,7 +286,7 @@ describe("Resource Graph", () => {
   });
 
   it("Wrong Projects Error", done => {
-    client.openSession(serverUrl, jwt).then(async () => {
+    client.openSession(serverUrl, jwt, testDataPartitionId).then(async () => {
       const wrongUrl = `eml:///dataspace('${wrongDataspace}')`;
       let hasError = false;
       try {
@@ -289,7 +302,7 @@ describe("Resource Graph", () => {
 
   it("Put and delete Obj", done => {
     client
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(async () => client.getProjects())
       .then(async projects => {
         if (projects) {
@@ -346,13 +359,13 @@ describe("Resource Graph", () => {
     const uri = EtpUri.createDataSpaceUri(path);
     const clientWrite = new ResqmlClient();
     client
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(() => client.getProjects())
       .then(projects =>
         expect(projects?.filter(r => r.path.includes(path)).length).toBe(0)
       )
       .then(() =>
-        clientWrite.openSession(serverUrl, jwt, undefined, undefined, undefined, 100000)
+        clientWrite.openSession(serverUrl, jwt, testDataPartitionId, undefined, undefined, 100000)
       )
       .then(() => clientWrite.findOrCreateProject(path, path))
       .then(() => client.getProjects())
@@ -408,7 +421,7 @@ describe("Resource Graph", () => {
   });
 
   it("Create Array Transaction", done => {
-    client.openSession(serverUrl, jwt).then(() =>
+    client.openSession(serverUrl, jwt, testDataPartitionId).then(() =>
       client.getProjects().then(async projects => {
         expect(client.isConnected()).toBe(true);
         expect(projects).not.toBeNull();
@@ -514,7 +527,7 @@ describe("Resource Graph", () => {
 
   it("Subscribe Notification fails", done => {
     client
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(async () => client.getProjects())
       .then(projects =>
         client.subscribeNotifications(projects ? projects[0].uri : "")
@@ -532,7 +545,7 @@ describe("Resource Graph", () => {
     const uri = EtpUri.createDataSpaceUri("test/toDeleteWrong");
     let nbProjects = 0;
     client
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(async () => client.getProjects())
       .then(projects => (nbProjects = projects?.length || 0))
       .then(() => client.deleteProjects([uri.uri]))
@@ -544,7 +557,7 @@ describe("Resource Graph", () => {
   });
 
   it("Find Project From itself", done => {
-    client.openSession(serverUrl, jwt).then(async () =>
+    client.openSession(serverUrl, jwt, testDataPartitionId).then(async () =>
       client.getProjects().then((projects: Dataspace[] | null) => {
         expect(projects).not.toBeNull();
         if (projects) {
@@ -568,7 +581,7 @@ describe("Objects", () => {
       resolveArrayMetadata: true,
       resolveReference: true
     });
-    await client.openSession(serverUrl, jwt);
+    await client.openSession(serverUrl, jwt, testDataPartitionId);
     try {
       const projects = await client.getProjects();
       if (!projects) {
@@ -581,8 +594,8 @@ describe("Objects", () => {
         expect(false);
         return;
       }
-      const testProjectUri = testProject?.uri;
 
+      const testProjectUri = testProject?.uri;
       const t = await client.getProjectTypes(testProjectUri);
       expect(t.length).toBe(14);
 
@@ -653,7 +666,7 @@ describe("Objects", () => {
     const client = new ResqmlClient(options);
 
     try {
-      await client.openSession(serverUrl, jwt);
+      await client.openSession(serverUrl, jwt, testDataPartitionId);
       const projects = await client.getProjects();
       if (!projects) {
         expect(false);
@@ -720,7 +733,7 @@ describe("Objects", () => {
     };
     const client = new ResqmlClient(options);
 
-    await client.openSession(serverUrl, jwt);
+    await client.openSession(serverUrl, jwt, testDataPartitionId);
     const projects = await client.getProjects();
     if (!projects) {
       expect(false);
@@ -877,7 +890,7 @@ describe("Rest API", () => {
       top: 4
     };
     const res = await c
-      .openSession(serverUrl, jwt)
+      .openSession(serverUrl, jwt, testDataPartitionId)
       .then(() => c.getProjects())
       .then(
         ps =>
