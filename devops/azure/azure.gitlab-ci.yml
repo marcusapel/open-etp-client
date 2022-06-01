@@ -46,7 +46,7 @@ azure_deploy:
   script:
     # Install Service
     - >-
-      helm upgrade -i osdu-gitlab-$CI_PROJECT_NAME devops/azure/chart/ 
+      helm upgrade -i osdu-gitlab-$CI_PROJECT_NAME devops/azure/chart/ -f devops/azure/chart/values.yaml 
       --set ingress.hosts.host=${AZURE_DNS_NAME}
       --set configuration[0].repository=${AZURE_REGISTRY}.azurecr.io/${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}
       --set configuration[0].tag=${CI_COMMIT_SHA}
