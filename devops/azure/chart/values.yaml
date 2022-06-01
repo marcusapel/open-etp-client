@@ -46,7 +46,7 @@ ingress:
 
   
   # Disabling tls as fow now (Not supported by openetp client).
-  tlsSecret: osdu-certificate-appgw
+  tlsSecret: osdu-certificate
   hosts:
     host: <ingress_dns>
 
@@ -85,7 +85,7 @@ configuration:
     repository: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/open-etp-client-main
     tag: latest
     keyvault: true
-    pathPrefix: /oetp/client/oetp
+    pathPrefix: /api/oetp-client/v1
     auth:
       disable:
         - "/"
