@@ -57,9 +57,8 @@ azure_deploy:
     - kubectl get -n osdu deployment.v1.apps/osdu-gitlab-$CI_PROJECT_NAME-oetp-client || echo "[WARN] Not able to get deploy"
     - kubectl get ingress -n osdu osdu-gitlab-${CI_PROJECT_NAME}-ingress || echo "[WARN] Not able to get ingress"
     - kubectl get pods -n osdu | grep ${CI_PROJECT_NAME}
-    - for PP in $(kubectl get pod -n osdu | grep $CI_PROJECT_NAME | awk '{print $1}'); do kubectl -n osdu describe pod ${PP}; done
-    - kubectl get cm -n osdu && kubectl get secret -n osdu || echo "[WARN] Not able to get cm nor secrets"
     - status=$(kubectl wait -n osdu --for=condition=Ready pod/$pod --timeout=300s)
+    - for PP in $(kubectl get pod -n osdu | grep $CI_PROJECT_NAME | awk '{print $1}'); do kubectl -n osdu describe pod ${PP}; kubectl logs pod/${PP} -n osdu -c oetp-client; done
     - if [[ "$status" != *"met"* ]]; then echo "POD didn't start correctly" ; exit 1 ; fi
 
 azure_test_py:
