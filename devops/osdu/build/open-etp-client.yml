@@ -17,7 +17,7 @@ rdms_rest_compile-and-unit-test:
     - apk add --update make g++ nodejs npm git
     - npm ci
     - npm run build
-    - tar -czvf dist.tgz dist
+    - tar -czvf dist.tgz dist node_modules package*
     - echo "Setting up for OpenETPServer in docker compose"
     - echo "Give rights to postgres user to run init script:"
     - chmod o+rwx -R devops/scripts/init-db
