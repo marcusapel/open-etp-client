@@ -39,8 +39,7 @@ azure_code_coverage:
   before_script:
     - ""
   script:
-    - echo "TODO"
-
+    - echo "TODO FOR AZURE"
 
 azure_deploy:
   script:
@@ -56,9 +55,8 @@ azure_deploy:
     - kubectl rollout status deployment.v1.apps/osdu-gitlab-$CI_PROJECT_NAME-oetp-client -n osdu --timeout=200s || echo "[WARN] No success deploy"
     - kubectl get -n osdu deployment.v1.apps/osdu-gitlab-$CI_PROJECT_NAME-oetp-client || echo "[WARN] Not able to get deploy"    
     - kubectl get pods -n osdu | grep ${CI_PROJECT_NAME}
-    - for PP in $(kubectl get pod -n osdu | grep $CI_PROJECT_NAME | awk '{print $1}'); do kubectl -n osdu describe pod ${PP}; kubectl logs pod/${PP} -n osdu -c oetp-client; done
+    - for PP in $(kubectl get pod -n osdu | grep $CI_PROJECT_NAME | awk '{print $1}'); do kubectl -n osdu describe pod ${PP} | grep Events -A20; kubectl logs pod/${PP} -n osdu -c oetp-client --tail 20; done
     - kubectl get ingress -n osdu osdu-gitlab-${CI_PROJECT_NAME}-ingress || echo "[WARN] Not able to get ingress"
-    - pod=$(kubectl get pod -n osdu|grep $CI_PROJECT_NAME |tail -1 |awk '{print $1}')
     - status=$(kubectl wait -n osdu --for=condition=Ready pod/$pod --timeout=300s)
     - if [[ "$status" != *"met"* ]]; then echo "POD didn't start correctly" ; exit 1 ; fi
 
