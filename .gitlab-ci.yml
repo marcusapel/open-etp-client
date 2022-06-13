@@ -28,7 +28,8 @@ include:
 
   # deploy
   # azure
-  # - local: "devops/osdu/cloud-providers/azure.yml"
+  # Comment at first to only run build image.
+  - local: "devops/azure/azure.gitlab-ci.yml"
 
   # aws
   # - local: "devops/osdu/cloud-providers/aws.yml"

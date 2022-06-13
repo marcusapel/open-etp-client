@@ -32,6 +32,7 @@ import {
   ApiBearerAuth,
   ApiDefaultResponse,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiInternalServerErrorResponse,
   ApiNotAcceptableResponse,
   ApiNotFoundResponse,
@@ -63,8 +64,10 @@ import {
   createSession,
   errorMessageSchema,
   extractToken,
+  extractDataPartitionId,
   getSchemasForType,
   HasBearerGuard,
+  HasDataPartitonGuard,
   OptionalParseIntArrayPipe,
   patternString,
   swaggerServers,
@@ -325,9 +328,10 @@ process.on("unhandledRejection", (error: Error) => {
 
 const getObjectDataArrays = async (
   uri: string,
-  jwt: string
+  jwt: string,
+  dataPartitionId?: string
 ): Promise<GetObjectDataArraysOutput> => {
-  const c = await createSession(jwt);
+  const c = await createSession(jwt, dataPartitionId);
   const dataArrays = new Map<string, IDataArray>();
   return c
     .getObjectDataArrays(uri, dataArrays)
@@ -358,14 +362,14 @@ const getObjectDataArrays = async (
       arrays.map(a =>
         a
           ? {
-              uid: a.uid,
-              dimensions: a.dimensions,
-              arrayType: toArrayTypeString(a.logicalArrayType),
-              preferredSubarrayDimensions: a.preferredSubarrayDimensions,
-              storeLastWrite: a.storeLastWrite,
-              storeCreated: a.storeCreated,
-              customData: toJSonCustomData(a.customData)
-            }
+            uid: a.uid,
+            dimensions: a.dimensions,
+            arrayType: toArrayTypeString(a.logicalArrayType),
+            preferredSubarrayDimensions: a.preferredSubarrayDimensions,
+            storeLastWrite: a.storeLastWrite,
+            storeCreated: a.storeCreated,
+            customData: toJSonCustomData(a.customData)
+          }
           : null
       )
     )
@@ -386,7 +390,7 @@ type NumberArray = Int32Array | Float32Array | Float64Array;
 
 function formattedTypedArray<T extends NumberArray>(
   values: number[],
-  t: { new (arr: number[]): T },
+  t: { new(arr: number[]): T },
   format: ArrayFormat
 ): ArrayOutput | undefined {
   if (format === "base64") {
@@ -558,6 +562,8 @@ export const formatQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
+@UseGuards(HasDataPartitonGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -600,7 +606,7 @@ export default class DataArrayReadAPI {
       version
     ).uri;
 
-    return getObjectDataArrays(uri, extractToken(request)).catch(
+    return getObjectDataArrays(uri, extractToken(request), extractDataPartitionId(request)).catch(
       (err: Error) => {
         throw new InternalServerErrorException({ description: err.message });
       }
@@ -635,14 +641,14 @@ export default class DataArrayReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const d = await c.getDataArrayMetadata(uri, params.pathInResource);
       await c.closeSession();
       return d
         ? {
-            ...d,
-            customData: toJSonCustomData(d.customData)
-          }
+          ...d,
+          customData: toJSonCustomData(d.customData)
+        }
         : null;
     } catch (err) {
       throw new InternalServerErrorException(err);
@@ -696,7 +702,7 @@ export default class DataArrayReadAPI {
       version
     ).uri;
     try {
-      const c = await createSession(extractToken(request));
+      const c = await createSession(extractToken(request), extractDataPartitionId(request));
       const metadata = await c.getDataArrayMetadata(uri, params.pathInResource);
       if (!metadata) {
         throw new InternalServerErrorException({

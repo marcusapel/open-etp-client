@@ -1,5 +1,6 @@
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2022, EPAM Systems
+// Copyright 2022, Microsoft
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,5 +15,24 @@
 // limitations under the License.
 // ============================================================================
 
-export * from "./lib/client/ResqmlClient";
-export * from "./lib/providers";
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+
+import MetricsProvider from './Metrics.provider';
+
+@Injectable()
+export default class ResponseCounterMiddleware implements NestMiddleware {
+  constructor(private metricsProvider: MetricsProvider) { }
+
+  use(req: Request, _res: Response, next: NextFunction) {
+    this.metricsProvider.registerCounterMetric(
+      'http_request_counter',
+      'Calculate each http req',
+      ['route']
+    )
+      .labels(req.originalUrl)
+      .inc();
+
+    next();
+  }
+}
