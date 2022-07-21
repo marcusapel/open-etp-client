@@ -32,6 +32,7 @@ services:
       driver: json-file
     environment:
       - POSTGRESQL_CONN_STRING=host=etp-client-postgresql port=5432 dbname=openetp user=tester password=tester
+      - RDMS_DATA_PARTITION_MODE=single
     command: >
       bash -c "
         sleep 5 &&
