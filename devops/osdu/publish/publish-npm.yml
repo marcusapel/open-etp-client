@@ -1,6 +1,6 @@
 open-etp-client-publish-npm:
   extends: .skipForTriggeringMergeRequests
-  image: node:17.9.1-slim
+  image: node:17.9.1
   tags: ["osdu-small"]
   stage: publish
   needs: ["rdms_rest_compile-and-unit-test"]
