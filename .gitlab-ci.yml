@@ -23,9 +23,6 @@ include:
   # osdu
   - local: "devops/osdu/containerize/osdu.yml"
 
-  # npm publish
-  - local: "devops/osdu/publish/publish-npm.yml"
-
   # deploy
   # azure
   # Comment at first to only run build image.
