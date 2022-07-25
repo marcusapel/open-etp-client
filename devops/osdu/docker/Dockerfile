@@ -1,4 +1,4 @@
-FROM node:14-alpine AS BASE
+FROM node:16-alpine AS BASE
 
 ENV NODE_ENV=production
 
@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --quiet
 
 ###############################################################################
-FROM node:14-alpine
+FROM node:16-alpine
 
 # env
 ENV NODE_ENV=production
