@@ -33,8 +33,10 @@ export default class ExceptionCounterFilter extends BaseExceptionFilter {
     if (exception instanceof HttpException) {
       const ctx = host.switchToHttp();
       const req = ctx.getRequest<Request>();
+      const reqPathname = req.originalUrl.split('?')[0];
+
       errorLabels.push('http_exception');
-      errorLabels.push(req.route.path);
+      errorLabels.push(reqPathname);
     } else {
       errorLabels.push('unknown_exception');
       errorLabels.push('');
