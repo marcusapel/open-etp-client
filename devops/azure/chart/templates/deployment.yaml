@@ -66,6 +66,10 @@ spec:
           image: {{ .repository }}:{{ .tag | default $version }}
           {{- end }}
           imagePullPolicy: {{ $pullPolicy | default "Always" }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep","90"]
           #command: [ "node", "dist/src/lib/restApi/RestServer.js"]
           ports:
             - name: oetp
@@ -140,6 +144,7 @@ spec:
               {{- end }}
             {{- end }}
           {{- end }}
+      terminationGracePeriodSeconds: 101
 
 ---
 {{- end }}

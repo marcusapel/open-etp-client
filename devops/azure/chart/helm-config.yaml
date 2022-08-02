@@ -16,7 +16,7 @@
 # WARN: EPAM confidential not share these value
 
 global:
-  replicaCount: 1
+  replicaCount: 2
   nodepool: services
   isAutoscalingEnabled: false
 
