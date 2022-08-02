@@ -51,14 +51,16 @@ export default class ResponseDurationMiddleware implements NestMiddleware {
   }
 
   handleResponse(req: Request, startReqTime: [number, number], eventName: string) {
+    const reqPathname = req.originalUrl.split('?')[0];
     const durationInMilliseconds = getDurationInMilliseconds(startReqTime);
+
     this.metricsProvider.registerHistogram(
       `http_request_duration_ms_${eventName}`,
       `Duration of HTTP [${eventName}] requests in ms`,
       ['route'],
       RESPONSE_TIME_BUCKETS
     )
-      .labels(req.originalUrl)
+      .labels(reqPathname)
       .observe(durationInMilliseconds);
   }
 }

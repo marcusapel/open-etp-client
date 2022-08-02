@@ -25,12 +25,14 @@ export default class ResponseCounterMiddleware implements NestMiddleware {
   constructor(private metricsProvider: MetricsProvider) { }
 
   use(req: Request, _res: Response, next: NextFunction) {
+    const reqPathname = req.originalUrl.split('?')[0];
+
     this.metricsProvider.registerCounterMetric(
       'http_request_counter',
       'Calculate each http req',
       ['route']
     )
-      .labels(req.originalUrl)
+      .labels(reqPathname)
       .inc();
 
     next();
