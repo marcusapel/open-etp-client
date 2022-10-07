@@ -9,7 +9,7 @@
     - [Collaborate with your team](#collaborate-with-your-team)
     - [Build](#build)
   - [Tests](#tests)
-    - [Setup a local ETP Server Using docker images](#setup-a-local-etp-server-using-docker-images)
+    - [Set up a local ETP Server using Docker images](#set-up-a-local-etp-server-using-docker-images)
   - [Code style and validation](#code-style-and-validation)
     - [Linter and prettier](#linter-and-prettier)
     - [Validation](#validation)
@@ -35,14 +35,7 @@ Most classes functions return promises, allowing to easily chain requests.
 
 ### Installation
 
-This library is available as an npm package. To install it, you will need to have access to the osdu gitlab npm registry.
-https://community.opengroup.org/api/v4/projects/osdu/packages/npm/
-
-Then run:
-
-```sh
-npm install @osdu/open-etp-client
-```
+OSDU gitlab does not contain a NPM repository and OSDU has no domain inside NPM.org repository. Until either of this solution is available, the library has to be built manually, using the process described below in the [Build](#build) section.
 
 [Here](devops/azure/README.md) are the instructions to deploy on Azure.
 
@@ -72,7 +65,7 @@ npm install @osdu/open-etp-client
 
    Copy the `config.user.env.sample` file located at the root of the repository to `config.user.env` file.
    Edit the new file and fill the requested values. Make sure the specified [partition mode](#partitioning) is correct.
-   Note: this can be used to override default values located in `config.default.env` file. 
+   Note: this can be used to override default values located in `config.default.env` file.
 
 3. Install / Build
 

@@ -1,3 +1,8 @@
+variables:
+  #azure
+  AZURE_SWAGGER_PATH: api/oetp-client/v2/
+  AZURE_SKIP_TEST: "true"
+
 include:
   # pipeline logic
   - project: "osdu/platform/ci-cd-pipelines"
