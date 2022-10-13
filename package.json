@@ -43,7 +43,7 @@
     "validate": "npm-run-all -nlpc --aggregate-output prettier:check lint test",
     "validate:light": "npm-run-all -nlpc --aggregate-output prettier:check lint",
     "validate:fix": "npm-run-all -nlsc prettier:write lint:fix",
-    "env:set": "env-cmd --silent -f config.user.env --no-override -- env-cmd -f config.default.env --no-override",
+    "env:set": "npm install -g env-cmd && env-cmd --silent -f config.user.env --no-override -- env-cmd -f config.default.env --no-override",
     "env:print": "npm run env:set -- env",
     "env:print:npm": "env",
     "git:commit": "cz",
