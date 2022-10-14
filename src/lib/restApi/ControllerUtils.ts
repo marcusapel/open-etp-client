@@ -68,6 +68,8 @@ export const swaggerServers = [
   { url: swaggerUIUrl, description: "API server" }
 ];
 
+var userInfo: string;
+
 const etpClients = new Map<string, { client: ResqmlClient; sha256: string }>();
 
 /**
@@ -165,8 +167,10 @@ export interface ContextInput {
  */
 export const extractToken = (request?: express.Request): string => {
   const authHeader = request?.headers?.authorization;
-
-  if (!authHeader) {
+  userInfo = "";
+  if (!authHeader || authHeader.includes('Basic')) {
+    userInfo = authHeader ? authHeader : "";
+    console.log("value of userInfo: " + userInfo);
     return "";
   }
   const token = authHeader.split(" ");
@@ -409,7 +413,7 @@ export const createSession = async (
   } else {
     const c = new ResqmlClient(options);
     return c
-      .openSession(serverUrl, jwt, dataPartitionId)
+      .openSession(serverUrl, jwt, dataPartitionId, userInfo)
       .then(() => c)
       .catch(err => {
         throw new Error(`Cannot create session with ETP server: ${err}`);
