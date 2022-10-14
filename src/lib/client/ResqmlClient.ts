@@ -261,8 +261,8 @@ export class ResqmlClient {
     url: string,
     jwToken?: string,
     dataPartitionId?: string,
-    authenticationKey?: string,
     userInfo?: { username: string; password: string } | string,
+    authenticationKey?: string,
     maxMessagePayloadSize = 10000000
   ): Promise<void> {
     let authentication = jwToken ? `Bearer ${jwToken}` : "";
