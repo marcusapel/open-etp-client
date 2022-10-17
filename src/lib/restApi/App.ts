@@ -24,7 +24,10 @@ import {
   ValidationPipe
 } from "@nestjs/common";
 
-import { NestExpressApplication } from "@nestjs/platform-express";
+import {
+  ExpressAdapter,
+  NestExpressApplication
+} from "@nestjs/platform-express";
 
 import express from "express";
 import helmet from "helmet";
@@ -38,7 +41,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 import { routePath, swaggerUIUrl } from "./ControllerUtils";
 
-import ExceptionCounterFilter from '../restApi/monitoring.module/ExceptionCounter.filter';
+import ExceptionCounterFilter from "../restApi/monitoring.module/ExceptionCounter.filter";
 
 import glob from "glob";
 
@@ -65,8 +68,8 @@ const middleware = requireDefaults("*.module/*.middleware.+(js|ts)");
     ...providers,
     {
       provide: APP_FILTER,
-      useClass: ExceptionCounterFilter,
-    },
+      useClass: ExceptionCounterFilter
+    }
   ]
 })
 class ApplicationModule implements NestModule {
@@ -82,7 +85,9 @@ export default async function app() {
   }
 
   const logger = logging.getLogger("EtpClient");
-  logger.info(`- Initializing ${clouds.Config.CLOUD_PROVIDER || 'default'} configurations`);
+  logger.info(
+    `- Initializing ${clouds.Config.CLOUD_PROVIDER || "default"} configurations`
+  );
 
   const nestApp = await NestFactory.create<NestExpressApplication>(
     ApplicationModule
@@ -135,6 +140,11 @@ export default async function app() {
   nestApp.use(helmet.hidePoweredBy());
   nestApp.use(helmet.noSniff());
   nestApp.use(helmet.contentSecurityPolicy());
+
+  const adapt: ExpressAdapter = nestApp.getHttpAdapter().getInstance();
+  adapt.get("/swagger-ui/index.html", function (req, res) {
+    return res.redirect(302, "/Reservoir/v2");
+  });
 
   /*****************************************************************/
   /// Swagger endpoints
