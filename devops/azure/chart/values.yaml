@@ -84,7 +84,7 @@ configuration:
     repository: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/open-etp-client-main
     tag: latest
     keyvault: true
-    pathPrefix: /api/oetp-client/v1
+    pathPrefix: /api/oetp-client/v2
     auth:
       disable:
         - "/"
