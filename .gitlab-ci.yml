@@ -1,7 +1,6 @@
 variables:
   #azure
-  AZURE_SWAGGER_PATH: api/oetp-client/v1/
-  AZURE_SKIP_TEST: "true"
+  AZURE_SWAGGER_PATH: api/oetp-client/v2/
 
 include:
   # pipeline logic
