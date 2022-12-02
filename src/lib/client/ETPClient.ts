@@ -56,7 +56,7 @@ export class ETPClient extends ETPCore {
     this.transactionSupported = false;
   }
 
-  public connect(config: IClientConfig, socketClass: any = WebSocket) {
+  public connect(config: IClientConfig, socketClass: any = WebSocket): void {
     if (config.url != null) {
       this.host = config.url;
     }
@@ -67,16 +67,16 @@ export class ETPClient extends ETPCore {
       ? config.maxReceivedMessageSize
       : 0;
 
-    let headers: { [key: string]: string } = config.clientId
+    const headers: { [key: string]: string } = config.clientId
       ? {
-        Authorization: config.authentication,
-        "client-id": config.clientId,
-        "etp-encoding": encoding
-      }
+          Authorization: config.authentication,
+          "client-id": config.clientId,
+          "etp-encoding": encoding
+        }
       : {
-        Authorization: config.authentication,
-        "etp-encoding": encoding
-      };
+          Authorization: config.authentication,
+          "etp-encoding": encoding
+        };
 
     if (config.noHeaders) {
       this.host = `${this.host}?etp-encoding=${encoding}`;
@@ -91,7 +91,7 @@ export class ETPClient extends ETPCore {
       }
     } else {
       if (config.dataPartitionId) {
-        headers['data-partition-id'] = config.dataPartitionId;
+        headers["data-partition-id"] = config.dataPartitionId;
       }
     }
 
@@ -118,29 +118,49 @@ export class ETPClient extends ETPCore {
       this.connection.onmessage = this.onSocketMessage.bind(this);
 
       this.connection.onerror = (err: Error) => {
-        this.emit("log", `Connection Error: ${err.message}`);
-        this.emit("error", `Connection Error: ${err}`);
+        if (err instanceof Error) {
+          this.emit("log", `Connection Error: ${err.message}`);
+        }
+        this.emit("error", `Connection Error`);
       };
     }
   }
 
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.Core.OpenSession
+      | Energistics.Etp.v12.Protocol.Core.CloseSession
+      | Energistics.Etp.v12.Protocol.Core.Ping
+      | Energistics.Etp.v12.Protocol.Core.Pong
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+      | Energistics.Etp.v12.Protocol.Core.Acknowledge
+  ): void {
     if (messageHeader.protocol === PROTOCOL.Core) {
       switch (messageHeader.messageType) {
         case Core.MsgOpenSession:
-          this.onOpenSession(messageHeader, messageBody);
+          this.onOpenSession(
+            messageHeader,
+            messageBody as Energistics.Etp.v12.Protocol.Core.OpenSession
+          );
           break;
         case Core.MsgCloseSession:
-          this.onCloseSession(messageHeader, messageBody);
+          this.onCloseSession(
+            messageHeader,
+            messageBody as Energistics.Etp.v12.Protocol.Core.CloseSession
+          );
           break;
         case Core.MsgPing:
-          this.onPing(messageHeader, messageBody);
+          this.onPing(
+            messageHeader,
+            messageBody as Energistics.Etp.v12.Protocol.Core.Ping
+          );
           break;
         case Core.MsgPong:
-          this.onPong(messageHeader, messageBody);
+          this.onPong(
+            messageHeader,
+            messageBody as Energistics.Etp.v12.Protocol.Core.Pong
+          );
           break;
         default:
           super.handleMessage(messageHeader, messageBody);
@@ -156,9 +176,10 @@ export class ETPClient extends ETPCore {
   public onOpenSession(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
     messageBody: Energistics.Etp.v12.Protocol.Core.OpenSession
-  ) {
-    this.log(
-      `Opened Session ${stringifyUuid(messageBody.serverInstanceId)} with ${this.host
+  ): void {
+    this.logTrace(
+      `Opened Session ${stringifyUuid(messageBody.serverInstanceId)} with ${
+        this.host
       }`
     );
     this.sessionId = messageBody.serverInstanceId;
@@ -223,14 +244,16 @@ export class ETPClient extends ETPCore {
     this.emit("open");
   }
 
-  public onSocketClose(event: WebSocket.ICloseEvent) {
+  public onSocketClose(event: WebSocket.ICloseEvent): void {
     this.sessionId = EtpUri.invalidGuid();
     this.connection &&
-      this.log(`Peer ${this.connection.url} disconnected: ${event.reason}.`);
+      this.logTrace(
+        `Peer ${this.connection.url} disconnected: ${event.reason}.`
+      );
     this.emit("disconnect", this.connection);
   }
 
-  public onSocketMessage(msg: WebSocket.IMessageEvent) {
+  public onSocketMessage(msg: WebSocket.IMessageEvent): void {
     let header: Energistics.Etp.v12.Datatypes.MessageHeader | null = null;
     let message = null;
     this.stats.messagesReceived++;
@@ -243,8 +266,8 @@ export class ETPClient extends ETPCore {
         );
         message = header
           ? reader.readDatum(
-            this.schemaCache.find(header.protocol, header.messageType)
-          )
+              this.schemaCache.find(header.protocol, header.messageType)
+            )
           : null;
       }
     } else {
@@ -260,7 +283,10 @@ export class ETPClient extends ETPCore {
     }
   }
 
-  public requestSession(applicationName: string, applicationVersion: string) {
+  public requestSession(
+    applicationName: string,
+    applicationVersion: string
+  ): void {
     const requestedProtocols: Energistics.Etp.v12.Datatypes.SupportedProtocol[] =
       [];
     this.handlers.forEach(handler => {
@@ -282,6 +308,13 @@ export class ETPClient extends ETPCore {
     const sessionUuid: Energistics.Etp.v12.Datatypes.Uuid = [
       1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 2
     ];
+    const dataObjectCapabilities = new Map<
+      string,
+      Energistics.Etp.v12.Datatypes.DataValue
+    >();
+    dataObjectCapabilities.set("SupportsGet", EtpDataValue.boolean(true));
+    dataObjectCapabilities.set("SupportsPut", EtpDataValue.boolean(true));
+    dataObjectCapabilities.set("SupportsDelete", EtpDataValue.boolean(true));
     const message: Energistics.Etp.v12.Protocol.Core.RequestSession = {
       applicationName,
       applicationVersion,
@@ -295,7 +328,10 @@ export class ETPClient extends ETPCore {
       requestedProtocols,
       serverAuthorizationRequired: false,
       supportedCompression: [],
-      supportedDataObjects: [],
+      supportedDataObjects: [
+        { qualifiedType: "resqml20.*", dataObjectCapabilities },
+        { qualifiedType: "eml20.*", dataObjectCapabilities }
+      ],
       supportedFormats: ["xml"]
     };
     if (this.negotiatedSize) {
@@ -310,7 +346,7 @@ export class ETPClient extends ETPCore {
 
   public computeData(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: any
+    message: unknown
   ): ArrayBuffer {
     const encoder = new BinaryWriter(this.schemaCache, this.buffer);
     encoder.writeDatum(

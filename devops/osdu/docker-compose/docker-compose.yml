@@ -32,7 +32,7 @@ services:
       driver: json-file
     environment:
       - POSTGRESQL_CONN_STRING=host=etp-client-postgresql port=5432 dbname=openetp user=tester password=tester
-      - RDMS_DATA_PARTITION_MODE=single
+      - RDMS_DATA_PARTITION_MODE=${RDMS_DATA_PARTITION_MODE}
     command: >
       bash -c "
         sleep 5 &&
@@ -83,6 +83,11 @@ services:
       - RDMS_ETP_PORT=${RDMS_ETP_PORT?}
       - RDMS_JWT_SECRET=${RDMS_JWT_SECRET?}
       - RDMS_AUTHENTICATION_KEY_BASE=${RDMS_AUTHENTICATION_KEY_BASE?}
+      - RDMS_ETP_PROTOCOL=${RDMS_ETP_PROTOCOL}
+      - RDMS_REST_MAIN_URL=${RDMS_REST_MAIN_URL}
+      - RDMS_REST_ROOT_PATH=${RDMS_REST_ROOT_PATH}
+      - RDMS_REST_PORT=${RDMS_REST_PORT}
+      - RDMS_DATA_PARTITION_MODE=${RDMS_DATA_PARTITION_MODE}
     labels:
       OpenETPServer.service: runtime
     logging:

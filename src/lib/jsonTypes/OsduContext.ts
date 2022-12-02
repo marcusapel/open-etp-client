@@ -1,0 +1,631 @@
+import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
+
+import {
+  AccessControlList,
+  LegalMetaData
+} from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+
+import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
+import { Data as ExistenceKindData } from "./Generated/reference-data/ExistenceKind.1.0.0";
+import {
+  AbstractSpatialLocation,
+  GenericReferenceData
+} from "./Generated/manifest/Manifest.1.0.0";
+
+import { osduUrl } from "../common/config";
+import fetch, { HeadersInit, RequestInit } from "node-fetch";
+
+type Converter = (
+  uri: string,
+  xml: any,
+  context: OSDUContext,
+  client: ResqmlClient
+) => any;
+
+type OSDUEntry = {
+  osduType: string;
+  version: string;
+  convert: Converter;
+};
+
+type OSDUResourceType = {
+  kind: string;
+  id?: string;
+  version?: number;
+  data?: any;
+};
+
+export class ResqmlOSDUMap {
+  private static instance: ResqmlOSDUMap;
+  private resqml2osdu: Map<string, OSDUEntry>;
+
+  /**
+   * The Singleton's constructor should always be private to prevent direct
+   * construction calls with the `new` operator.
+   */
+  private constructor() {
+    this.resqml2osdu = new Map();
+  }
+
+  /**
+   * The static method that controls the access to the singleton instance.
+   *
+   * This implementation let you subclass the Singleton class while keeping
+   * just one instance of each subclass around.
+   */
+  public static getInstance(): ResqmlOSDUMap {
+    if (!ResqmlOSDUMap.instance) {
+      ResqmlOSDUMap.instance = new ResqmlOSDUMap();
+    }
+
+    return ResqmlOSDUMap.instance;
+  }
+
+  add(
+    resqmlType: string,
+    osduType: string,
+    version: string,
+    convert: Converter
+  ): void {
+    this.resqml2osdu.set(resqmlType, {
+      osduType,
+      version,
+      convert
+    });
+  }
+
+  public get(resqmlType: string): OSDUEntry | undefined {
+    return this.resqml2osdu.get(resqmlType);
+  }
+
+  public buildReference(
+    id: string,
+    context: OSDUContext
+  ): GenericReferenceData | undefined {
+    return new ReferenceData(context, id);
+  }
+}
+
+const ResqmlOSDU = ResqmlOSDUMap.getInstance();
+
+/**
+ * Utility class for manipulating OSDU context
+ *
+ * @export
+ * @class OSDUContext
+ */
+export class OSDUContext {
+  public partition: string;
+  public acl: {
+    owners: string[];
+    viewers: string[];
+  };
+  public legal: {
+    legaltags: string[];
+    otherRelevantDataCountries: string[];
+  };
+  public submitter: string;
+  public tags?: { [key: string]: string };
+  public fileCollection?: string;
+  public references: Set<string> = new Set();
+  public srnToUri: Map<string, string> = new Map();
+  public createMissingReferences?: boolean = true;
+  public bearer?: string;
+
+  public generatedSrn: Map<string, any> = new Map();
+  public created: Map<string, any> = new Map();
+
+  public projectedCRS: Map<string, CoordinateReferenceSystem> = new Map();
+  public boundedCRS: Map<string, CoordinateReferenceSystem> = new Map();
+
+  public osduUrl: string = osduUrl;
+
+  public spatialPoint?: AbstractSpatialLocation = undefined;
+
+  constructor(
+    partition: string,
+    acl: {
+      owners: string[];
+      viewers: string[];
+    },
+    legal: {
+      legaltags: string[];
+      otherRelevantDataCountries: string[];
+    },
+    submitter: string,
+    tags?: { [key: string]: string },
+    fileCollection?: string,
+    createMissingReferences?: boolean
+  ) {
+    this.partition = partition;
+    this.acl = acl;
+    this.legal = legal;
+    this.tags = tags;
+    this.submitter = submitter;
+    this.fileCollection = fileCollection;
+    if (createMissingReferences !== undefined) {
+      this.createMissingReferences = createMissingReferences;
+    }
+  }
+
+  /**
+   * create a reference data SRN
+   *
+   * @param {string} referenceType reference-data type
+   * @param {(string | undefined)} value reference-data value
+   * @return {(string | undefined)} reference-data SRN
+   * @memberof WorkProductComponent
+   */
+  public addReferenceData(
+    referenceType: string,
+    value: string | undefined
+  ): string | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    const ref = `${this.partition}:reference-data--${referenceType}:${value}:`;
+    this.references.add(ref);
+    return ref;
+  }
+
+  /**
+   * Check that the legal tags are already registered in osdu partition
+   *
+   * @return {Promise<void>}
+   * @memberof OSDUContext
+   */
+  public async checkLegalTags(): Promise<void> {
+    const legaltags = this.legal.legaltags;
+    const r = await this.fetchOSDU<{ legalTags: { name: string }[] }>(
+      "/api/legal/v1/legaltags"
+    );
+    if (r === undefined) {
+      return;
+    }
+
+    const tagNames = r.legalTags.map((s: { name: string }) => s.name);
+    if (legaltags.length === 0) {
+      this.legal.legaltags = tagNames;
+      return;
+    }
+    const found = legaltags.filter(l => tagNames.indexOf(l) !== -1);
+    if (found.length !== legaltags.length) {
+      return Promise.reject("Legal tags not found in OSDU instance");
+    }
+  }
+
+  /**
+   * Find projected CRS with corresponding EPSG code
+   *
+   * @param {number} epsgCode
+   * @return {(Promise<CoordinateReferenceSystem | undefined>)}
+   * @memberof OSDUContext
+   */
+  public async findProjectedEPSGCrs(
+    epsgCode: number
+  ): Promise<CoordinateReferenceSystem | undefined> {
+    const id = `${this.partition}:reference-data--CoordinateReferenceSystem:Projected:EPSG::${epsgCode}`;
+    const eCRS = this.projectedCRS.get(id);
+    if (eCRS !== undefined) {
+      return eCRS;
+    }
+
+    const query = `id:"${id}"`;
+
+    const body = {
+      kind: `*:*:reference-data--CoordinateReferenceSystem:*`,
+      query
+    };
+    const bodyString = JSON.stringify(body);
+    const r = await this.fetchOSDU<{ results: OSDUResourceType[] }>(
+      "/api/search/v2/query",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": `application/json`,
+          "Content-Length": `${bodyString.length}`
+        },
+        body: bodyString
+      }
+    );
+    if (r === undefined) {
+      return undefined;
+    }
+    for (const e of r.results) {
+      const crs = e as CoordinateReferenceSystem;
+      if (
+        crs.id !== undefined &&
+        crs.data !== undefined &&
+        crs.data.CodeAsNumber === epsgCode
+      ) {
+        this.projectedCRS.set(id, crs);
+        return crs;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Find bounded CRS with corresponding EPSG code
+   *
+   * @param {number} epsgCode
+   * @return {(Promise<CoordinateReferenceSystem | undefined>)}
+   * @memberof OSDUContext
+   */
+  public async findBoundedEPSGCrs(
+    epsgCode: number
+  ): Promise<CoordinateReferenceSystem | undefined> {
+    const id = `${this.partition}:reference-data--CoordinateReferenceSystem:Projected:EPSG::${epsgCode}`;
+    const eCRS = this.boundedCRS.get(id);
+    if (eCRS !== undefined) {
+      return eCRS;
+    }
+
+    const query = `data.SourceCRS.SourceCRSID:"${id}"`;
+    const body = {
+      kind: `*:*:reference-data--CoordinateReferenceSystem:*`,
+      query
+    };
+    const bodyString = JSON.stringify(body);
+    const r = await this.fetchOSDU<{ results: OSDUResourceType[] }>(
+      "/api/search/v2/query",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": `application/json`,
+          "Content-Length": `${bodyString.length}`
+        },
+        body: bodyString
+      }
+    );
+    if (r === undefined) {
+      return undefined;
+    }
+    const crs =
+      r.results.length > 0
+        ? (r.results[0] as CoordinateReferenceSystem)
+        : undefined;
+    if (crs !== undefined) {
+      this.boundedCRS.set(id, crs);
+    }
+    return crs;
+  }
+
+  /**
+   * Convert points to current coordinate system to WSG84
+   *
+   * @param {[number, number][]} points
+   * @param {number} epsgCode of the current system
+   * @return {Promise<[number, number][]>}
+   * @memberof OSDUContext
+   */
+  public async convertPointsWGS84(
+    points: [number, number][],
+    epsgCode: number
+  ): Promise<[number, number][]> {
+    const boundedCrs = await this.findBoundedEPSGCrs(epsgCode);
+    if (boundedCrs === undefined) {
+      return Promise.reject("Bounded CRS not found");
+    }
+
+    const w84persistableRefernece =
+      '{"wkt":"GEOGCS[\\"GCS_WGS_1984\\",DATUM[\\"D_WGS_1984\\",SPHEROID[\\"WGS_1984\\",6378137.0,298.257223563]],PRIMEM[\\"Greenwich\\",0.0],UNIT[\\"Degree\\",0.0174532925199433],AUTHORITY[\\"EPSG\\",4326]]","ver":"PE_10_3_1","name":"GCS_WGS_1984","authCode":{"auth":"EPSG","code":"4326"},"type":"LBC"}';
+
+    const body = {
+      fromCRS:
+        boundedCrs.data?.PersistableReference === undefined
+          ? undefined
+          : boundedCrs.data.PersistableReference,
+      toCRS: w84persistableRefernece,
+      points: points.map(p => ({ x: p[0], y: p[1] }))
+    };
+    const bodyString = JSON.stringify(body);
+    const r = await this.fetchOSDU<{
+      points: { x: number; y: number; z: number }[];
+    }>("/api/crs/converter/v3/convert", {
+      method: "POST",
+      headers: {
+        "Content-Type": `application/json`,
+        "Content-Length": `${bodyString.length}`
+      },
+      body: bodyString
+    });
+    if (r === undefined) {
+      return Promise.reject("Invalid conversion");
+    }
+    return r.points.map(p => [p.x, p.y]);
+  }
+
+  /**
+   * Convert an ETP URI to an OSDU SRN
+   *
+   * @param {string} uri
+   * @return {(string | undefined)}
+   * @memberof WorkProductComponent
+   */
+  public uriToSrn(uri: string): string | undefined {
+    if (uri === undefined) {
+      return undefined;
+    }
+    const etp = new EtpUri(uri);
+    const r: OSDUEntry | undefined = ResqmlOSDU.get(etp.dataObjectType);
+    const srn = r
+      ? `${this.partition}:work-product-component--${r.osduType}:${etp.uuid}:${etp.version}`
+      : undefined;
+    if (!srn) {
+      return undefined;
+    }
+    this.srnToUri.set(srn, uri);
+    return srn;
+  }
+
+  /**
+   * Create dataset SRN
+   *
+   * @param {string} objectUri
+   * @return {(string[] | undefined)}
+   * @memberof WorkProductComponent
+   */
+  public datasets(objectUri: string): string[] | undefined {
+    const d = [
+      `${this.partition}:dataset--ETPDataspace:${encodeURIComponent(
+        new EtpUri(objectUri).dataSpace
+      )}:`
+    ];
+
+    if (this.fileCollection) {
+      d.push(this.fileCollection);
+    }
+
+    return d;
+  }
+
+  /**
+   * Filter out all resources already in OSDU catalog
+   *
+   * @param {string[]} srn
+   * @return {Promise<string[]>}
+   * @memberof OSDUContext
+   */
+  public async filterOSDUResources(srn: string[]): Promise<string[]> {
+    return Promise.all(
+      srn.map(async m => {
+        try {
+          return (await this.getOSDUResourceVersion(m)) === undefined;
+        } catch (e) {
+          return false;
+        }
+      })
+    ).then(results => srn.filter((_v, index) => results[index]));
+  }
+
+  /**
+   * Get the version of a resource currently in OSDU catalog
+   *
+   * @param {string} srn
+   * @return {(Promise<number | undefined>)}
+   * @memberof OSDUContext
+   */
+  public async getOSDUResourceVersion(
+    srn: string
+  ): Promise<number | undefined> {
+    try {
+      const d = srn.split(":");
+      if (d.length < 3) {
+        return Promise.reject(new Error("Invalid srn " + srn));
+      }
+      const r: { recordId: string; versions: number[] } | undefined =
+        await this.fetchOSDU<{ recordId: string; versions: number[] }>(
+          `/api/storage/v2/records/versions/${d[0]}:${d[1]}:${d[2]}`
+        );
+      if (r === undefined) {
+        return undefined;
+      }
+      let version: number | undefined = undefined;
+      r.versions.forEach((v: number) => {
+        version = version === undefined ? v : Math.max(v, version);
+      });
+      return version;
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  /**
+   * Divide array in to array of given size
+   *
+   * @template T
+   * @param {T[]} arr starting array
+   * @param {number} size maximum size for new arrays
+   * @return {T[][]}
+   * @memberof OSDUContext
+   */
+  public divideIntoChunks<T>(arr: T[], size: number): T[][] {
+    const res = [];
+    let ind = 0;
+    while (ind < arr.length) {
+      res.push(arr.slice(ind, (ind += size)));
+    }
+    return res;
+  }
+
+  /**
+   * Filter out all reference data already in OSDU catalog
+   *
+   * @param {string[]} srn
+   * @return {Promise<string[]>}
+   * @memberof OSDUContext
+   */
+  public async filterOSDUReferenceData(srn: string[]): Promise<string[]> {
+    const chunks = this.divideIntoChunks(srn, 20);
+    return Promise.all(
+      chunks.map(async chunk => {
+        const queryString = chunk
+          .map(c => `id: "${c.slice(0, -1)}"`)
+          .join(" OR ");
+        const query = {
+          kind: "*:*:reference-data--*:*",
+          offset: 0,
+          limit: 20,
+          aggregateBy: "kind",
+          query: queryString,
+          returnedFields: ["id"]
+        };
+        try {
+          const bodyString = JSON.stringify(query);
+          const found = await this.fetchOSDU<{ results: { id: string }[] }>(
+            `/api/search/v2/query`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": `application/json`,
+                "Content-Length": `${bodyString.length}`
+              },
+              body: bodyString
+            }
+          );
+          return found === undefined ? [] : found.results.map(f => f.id);
+        } catch (e) {
+          return [];
+        }
+      })
+    ).then(results => {
+      const dataFound = results.flat().map(v => v + ":");
+      return srn.filter(v => !dataFound.includes(v));
+    });
+  }
+
+  /**
+   * Get the known versions associated with id
+   *
+   * @param {string[]} ids
+   * @return {Promise<string[]>}
+   * @memberof OSDUContext
+   */
+  public async getVersions(
+    ids: string[]
+  ): Promise<Map<string, number | undefined>> {
+    const chunks = this.divideIntoChunks(ids, 20);
+    const m = new Map<string, number | undefined>();
+    await Promise.all(
+      chunks.map(async chunk => {
+        const queryString = chunk.map(c => `id: "${c}"`).join(" OR ");
+        const query = {
+          kind: "*:*:reference-data--*:*",
+          offset: 0,
+          limit: 20,
+          aggregateBy: "kind",
+          query: queryString,
+          returnedFields: ["id"]
+        };
+        try {
+          const bodyString = JSON.stringify(query);
+          const found = await this.fetchOSDU<{
+            results: { id: string; version: number }[];
+          }>(`/api/search/v2/query`, {
+            method: "POST",
+            headers: {
+              "Content-Type": `application/json`,
+              "Content-Length": `${bodyString.length}`
+            },
+            body: bodyString
+          });
+          if (found !== undefined) {
+            for (const r of found.results) {
+              m.set(r.id, r.version);
+            }
+            for (const s of chunk) {
+              if (!m.has(s)) {
+                m.set(s, undefined);
+              }
+            }
+          }
+        } catch (e) {
+          // Do nothing
+        }
+      })
+    );
+    return m;
+  }
+
+  /**
+   * Fetch data in OSDU environment
+   *
+   * @private
+   * @template T
+   * @param {string} path
+   * @param {RequestInit} [init] additional information
+   * @return {(Promise<T | undefined>)}
+   * @memberof OSDUContext
+   */
+  private async fetchOSDU<T>(
+    path: string,
+    init?: RequestInit
+  ): Promise<T | undefined> {
+    const headers: HeadersInit = {
+      Authorization: `Bearer ${this.bearer}`,
+      "data-partition-id": this.partition
+    };
+    if (init === undefined) {
+      init = { headers };
+    } else {
+      if (init.headers === undefined) {
+        init.headers = headers;
+      } else if (typeof init.headers === "object") {
+        init.headers = { ...init.headers, ...headers };
+      }
+    }
+    const url = this.osduUrl + path;
+    return fetch(url, init)
+      .then(r => (r.status === 200 ? (r.json() as unknown as T) : undefined))
+      .catch(e => {
+        return undefined;
+      });
+  }
+}
+
+/**
+ * Store an OSDU reference data information
+ *
+ * @export
+ * @class ReferenceData
+ */
+export class ReferenceData {
+  public acl: AccessControlList;
+  createTime: Date;
+  createUser: string;
+  id: string;
+  kind: string;
+  legal: LegalMetaData;
+  tags?: { [key: string]: string };
+  version: number;
+  data: ExistenceKindData;
+
+  constructor(context: OSDUContext, id: string) {
+    //${context.namespace}:reference-data--${osduType}:${value}:
+
+    let Code: string | undefined;
+    let kind = "";
+    const idSplit = id.split(":");
+    if (idSplit.length !== 3) {
+      Code = idSplit[2];
+      kind = `osdu:wks:${idSplit[1]}:1.0.0`;
+    }
+
+    this.acl = context.acl;
+    this.legal = context.legal;
+    this.tags = context.tags;
+    this.createTime = new Date(Date.now());
+    this.createUser = context.submitter;
+    this.kind = kind;
+    this.id = id;
+    this.version = 1;
+    this.data = {
+      ExistenceKind: `${context.partition}:reference-data--ExistenceKind:Actual:`,
+      Code,
+      Name: `${idSplit[1].slice(16)}-${Code}`,
+      CommitDate: this.createTime,
+      ID: id
+    };
+  }
+}

@@ -1,0 +1,201 @@
+import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
+import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
+
+import { OSDUContext } from "./OsduContext";
+import { ResqmlWorkProductComponent } from "./WorkProductComponent";
+
+import {
+  Data,
+  GenericRepresentation
+} from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+
+export class GenericRepresentationOSDU
+  extends ResqmlWorkProductComponent<
+    SimpleJson<resqml20.AbstractSurfaceRepresentation>
+  >
+  implements GenericRepresentation
+{
+  public data: Data = {};
+
+  constructor(
+    xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
+    context: OSDUContext
+  ) {
+    super(xml, context, "GenericRepresentation.1.0.0");
+  }
+
+  private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
+    | undefined
+    | {
+        Count: number;
+        IndexableElementID: string; //this.reference("IndexableElement", "Cells")
+      }[] {
+    if (this.__context === undefined) {
+      return undefined;
+    }
+    const context = this.__context;
+    if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
+      const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
+      return [
+        {
+          Count:
+            (grid2d.Grid2dPatch.FastestAxisCount - 1) *
+            (grid2d.Grid2dPatch.SlowestAxisCount - 1),
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Cells") || ""
+        }
+      ];
+    } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
+      const trig =
+        xml as SimpleJson<resqml20.obj_TriangulatedSetRepresentation>;
+      let Count = 0;
+      trig.TrianglePatch.forEach(p => {
+        Count += p.Count;
+      });
+      return [
+        {
+          Count,
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Cells") || ""
+        }
+      ];
+    } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
+      // const polyLine =
+      //   xml as SimpleJson<resqml20.obj_PolylineSetRepresentation>;
+    } else if (xml.$type === "resqml20.obj_PointSetRepresentation") {
+      // const points = xml as SimpleJson<resqml20.obj_PointSetRepresentation>;
+    } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
+      const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
+      return [
+        {
+          Count: line.NodePatch.Count + (line.IsClosed ? -1 : 0),
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Edges") || ""
+        }
+      ];
+    }
+    return undefined;
+  }
+
+  public getGeometries(
+    xml: SimpleJson<resqml20.AbstractRepresentation>
+  ): SimpleJson<resqml20.PointGeometry>[] {
+    if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
+      const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
+      return [grid2d.Grid2dPatch.Geometry];
+    } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
+      const trig =
+        xml as SimpleJson<resqml20.obj_TriangulatedSetRepresentation>;
+      return trig.TrianglePatch.map(p => p.Geometry);
+    } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
+      const polyLine =
+        xml as SimpleJson<resqml20.obj_PolylineSetRepresentation>;
+      return polyLine.LinePatch.map(p => p.Geometry);
+    } else if (xml.$type === "resqml20.obj_PointSetRepresentation") {
+      const points = xml as SimpleJson<resqml20.obj_PointSetRepresentation>;
+      return points.NodePatch.map(p => p.Geometry);
+    } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
+      const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
+      return [line.NodePatch.Geometry];
+    }
+    return [];
+  }
+
+  public async initData(
+    ReservoirDMSUrl: string,
+    xml: SimpleJson<resqml20.AbstractRepresentation>,
+    client: ResqmlClient
+  ): Promise<GenericRepresentationOSDU> {
+    const context = this.__context;
+    if (context === undefined) {
+      return this;
+    }
+    let Role = undefined;
+    if ("SurfaceRole" in xml) {
+      Role = (xml as any).SurfaceRole;
+    } else if ("LineRole" in xml) {
+      Role = (xml as any).LineRole;
+    }
+    const geometries = this.getGeometries(xml);
+    this.data = {
+      ...(await this.AbstractCommonResources(context)),
+      ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
+      ...(await this.AbstractWorkProductComponent(xml, context)),
+      IndexableElementCount: this.elementCount(xml),
+      InterpretationID: this.dorToSrn(
+        ReservoirDMSUrl,
+        xml.RepresentedInterpretation
+      ),
+      InterpretationName: xml.RepresentedInterpretation?.Title,
+      LocalModelCompoundCrsID:
+        geometries.length > 0
+          ? this.dorToSrn(ReservoirDMSUrl, geometries[0].LocalCrs)
+          : undefined,
+      RealizationIndex: undefined,
+      Role: context.addReferenceData(
+        "RepresentationRole",
+        this.capitalize(Role)
+      ),
+      Type: context.addReferenceData(
+        "RepresentationType",
+        xml.$type?.split(".")[1].slice(4)
+      ),
+      TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
+
+      ExtensionProperties: {
+        ReservoirDMSUrl: ReservoirDMSUrl
+      }
+    };
+
+    const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
+    if (dors.length > 0) {
+      this.data.LineageAssertions = [];
+      for (const d of dors) {
+        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        if (l !== undefined) {
+          this.data.LineageAssertions.push();
+        }
+      }
+    }
+
+    xml.ExtraMetadata?.forEach(x => {
+      if (this.data.ExtensionProperties) {
+        this.data.ExtensionProperties[x.Name] = x.Value;
+      }
+    });
+
+    if (geometries.length > 0) {
+      const dataspaceUri = EtpUri.createDataSpaceUri(
+        new EtpUri(ReservoirDMSUrl).dataSpace
+      );
+      const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, NodeCount } =
+        await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+
+      this.data.SpatialPoint = SpatialPoint;
+      this.data.SpatialArea = SpatialArea;
+      this.meta = [FrameOfReferenceCRS];
+
+      if (this.data.IndexableElementCount === undefined) {
+        this.data.IndexableElementCount = [];
+      }
+      this.data.IndexableElementCount?.push({
+        Count: NodeCount,
+        IndexableElementID: context.addReferenceData(
+          "IndexableElement",
+          "Nodes"
+        )
+      });
+    }
+    delete this.__context;
+    return this;
+  }
+}
+
+export const GenericRepresentationManifest = async (
+  uri: string,
+  xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
+  context: OSDUContext,
+  client: ResqmlClient
+): Promise<GenericRepresentationOSDU> =>
+  new GenericRepresentationOSDU(xml, context).initData(uri, xml, client);

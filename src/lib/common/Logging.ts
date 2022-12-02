@@ -15,23 +15,23 @@
 // ============================================================================
 
 import * as bunyan from "bunyan";
-import { Config } from "../providers/Config"
-import { LoggerFactory } from '../providers/LoggerFactory'
+import { Config } from "../providers/Config";
+import { LoggerFactory } from "../providers/LoggerFactory";
 
-type LoggerName = "EtpClient";
+type LoggerName = "EtpClient" | "Jest";
 
 export interface ILogger {
-  debug(data: any): void;
-  info(data: any): void;
-  warning(data: any): void;
-  error(data: any): void;
+  debug(data: unknown): void;
+  info(data: unknown): void;
+  warning(data: unknown): void;
+  error(data: unknown): void;
 }
 
 export abstract class AbstractLogger implements ILogger {
-  public abstract debug(data: any): void;
-  public abstract info(data: any): void;
-  public abstract warning(data: any): void;
-  public abstract error(data: any): void;
+  public abstract debug(data: unknown): void;
+  public abstract info(data: unknown): void;
+  public abstract warning(data: unknown): void;
+  public abstract error(data: unknown): void;
 }
 
 export default {
@@ -44,6 +44,7 @@ export default {
    * @returns Logger
    */
   getLogger(options: LoggerName | bunyan.LoggerOptions): any {
+    // eslint-disable-next-line no-extra-boolean-cast
     if (!!Config.CLOUD_PROVIDER) {
       const CSPLogger = LoggerFactory.resolve(Config.CLOUD_PROVIDER);
       return CSPLogger;

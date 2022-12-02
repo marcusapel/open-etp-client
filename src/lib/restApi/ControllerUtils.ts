@@ -16,9 +16,6 @@
 import { Integer32 } from "../common/Etp12";
 
 import * as crypto from "crypto";
-const getSHA256 = (input: string) => {
-  return crypto.createHash("sha256").update(input).digest("hex");
-};
 
 import {
   Energistics,
@@ -48,25 +45,25 @@ import {
   Type
 } from "@nestjs/common";
 
-const serverProtocol = process.env.RDMS_ETP_PROTOCOL || "ws";
-const serverHost = process.env.RDMS_ETP_HOST || "localhost";
-const serverPort = process.env.RDMS_ETP_PORT || "9004";
-const serverPath = process.env.RDMS_ETP_PATH || "";
-const serverUrl = `${serverProtocol}://${serverHost}:${serverPort}${serverPath}/`;
+import {
+  etpServerUrl,
+  restApiMainUrl,
+  restApiPort,
+  restApiRoutePath,
+  etpServerHost,
+  etpServerPort
+} from "../common/config";
+export { restApiMainUrl, restApiPort, restApiRoutePath };
 
-export const mainUrl = process.env.RDMS_REST_MAIN_URL || "http://localhost";
-const routePathVal = process.env.RDMS_REST_ROOT_PATH || "/Reservoir/v2";
-export const routePath = routePathVal;
-const portVal = parseInt(process.env.RDMS_REST_PORT || "8003");
-export const port = portVal;
-
-const swaggerUIUrlVal = `${mainUrl}${port === 80 ? "" : ":" + port
-  }${routePath}`;
-export const swaggerUIUrl = swaggerUIUrlVal;
+export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
 
 export const swaggerServers = [
   { url: swaggerUIUrl, description: "API server" }
 ];
+
+const getSHA256 = (input: string) => {
+  return crypto.createHash("sha256").update(input).digest("hex");
+};
 
 const etpClients = new Map<string, { client: ResqmlClient; sha256: string }>();
 
@@ -83,7 +80,7 @@ export function sliceArray<T>(
   start: number | undefined,
   count: number | undefined,
   arr: T[]
-) {
+): T[] {
   if (start) {
     return arr.slice(start, count ? start + count : undefined);
   }
@@ -173,17 +170,27 @@ export const extractToken = (request?: express.Request): string => {
   if (token.length < 2) {
     return "";
   }
+  // Check token respects base64 format.
+  if (!token[1].match(/^[a-zA-Z0-9._-]+$/)) {
+    throw new Error("Invalid auth token format");
+  }
+  // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
   return token[1];
 };
 
 /**
- * Extract data-partiton-id value from request
+ * Extract data-partition-id value from request
  *
  * @param {express.Request} [request]
  * @returns {string | undefined}
  */
-export const extractDataPartitionId = (request?: express.Request): string | undefined => {
-  const header: string | undefined = request?.header('data-partition-id');
+export const extractDataPartitionId = (
+  request?: express.Request
+): string | undefined => {
+  const header: string | undefined = request?.header("data-partition-id");
+  if (!header?.match(/^[a-zA-Z0-9._-]+$/)) {
+    return undefined;
+  }
   return header;
 };
 
@@ -259,25 +266,24 @@ export const HasBearerGuard: (type?: string | string[]) => CanActivate = (
 };
 
 /**
- * Check data-partition-id header presence for multipartition mode
+ * Check data-partition-id header presence for multi-partition mode
  *
  * @param {(string | string[])} [type]
  * @returns
  */
-export const HasDataPartitonGuard: () => CanActivate = () => {
+export const HasDataPartitionGuard: () => CanActivate = () => {
   return {
     canActivate: (context: ExecutionContext) => {
-      if (process.env.RDMS_DATA_PARTITION_MODE === 'single') {
-        return true;
-      } else {
+      if (process.env.RDMS_DATA_PARTITION_MODE !== "single") {
         const request = context.switchToHttp().getRequest();
         const dataPartitionIdHeader = extractDataPartitionId(request);
-
         return !!dataPartitionIdHeader;
+      } else {
+        return true;
       }
     }
-  }
-}
+  };
+};
 
 /**
  * Pipe to check for boolean arguments when optional
@@ -378,19 +384,6 @@ export const getSchemasForType = (
     : { ...values[0], additionalProperties: false };
 };
 
-/**
- * Return the current server Host URL
- *
- * @returns {string}
- */
-export const etpServerHost = (): string => serverHost;
-/**
- * Return the current server Host Port
- *
- * @returns {string}
- */
-export const etpServerPort = (): string => serverPort;
-
 /*!
  * Create and open a session, and return the client
  */
@@ -407,13 +400,13 @@ export const createSession = async (
     }
     throw new Error(`Transaction ${id} does not exists`);
   } else {
-    const c = new ResqmlClient(options);
-    return c
-      .openSession(serverUrl, jwt, dataPartitionId)
-      .then(() => c)
-      .catch(err => {
-        throw new Error(`Cannot create session with ETP server: ${err}`);
-      });
+    try {
+      const c = new ResqmlClient(options);
+      await c.openSession(etpServerUrl, jwt, dataPartitionId);
+      return c;
+    } catch (err) {
+      throw new Error(`Cannot create session with ETP server: ${err}`);
+    }
   }
 };
 
@@ -423,16 +416,18 @@ export const createSession = async (
  * @param {string} jwt JSON web token
  * @param {string} dataspace Uri of dataspace where transaction will occur
  * @param {IOptions} [options]
- * @returns Transaction identifier (uuid as string)
+ * @param {string} [dataPartitionId] optional data partition
+ * @return {Promise<string>} Transaction identifier (uuid as string)
  */
 export const createTransaction = async (
   jwt: string,
   dataspace: string,
-  options?: IOptions
-) => {
+  options?: IOptions,
+  dataPartitionId?: string
+): Promise<string> => {
   const c = new ResqmlClient(options);
   return c
-    .openSession(serverUrl, jwt)
+    .openSession(etpServerUrl, jwt, dataPartitionId)
     .then(() =>
       c.startTransaction(
         false,
@@ -460,17 +455,22 @@ export const createTransaction = async (
  * @param {string} transactionId Transaction identifier
  * @returns
  */
-export const commitTransaction = async (jwt: string, transactionId: string) => {
+export const commitTransaction = async (
+  jwt: string,
+  transactionId: string
+): Promise<boolean> => {
   const t = etpClients.get(transactionId);
   if (t?.sha256 !== getSHA256(jwt)) {
     throw new Error(`Invalid token`);
   }
-  return t.client
-    .commitTransaction(EtpUri.uuidStringToByteArray(transactionId))
-    .then(() => etpClients.delete(transactionId))
-    .catch(err => {
-      throw new Error(`Cannot create session with ETP server: ${err}`);
-    });
+  try {
+    await t.client.commitTransaction(
+      EtpUri.uuidStringToByteArray(transactionId)
+    );
+    return etpClients.delete(transactionId);
+  } catch (err) {
+    throw new Error(`Cannot create session with ETP server: ${err}`);
+  }
 };
 
 /**
@@ -512,9 +512,10 @@ const getContext = (
     context.uri += createQueryString(query);
   }
 
-  const navigable: Energistics.Etp.v12.Datatypes.Object.RelationshipKind = (
-    Energistics.Etp.v12.Datatypes.Object.RelationshipKind as any
-  )[context.navigableEdges || "Both"];
+  const navigable: Energistics.Etp.v12.Datatypes.Object.RelationshipKind =
+    Energistics.Etp.v12.Datatypes.Object.RelationshipKind[
+      context.navigableEdges || "Both"
+    ];
 
   return {
     uri: context.uri,
@@ -549,9 +550,8 @@ export const findResources = async (
 ): Promise<Energistics.Etp.v12.Datatypes.Object.Resource[]> => {
   const context = getContext(contextInput, query);
 
-  const scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind = (
-    Energistics.Etp.v12.Datatypes.Object.ContextScopeKind as any
-  )[queryScope || "self"];
+  const scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind =
+    Energistics.Etp.v12.Datatypes.Object.ContextScopeKind[queryScope];
 
   return c.getResources(
     context,

@@ -16,8 +16,8 @@
 
 import { EventEmitter } from "events";
 
-import { Energistics } from "./Etp12";
 import { ETPCore } from "./ETPCore";
+import { Energistics } from "./Etp12";
 import { MessageFlags } from "./EtpTypes";
 
 /**
@@ -60,16 +60,16 @@ export class BaseHandler extends EventEmitter {
     return this._capabilities;
   }
 
-  public start() {
+  public start(): undefined {
     return undefined;
   }
-  public stop() {
+  public stop(): undefined {
     return undefined;
   }
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody: unknown
+  ): void {
     switch (messageHeader.messageType) {
       case 0:
         this.logTrace(`Received message ${this.protocol}.0.`);
@@ -77,7 +77,7 @@ export class BaseHandler extends EventEmitter {
         break;
       case Energistics.Etp.v12.Protocol.Core.ProtocolException._messageTypeId:
         this.logTrace(`Received message ${this.protocol}.Exception.`);
-        this.log(messageBody);
+        this.log(String(messageBody));
         break;
       case Energistics.Etp.v12.Protocol.Core.Acknowledge._messageTypeId:
         this.logTrace(`Received message ${this.protocol}.Acknowledge.`);
@@ -95,7 +95,7 @@ export class BaseHandler extends EventEmitter {
    * @param {string} str
    * @memberof BaseHandler
    */
-  public log(str: string) {
+  public log(str: string): void {
     this.core.log(str);
   }
 
@@ -105,7 +105,7 @@ export class BaseHandler extends EventEmitter {
    * @param {string} str
    * @memberof BaseHandler
    */
-  public logTrace(str: string) {
+  public logTrace(str: string): void {
     if (this.core.traceCalls) {
       this.log(str);
     }

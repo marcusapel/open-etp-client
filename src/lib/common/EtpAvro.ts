@@ -71,19 +71,31 @@ export class BinaryReader {
    * @returns {*} value of the datum
    * @memberof BinaryReader
    */
-  public readDatum(schema: any): any {
+  public readDatum(schema: unknown): any {
     return this.readDatumWithType(schema, typeOf(schema));
   }
 
   /**
    * From the buffer, read a datum corresponding to a schema
    *
-   * @param {*} schema of the datum
+   * @param {unknown} schema of the datum
    * @param {string} type of the datum schema
    * @returns {*} value of the datum
    * @memberof BinaryReader
    */
-  public readDatumWithType(schema: any, type: string): any {
+  public readDatumWithType(
+    schema: unknown,
+    type: string
+  ):
+    | number
+    | string
+    | boolean
+    | bigint
+    | null
+    | unknown[]
+    | Uint8Array
+    | Map<string, unknown>
+    | Record<string, unknown> {
     switch (type) {
       case "double":
         return this.readDouble();
@@ -106,20 +118,22 @@ export class BinaryReader {
       case "fixed":
         return this.readFixed(16);
       case "array":
-        return this.readArray(schema);
+        return this.readArray(schema as { items: unknown[] });
       case "record": {
-        const recordResult: Record<string, any> = {};
-        schema.fields.forEach(
-          (e: any) => (recordResult[e.name] = this.readDatum(e.type))
+        const recordResult: Record<string, unknown> = {};
+        const sch = schema as { fields: Array<{ name: string; type: string }> };
+        sch.fields.forEach(
+          e => (recordResult[e.name] = this.readDatum(e.type))
         );
         return recordResult;
       }
       case "map": {
         const mapResult = new Map();
+        const sch = schema as { values: unknown[] };
         let i = this.readMapStart();
         while (i !== 0) {
           while (i > 0) {
-            mapResult.set(this.readString(), this.readDatum(schema.values));
+            mapResult.set(this.readString(), this.readDatum(sch.values));
             i--;
           }
           i = this.mapNext();
@@ -128,15 +142,16 @@ export class BinaryReader {
       }
       case "union": {
         const idx = this.readInt();
-        if (schema[idx] === "null") {
+        const sch = schema as any[];
+        if (sch[idx] === "null") {
           return null;
-        } else if (schema.length === 2 && schema[0] === "null" && idx === 1) {
-          return this.readDatum(schema[1]);
+        } else if (sch.length === 2 && sch[0] === "null" && idx === 1) {
+          return this.readDatum(sch[1]);
         } else {
-          const unionResult: Record<string, any> = {
-            __keyName: keyName(schema[idx])
+          const unionResult: Record<string, unknown> = {
+            __keyName: keyName(sch[idx])
           };
-          unionResult[keyName(schema[idx])] = this.readDatum(schema[idx]);
+          unionResult[keyName(sch[idx])] = this.readDatum(sch[idx]);
           return unionResult;
         }
       }
@@ -275,7 +290,7 @@ export class BinaryReader {
   private mapNext() {
     return this.readCount();
   }
-  private readArray(schema: any): any[] {
+  private readArray(schema: { items: unknown[] }): unknown[] {
     const itemsType = typeOf(schema.items);
     const result = [];
     const init = this.readArrayStart();
@@ -334,13 +349,13 @@ export class BinaryWriter {
   /**
    * Serialize a datum according to its schema and write it to buffer
    *
-   * @param {*} schema Avro schema of the datum
-   * @param {*} datum Datum to encode
+   * @param {unknown} schema Avro schema of the datum
+   * @param {unknown} datum Datum to encode
    * @param {boolean} validate if datum needs to be validated against schema
    * @returns
    * @memberof BinaryWriter
    */
-  public writeDatum(schema: any, datum: any, validate: boolean) {
+  public writeDatum(schema: unknown, datum: unknown, validate: boolean): void {
     if (validate) {
       this.schemas.validate(schema, datum);
     }
@@ -358,11 +373,11 @@ export class BinaryWriter {
    * @memberof BinaryWriter
    */
   public writeDatumWithType(
-    schema: any,
+    schema: unknown,
     type: string,
-    datum: any,
+    datum: unknown,
     validate: boolean
-  ) {
+  ): void {
     if (validate) {
       this.schemas.validate(schema, datum);
     }
@@ -372,99 +387,103 @@ export class BinaryWriter {
         break;
       }
       case "boolean": {
-        this.writeBoolean(datum);
+        this.writeBoolean(datum as boolean);
         break;
       }
       case "int": {
-        this.writeInt(datum);
+        this.writeInt(datum as number);
         break;
       }
       case "long": {
-        this.writeInt64(datum);
+        this.writeInt64(datum as bigint);
         break;
       }
       case "float": {
-        this.writeFloat(datum);
+        this.writeFloat(datum as number);
         break;
       }
       case "double": {
-        this.writeDouble(datum);
+        this.writeDouble(datum as number);
         break;
       }
       case "bytes": {
-        this.writeBytes(Buffer.from(datum));
+        this.writeBytes(Buffer.from(datum as any));
         return;
       }
       case "string": {
-        this.writeString(datum);
+        this.writeString(datum as string);
         return;
       } // Complex types
       case "record": {
-        schema.fields.forEach((e: any) =>
-          this.writeDatum(e.type, datum[e.name], false)
-        );
+        const sch = schema as { fields: Array<{ name: string; type: string }> };
+        const dat = datum as Record<string, unknown>;
+        sch.fields.forEach(e => this.writeDatum(e.type, dat[e.name], false));
         return;
       }
       case "enum": {
-        for (let i = 0; i < schema.symbols.length; i++) {
-          if (schema.symbols[i] === datum) {
+        const sch = schema as { symbols: unknown[] };
+        for (let i = 0; i < sch.symbols.length; i++) {
+          if (sch.symbols[i] === datum) {
             this.writeInt(i);
             return;
           }
         }
         if (
-          parseInt(datum, 10) >= 0 &&
-          parseInt(datum, 10) < schema.symbols.length
+          parseInt(datum as string, 10) >= 0 &&
+          parseInt(datum as string, 10) < sch.symbols.length
         ) {
-          this.writeInt(datum);
+          this.writeInt(datum as number);
           return;
         }
         throw new Error(
-          `Invalid enum value: ${datum} expecting: ${schema.symbols}`
+          `Invalid enum value: ${datum} expecting: ${sch.symbols}`
         );
       }
       case "fixed": {
         if (datum) {
-          datum.forEach((e: any) => this.writeByte(e));
+          const dat = datum as Array<number>;
+          dat.forEach(e => this.writeByte(e));
         }
         return;
       }
       case "array": {
+        const dat = datum as Array<number | bigint>;
+        const sch = schema as { items: unknown[] };
         // Friendly for javascript null array === zero-length array
-        if (datum && datum.length > 0) {
-          this.writeInt(datum.length);
-          const itemType = typeOf(schema.items);
+        if (dat && dat.length > 0) {
+          this.writeInt(dat.length);
+          const itemType = typeOf(sch.items);
           if (itemType === "boolean") {
-            this.require(datum.length);
-            for (const d of datum) {
+            this.require(dat.length);
+            for (const d of dat) {
               this.buffer[this._index] = d ? 1 : 0;
               this._index++;
             }
           } else if (itemType === "double") {
-            this.require(datum.length * 8);
-            for (const d of datum) {
-              this.buffer.writeDoubleLE(d, this._index);
+            this.require(dat.length * 8);
+            for (const d of dat) {
+              this.buffer.writeDoubleLE(d as number, this._index);
               this._index += 8;
             }
           } else if (itemType === "float") {
-            this.require(datum.length * 4);
-            for (const d of datum) {
-              this.buffer.writeFloatLE(d, this._index);
+            this.require(dat.length * 4);
+            for (const d of dat) {
+              this.buffer.writeFloatLE(d as number, this._index);
               this._index += 4;
             }
           } else if (itemType === "long") {
-            this.require(datum.length * 8);
-            for (const d of datum) {
-              this.writeInt64(d);
+            this.require(dat.length * 8);
+            for (const d of dat) {
+              this.writeInt64(d as bigint);
             }
           } else if (itemType === "int") {
-            this.require(datum.length * 4);
-            for (const d of datum) {
-              this.writeInt(d);
+            this.require(dat.length * 4);
+            for (const d of dat) {
+              this.writeInt(d as number);
             }
           } else {
-            for (const d of datum) {
-              this.writeDatumWithType(schema.items, itemType, d, false);
+            for (const d of dat) {
+              this.writeDatumWithType(sch.items, itemType, d, false);
             }
           }
         }
@@ -472,39 +491,43 @@ export class BinaryWriter {
         return;
       }
       case "map": {
-        const count = datum.size;
+        const dat = datum as Map<string, unknown>;
+        const count = dat.size;
+        const sch = schema as { values: any[] };
         if (count > 0) {
           this.writeInt(count);
-          datum.forEach((value: any, key: string) => {
+          dat.forEach((value: unknown, key: string) => {
             this.writeString(key);
-            this.writeDatum(schema.values, value, false);
+            this.writeDatum(sch.values, value, false);
           });
         }
         this.writeInt(0);
         break;
       }
       case "union": {
+        const sch = schema as any[];
+        const dat = datum as Record<string, unknown>;
         /// Special handling for nullable unions in ETP
-        if (schema[0] === "null") {
+        if (sch[0] === "null") {
           if (datum == null) {
             this.writeInt(0);
             return;
           } else if (
-            schema.length === 2 &&
-            !Object.prototype.hasOwnProperty.call(datum, schema[1])
+            sch.length === 2 &&
+            !Object.prototype.hasOwnProperty.call(datum, sch[1])
           ) {
             this.writeInt(1);
-            this.writeDatum(schema[1], datum, false);
+            this.writeDatum(sch[1], datum, false);
             return;
           }
         }
-        for (let i = 0; i < schema.length; i++) {
+        for (let i = 0; i < sch.length; i++) {
           if (
             datum &&
-            Object.prototype.hasOwnProperty.call(datum, keyName(schema[i]))
+            Object.prototype.hasOwnProperty.call(datum, keyName(sch[i]))
           ) {
             this.writeInt(i);
-            this.writeDatum(schema[i], datum[keyName(schema[i])], false);
+            this.writeDatum(sch[i], dat[keyName(sch[i])], false);
             return;
           }
         }
@@ -552,50 +575,46 @@ export class BinaryWriter {
   }
 
   private writeInt(value: number) {
-    {
-      this.require(4);
-      if (value >= -1073741824 && value < 1073741824) {
-        // Won't overflow, we can use integer arithmetic.
-        let m = value >= 0 ? value << 1 : (~value << 1) | 1;
-        do {
-          this.buffer[this._index] = m & 0x7f;
-          m >>= 7;
-        } while (m && (this.buffer[this._index++] |= 0x80));
-      } else {
-        // We have to use slower floating arithmetic.
-        let f = value >= 0 ? value * 2 : -value * 2 - 1;
-        do {
-          this.buffer[this._index] = f & 0x7f;
-          f /= 128;
-        } while (f >= 1 && (this.buffer[this._index++] |= 0x80));
-      }
-      this._index++;
+    this.require(4);
+    if (value >= -1073741824 && value < 1073741824) {
+      // Won't overflow, we can use integer arithmetic.
+      let m = value >= 0 ? value << 1 : (~value << 1) | 1;
+      do {
+        this.buffer[this._index] = m & 0x7f;
+        m >>= 7;
+      } while (m && (this.buffer[this._index++] |= 0x80));
+    } else {
+      // We have to use slower floating arithmetic.
+      let f = value >= 0 ? value * 2 : -value * 2 - 1;
+      do {
+        this.buffer[this._index] = f & 0x7f;
+        f /= 128;
+      } while (f >= 1 && (this.buffer[this._index++] |= 0x80));
     }
+    this._index++;
   }
 
   private writeInt64(value: Integer64) {
-    {
-      this.require(8);
-      if (value >= BigInt(-1073741824) && value < BigInt(1073741824)) {
-        // Won't overflow, we can use integer arithmetic.
-        let m =
-          value >= BigInt(0)
-            ? value << BigInt(1)
-            : (~value << BigInt(1)) | BigInt(1);
-        do {
-          this.buffer[this._index] = Number(m & BigInt(0x7f));
-          m >>= BigInt(7);
-        } while (m && (this.buffer[this._index++] |= 0x80));
-      } else {
-        // We have to use slower floating arithmetic.
-        let f = value >= 0 ? value * BigInt(2) : -value * BigInt(2) - BigInt(1);
-        do {
-          this.buffer[this._index] = Number(f & BigInt(0x7f));
-          f /= BigInt(128);
-        } while (f >= 1 && (this.buffer[this._index++] |= 0x80));
-      }
-      this._index++;
+    this.require(8);
+    if (value >= BigInt(-1073741824) && value < BigInt(1073741824)) {
+      // Won't overflow, we can use integer arithmetic.
+      let m =
+        value >= BigInt(0)
+          ? value << BigInt(1)
+          : (~value << BigInt(1)) | BigInt(1);
+      do {
+        this.buffer[this._index] = Number(m & BigInt(0x7f));
+        m >>= BigInt(7);
+      } while (m && (this.buffer[this._index++] |= 0x80));
+    } else {
+      // We have to use slower floating arithmetic.
+      let f = value >= 0 ? value * BigInt(2) : -value * BigInt(2) - BigInt(1);
+      do {
+        this.buffer[this._index] = Number(f & BigInt(0x7f));
+        f /= BigInt(128);
+      } while (f >= 1 && (this.buffer[this._index++] |= 0x80));
     }
+    this._index++;
   }
 
   private writeFloat(f: number) {
@@ -652,12 +671,12 @@ export class SchemaCache {
   /**
    * Validate a datum against its schema
    *
-   * @param {*} schema
-   * @param {*} datum
+   * @param {unknown} schema
+   * @param {unknown} datum
    * @returns
    * @memberof SchemaCache
    */
-  public validate(schema: any, datum: any) {
+  public validate(schema: unknown, datum: unknown): boolean {
     const type = typeOf(schema);
     return this.validateWithType(schema, type, datum);
   }
@@ -665,12 +684,17 @@ export class SchemaCache {
   /**
    * Validate a datum against its schema
    *
-   * @param {*} schema
-   * @param {*} datum
-   * @returns
+   * @param {unknown} schema
+   * @param {string} type
+   * @param {unknown} datum
+   * @return {boolean}
    * @memberof SchemaCache
    */
-  public validateWithType(schema: any, type: string, datum: any) {
+  public validateWithType(
+    schema: unknown,
+    type: string,
+    datum: unknown
+  ): boolean {
     switch (type) {
       // Primitive types
       case "null": {
@@ -717,16 +741,19 @@ export class SchemaCache {
         if (!schema) {
           throw new Error(`Invalid schema use for validating ${datum}`);
         }
-        schema.fields.forEach((e: any) => this.validate(e.type, datum[e.name]));
+        const sch = schema as { fields: Array<{ name: string; type: string }> };
+        const dat = datum as Record<string, unknown>;
+        sch.fields.forEach((e: any) => this.validate(e.type, dat[e.name]));
         return true;
       }
       case "enum": {
         if (!schema) {
           throw new Error(`Invalid schema use for validating ${datum}`);
         }
-        if (datum >= schema.symbols.length) {
+        const sch = schema as { symbols: any[] };
+        if ((datum as number) >= sch.symbols.length) {
           throw new Error(
-            `Invalid enum value: ${datum} expecting an integer less than ${schema.symbols.length}`
+            `Invalid enum value: ${datum} expecting an integer less than ${sch.symbols.length}`
           );
         }
         return true;
@@ -738,28 +765,33 @@ export class SchemaCache {
         if (!schema) {
           throw new Error(`Invalid schema use for validating ${datum}`);
         }
-        if (datum.length > 0) {
-          datum.forEach((e: any) => this.validate(schema.items, e));
+        const dat = datum as Array<unknown>;
+        const sch = schema as { items: any[] };
+        if (dat.length > 0) {
+          dat.forEach((e: any) => this.validate(sch.items, e));
         }
         return true;
       }
       case "map": {
+        const dat = datum as Map<string, unknown>;
+        const sch = schema as { values: any[] };
         let count = 0;
-        for (const thisVar in datum) {
+        for (const thisVar in dat) {
           if (Object.prototype.hasOwnProperty.call(datum, thisVar)) {
             ++count;
           }
         }
         if (count > 0) {
-          for (const k in datum) {
-            this.validate(schema.values, k);
+          for (const k in dat) {
+            this.validate(sch.values, k);
           }
         }
         break;
       }
       case "union": {
+        const sch = schema as Record<string, unknown>;
         if (
-          Object.values(schema).find(e => {
+          Object.values(sch).find(e => {
             // Go through each individual type to see if one validate
             const t = e as string;
             let ok = true;

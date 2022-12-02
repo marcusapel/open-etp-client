@@ -16,6 +16,12 @@
 
 import "jest";
 
+import Logging from "../lib/common/Logging";
+
+import { execSync } from "child_process";
+import http from "http";
+import request from "supertest";
+
 import {
   Energistics,
   EtpUri,
@@ -23,31 +29,27 @@ import {
   ResqmlClient,
   XmlUtils
 } from "../index";
+import type { IResqmlDataObject, Resource, SimpleJson } from "../index";
 
 import { ETPClient } from "../lib/client/ETPClient";
 
-import type {
-  Dataspace,
-  IResqmlDataObject,
-  Resource,
-  SimpleJson
-} from "../index";
-
 import * as controlUtils from "../lib/restApi/ControllerUtils";
 
-import logging from "../lib/common/Logging";
+import { MessageFlags } from "../lib/common/EtpTypes";
 
-export const serverProtocol = process.env.RDMS_ETP_PROTOCOL || "ws";
-export const serverHost = process.env.RDMS_ETP_HOST || "localhost";
-export const serverPath = process.env.RDMS_ETP_PATH || "";
-export const serverPort = process.env.RDMS_ETP_PORT || "9004";
+import restApp from "../lib/restApi/App";
 
-export const dataPatitionMode = process.env.RDMS_DATA_PARTITION_MODE || "single";
-export const testDataPartitionId = process.env.RDMS_TEST_DATA_PARTITION_ID;
-
-const routePath = controlUtils.routePath;
-
-const serverUrl = `${serverProtocol}://${serverHost}:${serverPort}${serverPath}/`;
+import {
+  etpServerHost,
+  etpServerPath,
+  etpServerPort,
+  etpServerProtocol,
+  etpServerUrl,
+  restApiMainUrl,
+  restApiPort,
+  restApiRoutePath
+} from "../lib/common/config";
+import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
 
 const jwt = XmlUtils.createDefaultJWT();
 
@@ -55,33 +57,27 @@ const failOnUnexpectedError = (err: Error) => {
   expect(err).toBeFalsy();
 };
 
-import { execSync } from "child_process";
-import http from "http";
+export const dataPatitionMode =
+  process.env.RDMS_DATA_PARTITION_MODE || "single";
+export const testDataPartitionId = process.env.RDMS_TEST_DATA_PARTITION_ID;
 
 function sleep(milliseconds: number) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-const logger = logging.getLogger("EtpClient");
+const logger = Logging.getLogger("Jest");
 
 describe("Valid data partition", () => {
   it("Non empty parameters", () => {
     expect(dataPatitionMode).not.toBeFalsy();
-    if (dataPatitionMode === "multipartition") {
+    if (dataPatitionMode !== "single") {
       expect(testDataPartitionId).not.toBeFalsy();
     }
   });
 });
 
-describe("Valid url components", () => {
-  it("Non empty parameters", () => {
-    expect(serverHost).not.toBeFalsy();
-    expect(serverPort).not.toBeFalsy();
-  });
-});
-
 export const checkServerAvailability: () => Promise<boolean> = async () => {
-  const url = `http://${serverHost}:${serverPort}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
+  const url = `http://${etpServerHost}:${etpServerPort}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
   return new Promise(resolve => {
     try {
       const req = http.get(url, response => {
@@ -124,6 +120,7 @@ export const checkRestAPIAvailability: () => Promise<boolean> = async () => {
     }
   });
 };
+let serverAlreadyAvailable = false;
 
 const startServer = async (): Promise<boolean> => {
   try {
@@ -132,6 +129,7 @@ const startServer = async (): Promise<boolean> => {
     logger.info(`ETP server availability ${s}`);
 
     if (s) {
+      serverAlreadyAvailable = true;
       return true;
     }
     // Start server and give it time before starting tests
@@ -140,73 +138,79 @@ const startServer = async (): Promise<boolean> => {
 
     await sleep(20000);
 
-    return checkServerAvailability().then(() => {
-      logger.info("ETP server started");
-      return true;
-    });
+    const startedOK = await checkServerAvailability();
+    logger.info("ETP server started: " + startedOK);
+    return startedOK;
   } catch (error) {
     return false;
   }
 };
 
 const stopServer = (): void => {
-  // Use sync to make sure server stop to avoid open handles
-  execSync("npm run docker:compose:stop");
-  logger.info("ETP server stopped");
+  if (serverAlreadyAvailable) {
+    logger.info("ETP server maintained");
+  } else {
+    // Use sync to make sure server stop to avoid open handles
+    execSync("npm run docker:compose:stop");
+    logger.info("ETP server stopped");
+  }
 };
 
 const maxTime = 400000000;
 
-import restApp from "../lib/restApi/App";
+type TServer = Record<string, request.SuperTest<request.Test>>;
+const testServers: TServer = {};
 
-import { MessageFlags } from "../lib/common/EtpTypes";
-import request from "supertest";
+// declare servers we want to test
+const serverData = [
+  "http", // http server: e.g. docker container image,
+  "app" // NestJS app
+];
 
 let token = "";
 
-let app: any = undefined;
+let nestApp: any = undefined;
 
 try {
   beforeAll(async () => {
     jest.setTimeout(maxTime);
     await startServer();
-    app = (await (await restApp()).init()).getHttpServer();
-    await request(app)
-      .get(`${routePath}/health/readiness`)
-      .expect(200)
-      .then(() =>
-        request(app)
-          .get(`${routePath}/auth/token`)
-          .expect(`Content-Type`, /json/)
-          .expect(200)
-          .then(res => {
-            token = res.body.token;
-            expect(token).not.toBeNull();
-          })
-      );
+
+    // NestJS app
+    nestApp = await restApp();
+    const nestAppServer = (await nestApp.init()).getHttpServer();
+    const nestAppTest = request(nestAppServer);
+    nestAppTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+    testServers["app"] = nestAppTest;
+
+    // http server: e.g. docker container image
+    const httpServerTest = request(`${restApiMainUrl}:${restApiPort}`);
+    httpServerTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+    testServers["http"] = httpServerTest;
+
+    // initialize token for
+    const res = await nestAppTest
+      .get(`${restApiRoutePath}/auth/token`)
+      .expect("Content-Type", /json/)
+      .expect(200);
+    token = res.body.token;
+    return expect(token).not.toBeNull();
   }, maxTime);
 } catch (e) {
   logger.error(`beforeAll catch external: ${e}`);
+  throw e;
 }
 
 afterAll(done => {
   stopServer();
+  nestApp.close();
   done();
 });
 
-describe("Ping", () => {
-  it("Ping", async () => {
-    const c2 = new ResqmlClient();
-    c2.setCallsTraceability(false);
-    await c2
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(() => c2.ping())
-      .then(res => expect(res).not.toBeNull())
-      .then(() => c2.closeSession());
-  });
-});
-
 const dataspaceName = "demo/Volve";
+
+const grid2dType = "resqml20.obj_Grid2dRepresentation";
+
 const tSurfType = "resqml20.obj_TriangulatedSetRepresentation";
 const tSurfUid = "f814c230-bf43-4f2a-89d6-6229eb3c9c49";
 const propertyUid = "e3d82cdc-3cfe-4810-9fb5-f4904cd1b658";
@@ -219,39 +223,17 @@ const dataspaceEncoded = encodeURIComponent(dataspaceName);
 const wrongDataspace = "wrong/wrong";
 const wrongDataspaceEncoded = encodeURIComponent(wrongDataspace);
 
-import { NestExpressApplication } from "@nestjs/platform-express";
+//*****************************************************/
+// ResqmlClient
 
-describe("Rest server", () => {
-  // Skip when running in container
-  it.skip("Check API running", done => {
-    restApp().then((a: NestExpressApplication) => {
-      let url = controlUtils.swaggerUIUrl;
-      const inContainer = url.startsWith("http://172.17.01");
-      if (!inContainer) {
-        //Run locally
-        const testPort = 3092;
-        a.listen(testPort);
-        url = `${controlUtils.mainUrl}:${testPort}${controlUtils.routePath}/health/readiness/`;
-      }
-      setTimeout(() => {
-        try {
-          logger.info(`Connecting to REST test URL: ${url}`);
-          http.get(url, response => {
-            expect(response.statusCode).toEqual(200);
-            if (!inContainer) {
-              a.close();
-            }
-            done();
-          });
-        } catch (e) {
-          expect(false).toBeTruthy();
-          if (!inContainer) {
-            a.close();
-          }
-          done();
-        }
-      }, 5000);
-    });
+describe("Ping", () => {
+  it("Ping", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(false);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const res = await c2.ping();
+    expect(res).not.toBeNull();
+    await c2.closeSession();
   });
 });
 
@@ -268,45 +250,77 @@ describe("Resource Graph", () => {
     }
   });
 
-  it("Projects", done => {
+  it("Check API running", async () => {
+    const res = await checkRestAPIAvailability();
+    expect(res).toBeTruthy();
+  });
+
+  it("Right session", async () => {
     client.setCallsTraceability(true);
-    client.openSession(serverUrl, jwt, testDataPartitionId).then(() =>
-      client.getProjects().then(projects => {
-        expect(client.isConnected()).toBe(true);
-        expect(projects).not.toBeNull();
-        if (projects) {
-          const testProject = projects.find(p =>
-            p.path.includes(dataspaceName)
-          );
-          expect(testProject).toBeDefined();
-          done();
-        }
-      })
-    );
+    let thrown = false;
+    try {
+      await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    } catch (err) {
+      thrown = true;
+    }
+    expect(thrown).toBeFalsy();
+    expect(client.isConnected()).toBeTruthy();
+    expect(client.isInSession()).toBeTruthy();
+    await client.closeSession();
   });
 
-  it("Wrong Projects Error", done => {
-    client.openSession(serverUrl, jwt, testDataPartitionId).then(async () => {
-      const wrongUrl = `eml:///dataspace('${wrongDataspace}')`;
-      let hasError = false;
-      try {
-        await client.getProjectTypes(wrongUrl);
-      } catch {
-        // Error should have been thrown
-        hasError = true;
-      }
-      expect(hasError).toBeTruthy();
-      done();
-    });
+  it("Wrong session", async () => {
+    const wrongEtpServerUrl = `${etpServerProtocol}://${etpServerHost}:${
+      +etpServerPort + 1
+    }${etpServerPath}/`;
+    client.setCallsTraceability(true);
+    let thrown = false;
+    try {
+      await client.openSession(wrongEtpServerUrl, jwt, testDataPartitionId);
+    } catch (err) {
+      expect(err).toEqual("Connection Error");
+      thrown = true;
+    }
+    expect(thrown).toBeTruthy();
+    expect(client.isConnected()).toBeFalsy();
+    expect(client.isInSession()).toBeFalsy();
   });
 
-  it("Put and delete Obj", done => {
-    client
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(async () => client.getProjects())
-      .then(async projects => {
-        if (projects) {
-          const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+  it("Dataspaces", async () => {
+    client.setCallsTraceability(true);
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    expect(client.isConnected()).toBe(true);
+    expect(projects).not.toBeNull();
+    if (projects) {
+      const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+      expect(testDataspace).toBeDefined();
+    }
+    await client.closeSession();
+  });
+
+  it("Wrong Dataspaces Error", async () => {
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const wrongUrl = `eml:///dataspace('${wrongDataspace}')`;
+    let hasError = false;
+    try {
+      await client.getDataspaceTypes(wrongUrl);
+    } catch {
+      // Error should have been thrown
+      hasError = true;
+    }
+    expect(hasError).toBeTruthy();
+    await client.closeSession();
+  });
+
+  it("Put and delete Obj", async () => {
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    expect(projects).toBeTruthy();
+    if (!projects) {
+      return;
+    }
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
           <eml:EpcExternalPartReference xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gsr="http://www.isotc211.org/2005/gsr" xmlns:dc="http://purl.org/dc/terms/" xmlns:resqml1="http://www.resqml.org/schemas/1series" xmlns:resqml2="http://www.energistics.org/energyml/data/resqmlv2" xmlns:witsml1="http://www.witsml.org/schemas/1series" xmlns:eml="http://www.energistics.org/energyml/data/commonv2" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:ptm="http://www.f2i-consulting.com/PropertyTypeMapping" xmlns:abstract="http://www.energistics.org/schemas/abstract" schemaVersion="2.0" uuid="53395ada-6f93-4bac-b506-d45997ded2a2" xsi:type="eml:obj_EpcExternalPartReference">
           <eml:Citation xsi:type="eml:Citation">
             <eml:Title xsi:type="eml:DescriptionString">/home/user1/Desktop/Volve_Demo_Horizons_Depth.h5</eml:Title>
@@ -318,258 +332,238 @@ describe("Resource Graph", () => {
           <eml:MimeType xsi:type="xsd:string">application/x-hdf5</eml:MimeType>
         </eml:EpcExternalPartReference>
         `;
-          const p = projects[0];
-          const object: Energistics.Etp.v12.Datatypes.Object.DataObject = {
-            data: [...Buffer.from(xmlContent)],
-            format: "xml",
-            resource: {
-              uri: `${p.uri}/eml.EpcExternalPartReference(53395ada-6f93-4bac-b506-d45997ded2a2)`,
-              name: "test",
-              alternateUris: [],
-              sourceCount: null,
-              targetCount: null,
-              storeCreated: BigInt(0),
-              storeLastWrite: BigInt(0),
-              activeStatus:
-                Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
-              lastChanged: BigInt(0),
-              customData: new Map()
-            },
-            blobId: null
-          };
-          const transaction = await client.startTransaction(
-            false,
-            [projects[0].uri],
-            "Create dummy array"
-          );
-          try {
-            await client.putDataObjects([object]);
-            await client.deleteObjects([object.resource.uri]);
-            await client.rollbackTransaction(transaction);
-          } catch (e) {
-            await client.rollbackTransaction(transaction);
-          }
-        }
-      })
-      .then(() => done());
+    const p = projects[0];
+    const object: Energistics.Etp.v12.Datatypes.Object.DataObject = {
+      data: [...Buffer.from(xmlContent)],
+      format: "xml",
+      resource: {
+        uri: `${p.uri}/eml.EpcExternalPartReference(53395ada-6f93-4bac-b506-d45997ded2a2)`,
+        name: "test",
+        alternateUris: [],
+        sourceCount: null,
+        targetCount: null,
+        storeCreated: BigInt(0),
+        storeLastWrite: BigInt(0),
+        activeStatus:
+          Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
+        lastChanged: BigInt(0),
+        customData: new Map()
+      },
+      blobId: null
+    };
+    const transaction = await client.startTransaction(
+      false,
+      [projects[0].uri],
+      "Create dummy array"
+    );
+    try {
+      await client.putDataObjects([object]);
+      await client.deleteObjects([object.resource.uri]);
+      await client.rollbackTransaction(transaction);
+    } catch (e) {
+      await client.rollbackTransaction(transaction);
+    }
+    await client.closeSession();
   });
 
-  it("Create Delete Project", done => {
+  it("Create Delete Dataspace", async () => {
     const path = "test/toDelete";
     const uri = EtpUri.createDataSpaceUri(path);
     const clientWrite = new ResqmlClient();
-    client
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(() => client.getProjects())
-      .then(projects =>
-        expect(projects?.filter(r => r.path.includes(path)).length).toBe(0)
-      )
-      .then(() =>
-        clientWrite.openSession(serverUrl, jwt, testDataPartitionId, undefined, undefined, 100000)
-      )
-      .then(() => clientWrite.findOrCreateProject(path, path))
-      .then(() => client.getProjects())
-      .then(projects => {
-        expect(projects).toBeDefined();
-        if (!projects) {
-          return;
-        }
-        expect(projects.filter(r => r.path.includes(path)).length).toBe(1);
-        const testProject = projects.find(p => p.path.includes(dataspaceName));
-        expect(testProject).toBeDefined();
-        if (!testProject) {
-          return;
-        }
-        return client.getProjectResources(testProject.uri).then(resources =>
-          clientWrite
-            .copyResourcesToDataspace(
-              client,
-              resources.map(r => r.uri),
-              uri.uri
-            )
-            .then(() => clientWrite.getProjectResources(uri.uri))
-            .then(resources2 => {
-              expect(resources2.length).toBe(resources.length);
-              return resources2;
-            })
-            .then(resources2 => {
-              clientWrite.findResource(resources2[0].uri).then(r => {
-                expect(r).toBeDefined();
-                if (r) {
-                  expect(resources2[0].uri).toEqual(r.uri);
-                }
-              });
-              return resources2;
-            })
-            .then(resources2 => clientWrite.deleteObjects([resources2[0].uri]))
-            .then(() => clientWrite.getProjectResources(uri.uri))
-            .then(resources2 => {
-              expect(resources2.length).toBe(resources.length - 1);
-            })
-        );
-      })
-      .then(() => clientWrite.deleteProjects([uri.uri]))
-      .catch(() => clientWrite.deleteProjects([uri.uri]))
-      .then(() => clientWrite.closeSession())
-      .then(() => client.getProjects())
-      .then(projects =>
-        expect(projects?.filter(r => r.path.includes(path)).length).toBe(0)
-      )
-      .then(() => {
-        done();
-      });
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+
+    expect(projects?.filter(r => r.path.includes(path)).length).toBe(0);
+
+    await clientWrite.openSession(
+      etpServerUrl,
+      jwt,
+      testDataPartitionId,
+      undefined,
+      undefined,
+      100000
+    );
+
+    await clientWrite.findOrCreateDataspace(path, path);
+    const projects2 = await client.getDataspaces();
+    expect(projects2).toBeTruthy();
+    if (!projects2) {
+      return;
+    }
+    expect(projects2.filter(r => r.path.includes(path)).length).toBe(1);
+    const testDataspace = projects2.find(p => p.path.includes(dataspaceName));
+    expect(testDataspace).toBeDefined();
+    if (!testDataspace) {
+      return;
+    }
+    const resources = await client.getDataspaceResources(testDataspace.uri);
+    await clientWrite.copyResourcesToDataspace(
+      client,
+      resources.map(r => r.uri),
+      uri.uri
+    );
+    const resources2 = await clientWrite.getDataspaceResources(uri.uri);
+
+    expect(resources2.length).toBe(resources.length);
+    const firstRes = await clientWrite.findResource(resources2[0].uri);
+    expect(firstRes).toBeDefined();
+    if (firstRes) {
+      expect(resources2[0].uri).toEqual(firstRes.uri);
+    }
+    await clientWrite.deleteObjects([resources2[0].uri]);
+    const resources3 = await clientWrite.getDataspaceResources(uri.uri);
+    expect(resources3.length).toBe(resources.length - 1);
+
+    try {
+      await clientWrite.deleteDataspaces([uri.uri]);
+    } catch (e) {
+      clientWrite.deleteDataspaces([uri.uri]);
+    }
+
+    await clientWrite.closeSession();
+    const projects3 = await client.getDataspaces();
+    await client.closeSession();
+    expect(projects3?.filter(r => r.path.includes(path)).length).toBe(0);
   });
 
-  it("Create Array Transaction", done => {
-    client.openSession(serverUrl, jwt, testDataPartitionId).then(() =>
-      client.getProjects().then(async projects => {
-        expect(client.isConnected()).toBe(true);
-        expect(projects).not.toBeNull();
-        if (projects) {
-          expect(projects.length).toBe(1);
-          const testProject = projects.find(p =>
-            p.path.includes(dataspaceName)
-          );
-          expect(testProject).toBeDefined();
-          const fullArray: Int32Array = Int32Array.from([1, 1, 1, 1, 1, 1]);
-          const aa: Int32Array = Int32Array.from([3, 3]);
-          const transaction = await client.startTransaction(
-            false,
-            [projects[0].uri],
-            "Create dummy array"
-          );
-          try {
-            const uri = EtpUri.createObjectUri(
-              dataspaceName,
-              "eml",
-              "2.0",
-              "obj_EpcExternalPartReference",
-              "53395ada-6f93-4bac-b506-d45997ded2a2"
-            ).uri;
-            const pathInResource = `/Resqml/${tSurfUid}/testArray`;
-            await client.putDataArray(
-              {
-                uri,
-                pathInResource
-              },
-              [2, 3],
-              fullArray
-            );
-            await client.getDataArray(uri, pathInResource).then(value => {
-              expect(value?.data?.data.item._ArrayOfInt?.values[5]).toBe(1);
-            });
-            await client.putEmptyDataArray(
-              {
-                uri,
-                pathInResource
-              },
-              aa,
-              [2, 3]
-            );
-            await client.putDataSubArray(
-              {
-                uri,
-                pathInResource
-              },
-              [1, 1],
-              [1, 2],
-              aa
-            );
-            await client.getDataArray(uri, pathInResource).then(value => {
-              expect(value?.data?.data.item._ArrayOfInt?.values[5]).toEqual(3);
-            });
+  it("Create Array Transaction", async () => {
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    expect(client.isConnected()).toBe(true);
+    expect(projects).toBeTruthy();
+    if (!projects) {
+      return;
+    }
+    expect(projects.length).toBe(1);
+    const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+    expect(testDataspace).toBeDefined();
+    const fullArray: Int32Array = Int32Array.from([1, 1, 1, 1, 1, 1]);
+    const aa: Int32Array = Int32Array.from([3, 3]);
+    const transaction = await client.startTransaction(
+      false,
+      [projects[0].uri],
+      "Create dummy array"
+    );
+    try {
+      const uri = EtpUri.createObjectUri(
+        dataspaceName,
+        "eml",
+        "2.0",
+        "obj_EpcExternalPartReference",
+        "53395ada-6f93-4bac-b506-d45997ded2a2"
+      ).uri;
+      const pathInResource = `/Resqml/${tSurfUid}/testArray`;
+      await client.putDataArray(
+        {
+          uri,
+          pathInResource
+        },
+        [2, 3],
+        fullArray
+      );
+      const value = await client.getDataArray(uri, pathInResource);
+      expect(value?.data?.data.item._ArrayOfInt?.values[5]).toBe(1);
 
-            await client
-              .getDataSubarray(uri, pathInResource, [1, 0], [1, 3])
-              .then(subarray => {
-                const data =
-                  subarray?.data as Energistics.Etp.v12.Datatypes.DataArrayTypes.DataArray;
-                expect(data.data.item._ArrayOfInt?.values[2]).toEqual(3);
-              });
+      await client.putEmptyDataArray(
+        {
+          uri,
+          pathInResource
+        },
+        aa,
+        [2, 3]
+      );
+      await client.putDataSubArray(
+        {
+          uri,
+          pathInResource
+        },
+        [1, 1],
+        [1, 2],
+        aa
+      );
+      const value2 = await client.getDataArray(uri, pathInResource);
+      expect(value2?.data?.data.item._ArrayOfInt?.values[5]).toEqual(3);
 
-            let sum = 0;
-            await client.visitDataArrayValues(
-              { uri, pathInResource },
-              values => {
-                values.forEach(v => {
-                  if (typeof v === "number") {
-                    sum += v;
-                  }
-                });
-              }
-            );
-            expect(sum).toEqual(6);
+      const subarray = await client.getDataSubarray(
+        uri,
+        pathInResource,
+        [1, 0],
+        [1, 3]
+      );
+      const data =
+        subarray?.data as Energistics.Etp.v12.Datatypes.DataArrayTypes.DataArray;
+      expect(data.data.item._ArrayOfInt?.values[2]).toEqual(3);
 
-            const badPut = await client.putEmptyDataArray(
-              {
-                uri: EtpUri.createObjectUri(
-                  dataspaceName,
-                  "eml",
-                  "2.0",
-                  "obj_EpcExternalPartReference",
-                  "53395ada-6f93-0000-0000-d45997ded2a2"
-                ).uri,
-                pathInResource
-              },
-              aa,
-              [2, 3]
-            );
-            expect(badPut).toBeFalsy();
-            await client.rollbackTransaction(transaction);
-          } catch (e) {
-            await client.rollbackTransaction(transaction);
+      let sum = 0;
+      await client.visitDataArrayValues({ uri, pathInResource }, values => {
+        values.forEach(v => {
+          if (typeof v === "number") {
+            sum += v;
           }
-        }
-        done();
-      })
-    );
-  });
-
-  it("Subscribe Notification fails", done => {
-    client
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(async () => client.getProjects())
-      .then(projects =>
-        client.subscribeNotifications(projects ? projects[0].uri : "")
-      )
-      .then(u => expect(u).toBeNull())
-      .then(() =>
-        client.unsubscribeNotifications([
-          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        ])
-      )
-      .then(done);
-  });
-
-  it("Delete Wrong Project", done => {
-    const uri = EtpUri.createDataSpaceUri("test/toDeleteWrong");
-    let nbProjects = 0;
-    client
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(async () => client.getProjects())
-      .then(projects => (nbProjects = projects?.length || 0))
-      .then(() => client.deleteProjects([uri.uri]))
-      .then(() => client.getProjects())
-      .then(projects3 => {
-        expect(projects3?.length).toBe(nbProjects);
-        done();
+        });
       });
+      expect(sum).toEqual(6);
+
+      const badPut = await client.putEmptyDataArray(
+        {
+          uri: EtpUri.createObjectUri(
+            dataspaceName,
+            "eml",
+            "2.0",
+            "obj_EpcExternalPartReference",
+            "53395ada-6f93-0000-0000-d45997ded2a2"
+          ).uri,
+          pathInResource
+        },
+        aa,
+        [2, 3]
+      );
+      expect(badPut).toBeFalsy();
+      await client.rollbackTransaction(transaction);
+    } catch (e) {
+      await client.rollbackTransaction(transaction);
+    }
+    await client.closeSession();
   });
 
-  it("Find Project From itself", done => {
-    client.openSession(serverUrl, jwt, testDataPartitionId).then(async () =>
-      client.getProjects().then((projects: Dataspace[] | null) => {
-        expect(projects).not.toBeNull();
-        if (projects) {
-          expect(projects.length).toBe(1);
-          const testProject = projects.find(p =>
-            p.path.includes(dataspaceName)
-          );
-          expect(testProject).toBeDefined();
-        }
-        done();
-      })
+  it("Subscribe Notification fails", async () => {
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+
+    const subscribeUuid = await client.subscribeNotifications(
+      projects ? projects[0].uri : ""
     );
+
+    expect(subscribeUuid).toBeNull();
+
+    client.unsubscribeNotifications([
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ]);
+    await client.closeSession();
+  });
+
+  it("Delete Wrong Dataspace", async () => {
+    const uri = EtpUri.createDataSpaceUri("test/toDeleteWrong");
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    const nbDataspaces = projects?.length || 0;
+    await client.deleteDataspaces([uri.uri]);
+    const projects2 = await client.getDataspaces();
+    await client.closeSession();
+    expect(projects2?.length).toBe(nbDataspaces);
+  });
+
+  it("Find Dataspace From itself", async () => {
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    expect(projects).toBeTruthy();
+    if (!projects) {
+      return;
+    }
+    await client.closeSession();
+    expect(projects.length).toBe(1);
+    const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+    expect(testDataspace).toBeDefined();
   });
 });
 
@@ -577,35 +571,32 @@ describe("Objects", () => {
   it("Raw", async () => {
     const client = new ResqmlClient({
       collapseTextElement: false,
-      removeNamespace: false,
-      resolveArrayMetadata: true,
-      resolveReference: true
+      removeNamespace: false
     });
-    await client.openSession(serverUrl, jwt, testDataPartitionId);
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
     try {
-      const projects = await client.getProjects();
+      const projects = await client.getDataspaces();
+      expect(projects).toBeTruthy();
       if (!projects) {
-        expect(false);
         return;
       }
-      const testProject = projects.find(p => p.path.includes(dataspaceName));
-      expect(testProject).toBeDefined();
-      if (!testProject) {
-        expect(false);
+      const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+      expect(testDataspace).toBeTruthy();
+      if (!testDataspace) {
         return;
       }
+      const testDataspaceUri = testDataspace?.uri;
 
-      const testProjectUri = testProject?.uri;
-      const t = await client.getProjectTypes(testProjectUri);
+      const t = await client.getDataspaceTypes(testDataspaceUri);
       expect(t.length).toBe(14);
 
-      const objects: Resource[] = await client.getProjectResources(
-        testProjectUri
+      const objects: Resource[] = await client.getDataspaceResources(
+        testDataspaceUri
       );
       // Objects
       expect(objects.length).toBe(89);
       // Property
-      const uri = `${testProjectUri}/resqml20.${propertyType}(${propertyUid})`;
+      const uri = `${testDataspaceUri}/resqml20.${propertyType}(${propertyUid})`;
       const sources = await client.getSources(uri);
 
       expect(sources.length).toBe(0);
@@ -631,7 +622,7 @@ describe("Objects", () => {
       expect(part).toBeUndefined();
 
       try {
-        await client.getSources(testProjectUri);
+        await client.getSources(testDataspaceUri);
       } catch (reason) {
         expect(reason).toContain("Invalid URI: Expecting DataObject");
       }
@@ -645,10 +636,27 @@ describe("Objects", () => {
       // expected getObjects: client created with options: removeNamespace: false
       expect(propertyObj?.Citation.Title).toStrictEqual("J");
 
-      const searched = await client.getProjectResources(
-        `${testProjectUri}?$filter=SurfaceRole eq 'map'`
+      const searched = await client.getDataspaceResources(
+        `${testDataspaceUri}?$filter=SurfaceRole eq 'map'`
       );
       expect(searched).toHaveLength(3);
+
+      // get featured surface and grid horizons
+      const interps = await client.getDataspaceResources(testDataspaceUri, [
+        "resqml20.obj_HorizonInterpretation"
+      ]);
+      expect(interps).toHaveLength(6);
+      const interp = interps.filter(
+        ff =>
+          ff.uri ===
+          `${testDataspaceUri}/resqml20.obj_HorizonInterpretation(e33006db-2797-4cdf-a4f2-8207b4688b3a)`
+      )[0];
+      expect(interp).toBeDefined();
+      const featuredSources = await client.getSources(interp.uri, false, [
+        tSurfType,
+        grid2dType
+      ]);
+      expect(featuredSources).toHaveLength(2);
     } catch (err: any) {
       failOnUnexpectedError(err);
     } finally {
@@ -658,31 +666,27 @@ describe("Objects", () => {
   it("Resolved", async () => {
     const options = {
       collapseTextElement: true,
-      removeNamespace: true,
-      resolveArray: false,
-      resolveArrayMetadata: true,
-      resolveReference: true
+      removeNamespace: true
     };
     const client = new ResqmlClient(options);
 
     try {
-      await client.openSession(serverUrl, jwt, testDataPartitionId);
-      const projects = await client.getProjects();
+      await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+      const projects = await client.getDataspaces();
+      expect(projects).toBeTruthy();
       if (!projects) {
-        expect(false);
         return;
       }
-      const testProject = projects.find(p => p.path.includes(dataspaceName));
-      expect(testProject).toBeDefined();
-      if (!testProject) {
-        expect(false);
+      const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+      expect(testDataspace).toBeTruthy();
+      if (!testDataspace) {
         return;
       }
       // project: /home/pdgm/data/testingPackageCpp.epc
-      const testProjectUri = testProject?.uri;
+      const testDataspaceUri = testDataspace?.uri;
 
-      const objects: Resource[] = await client.getProjectResources(
-        testProjectUri
+      const objects: Resource[] = await client.getDataspaceResources(
+        testDataspaceUri
       );
 
       // Objects
@@ -694,11 +698,12 @@ describe("Objects", () => {
       );
       const resourceObjects = await client.getResolvedObjects(
         filteredObjects.map(o => o.uri),
-        externalObjects
+        externalObjects,
+        true
       );
 
       const prop = resourceObjects.find(r => r && r.Uuid === propertyUid);
-      expect(prop).toBeDefined();
+      expect(prop).toBeTruthy();
       expect(prop?.Citation.Title).toBe("J");
       const dimensions = (
         (prop as SimpleJson<Resqml20.AbstractValuesProperty>)?.PatchOfValues[0]
@@ -709,7 +714,6 @@ describe("Objects", () => {
         expect(dimensions[0]).toBe(132);
       }
       if (!prop) {
-        expect(false);
         return;
       }
       expect(XmlUtils.checkResqmlObject(prop)).toBeDefined();
@@ -726,30 +730,27 @@ describe("Objects", () => {
   it("Add Data Arrays", async () => {
     const options = {
       collapseTextElement: true,
-      removeNamespace: true,
-      resolveArray: false,
-      resolveArrayMetadata: true,
-      resolveReference: true
+      removeNamespace: true
     };
     const client = new ResqmlClient(options);
 
-    await client.openSession(serverUrl, jwt, testDataPartitionId);
-    const projects = await client.getProjects();
+    await client.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const projects = await client.getDataspaces();
+    expect(projects).toBeTruthy();
     if (!projects) {
-      expect(false);
       return;
     }
-    const testProject = projects.find(p => p.path.includes(dataspaceName));
-    expect(testProject).toBeDefined();
-    if (!testProject) {
+    const testDataspace = projects.find(p => p.path.includes(dataspaceName));
+    expect(testDataspace).toBeDefined();
+    if (!testDataspace) {
       expect(false);
       return;
     }
     // project: /home/pdgm/data/testingPackageCpp.epc
-    const testProjectUri = testProject?.uri;
+    const testDataspaceUri = testDataspace?.uri;
 
-    const objects: Resource[] = await client.getProjectResources(
-      testProjectUri
+    const objects: Resource[] = await client.getDataspaceResources(
+      testDataspaceUri
     );
 
     // Objects
@@ -797,12 +798,15 @@ describe("Core messages", () => {
       messageId: BigInt(1),
       messageFlags: MessageFlags.FINALPART
     };
-    await new Promise(resolve => {
+    const v = await new Promise(resolve => {
       etpClient.on("acknowledge", () => {
         resolve(true);
       });
-      etpClient.handleMessage(header, "test");
-    }).then(v => expect(v).toBeTruthy());
+      const ack: Energistics.Etp.v12.Protocol.Core.Acknowledge = {};
+      etpClient.handleMessage(header, ack);
+      setTimeout(() => resolve(false), 5000);
+    });
+    expect(v).toBeTruthy();
   });
   it(`Test exception`, async () => {
     const header: Energistics.Etp.v12.Datatypes.MessageHeader = {
@@ -812,12 +816,18 @@ describe("Core messages", () => {
       messageId: BigInt(1),
       messageFlags: MessageFlags.FINALPART
     };
-    await new Promise(resolve => {
+    const v = await new Promise(resolve => {
       etpClient.on("exception", () => {
         resolve(true);
       });
-      etpClient.handleMessage(header, "test");
-    }).then(v => expect(v).toBeTruthy());
+      const exception: Energistics.Etp.v12.Protocol.Core.ProtocolException = {
+        error: { code: 1, message: "Error" },
+        errors: new Map()
+      };
+      etpClient.handleMessage(header, exception);
+      setTimeout(() => resolve(false), 5000);
+    });
+    expect(v).toBeTruthy();
   });
   it(`Test On Ping`, async () => {
     const header: Energistics.Etp.v12.Datatypes.MessageHeader = {
@@ -827,12 +837,17 @@ describe("Core messages", () => {
       messageId: BigInt(1),
       messageFlags: MessageFlags.FINALPART
     };
-    await new Promise(resolve => {
+    const v = await new Promise(resolve => {
       etpClient.on("ping", () => {
         resolve(true);
       });
-      etpClient.handleMessage(header, "test");
-    }).then(v => expect(v).toBeTruthy());
+      const ping: Energistics.Etp.v12.Protocol.Core.Ping = {
+        currentDateTime: BigInt(0)
+      };
+      etpClient.handleMessage(header, ping);
+      setTimeout(() => resolve(false), 5000);
+    });
+    expect(v).toBeTruthy();
   });
   it(`Test closeSession`, async () => {
     const header: Energistics.Etp.v12.Datatypes.MessageHeader = {
@@ -845,23 +860,39 @@ describe("Core messages", () => {
     const closeMsg: Energistics.Etp.v12.Protocol.Core.CloseSession = {
       reason: "test closure"
     };
-    await new Promise(resolve => {
+    const v = await new Promise(resolve => {
       etpClient.on("close", () => {
         resolve(true);
       });
       etpClient.handleMessage(header, closeMsg);
-    }).then(v => expect(v).toBeTruthy());
+      setTimeout(() => resolve(false), 5000);
+    });
+    expect(v).toBeTruthy();
   });
 });
 
+//*****************************************************/
 /// REST API
+//*****************************************************/
+describe("Rest server health", () => {
+  it.each(serverData)("Check API readiness probe %s", async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/health/readiness`)
+      .expect(200);
+  });
+  it.each(serverData)("Check API liveness probe %s", async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/health/liveness`)
+      .expect(200);
+  });
+});
 
 describe("Large number of API access", () => {
   jest.setTimeout(maxTime);
-  it(`Get Dataspace Ok`, async () => {
+  it.each(serverData)(`Get Dataspace Ok %s`, async type => {
     for (let i = 0; i < 200; i++) {
-      await request(app)
-        .get(`${routePath}/dataspaces`)
+      await testServers[type]
+        .get(`${restApiRoutePath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(`Content-Type`, /json/)
         .expect(200);
@@ -870,7 +901,7 @@ describe("Large number of API access", () => {
 });
 
 describe("Rest API", () => {
-  it("sliceArray", () => {
+  it.each(serverData)("sliceArray", () => {
     expect(
       controlUtils.sliceArray<string>(1, 2, [
         "one",
@@ -882,105 +913,95 @@ describe("Rest API", () => {
     ).toStrictEqual(["two", "three"]);
   });
 
-  jest.setTimeout(400000);
-  it("QueryString", async () => {
-    const c = new ResqmlClient();
-    c.setCallsTraceability(false);
-    const query = {
-      top: 4
-    };
-    const res = await c
-      .openSession(serverUrl, jwt, testDataPartitionId)
-      .then(() => c.getProjects())
-      .then(
-        ps =>
-          (ps && ps.find(p => p.path.includes(dataspaceName))) || {
-            uri: ""
-          }
-      )
-      .then(p =>
-        controlUtils.findResources(
-          c,
-          {
-            uri: p.uri,
-            depth: 1,
-            dataObjectTypes: [],
-            navigableEdges: "Both"
-          },
-          query
-        )
+  it.each(serverData)(
+    "QueryString",
+    async () => {
+      const c = new ResqmlClient();
+      c.setCallsTraceability(false);
+      const query = {
+        top: 4
+      };
+      await c.openSession(etpServerUrl, jwt, testDataPartitionId);
+      const projects = await c.getDataspaces();
+      const volveDataspace = (projects &&
+        projects.find(project => project.path.includes(dataspaceName))) || {
+        uri: ""
+      };
+      const res = await controlUtils.findResources(
+        c,
+        {
+          uri: volveDataspace.uri,
+          depth: 1,
+          dataObjectTypes: [],
+          navigableEdges: "Both"
+        },
+        query
       );
-    expect(res).toHaveLength(89);
-  });
+      await c.closeSession();
+      expect(res).toHaveLength(89);
+    },
+    400000
+  );
 });
-
-describe(`Health`, () => {
-  it(`Health probe`, async () => {
-    await request(app).get(`${routePath}/health/readiness`).expect(200);
-  });
-});
-
 describe(`Dataspace`, () => {
-  it(`Get Dataspace Unauthorized`, async () => {
-    await request(app)
-      .get(`${routePath}/dataspaces`)
+  it.each(serverData)(`Get Dataspace Unauthorized %s`, async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces`)
       .expect(`Content-Type`, /json/)
       .expect(403);
   });
 
-  it(`Bad Bearer Format`, async () => {
-    await request(app)
-      .get(`${routePath}/dataspaces`)
+  it.each(serverData)(`Bad Bearer Format %s`, async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces`)
       .set(`Authorization`, `${token}`)
       .expect(`Content-Type`, /json/)
       .expect(403);
   });
 
-  it(`Get Dataspace Ok`, async () => {
-    await request(app)
-      .get(`${routePath}/dataspaces`)
+  it.each(serverData)(`Get Dataspace Ok %s`, async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
   });
 });
-
 describe(`Auth`, () => {
-  it(`No token`, async () => {
+  it.each(serverData)(`No token %s`, async type => {
     const uris = [
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/all`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
     ];
     for (const u of uris) {
-      await request(app).get(u).expect(403);
+      await testServers[type].get(u).expect(403);
     }
   });
 
-  it(`Wrong dataspace`, async () => {
+  it.each(serverData)(`Wrong dataspace %s`, async type => {
     const uris = [
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources`,
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${routePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
     ];
     for (const u of uris) {
-      await request(app)
+      await testServers[type]
         .get(u)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(500);
     }
   });
 });
-
 describe(`DataArray`, () => {
-  it(`Check Endianness`, () => {
+  it.each(serverData)(`Check Endianness`, () => {
     const arrayBuffer = new ArrayBuffer(2);
     const uint8Array = new Uint8Array(arrayBuffer);
     const uint16array = new Uint16Array(arrayBuffer);
@@ -990,88 +1011,100 @@ describe(`DataArray`, () => {
     expect(uint16array[0]).not.toEqual(0xaabb); // BE
   });
 });
-
 describe(`Resources`, () => {
-  it(`Dataspaces`, async () => {
-    const res = await request(app)
-      .get(`${routePath}/dataspaces`)
+  const jsonMime = "application/json; charset=utf-8";
+  it.each(serverData)(`Dataspaces %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
     const len = res.body.length;
     expect(len).toBeGreaterThan(0);
   });
-  it(`Types`, async () => {
-    const res = await request(app)
-      .get(`${routePath}/dataspaces/${dataspaceEncoded}/resources`)
+  it.each(serverData)(`Types %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
     expect(res.body).toHaveLength(14);
   });
 
-  it(`Wrong dataspacesTypes`, async () => {
-    await request(app)
-      .get(`${routePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
+  it.each(serverData)(`Wrong dataspacesTypes %s`, async type => {
+    await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(500);
   });
 
-  it(`Resource by Types`, async () => {
-    const res = await request(app)
-      .get(`${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`)
+  it.each(serverData)(`Resource by Types %s`, async type => {
+    const res = await testServers[type]
+      .get(
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`
+      )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
     expect(res.body).toHaveLength(3);
-    const res2 = await request(app)
+    const res2 = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
     expect(res2.body).toHaveLength(1);
   });
+  it.each(serverData)(`Find Resources %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
 
-  it(`Find Resources`, async () => {
-    const res = await request(app)
-      .get(`${routePath}/dataspaces/${dataspaceEncoded}/resources/all`)
-
-      .query(`$filter=SurfaceRole eq 'map'`)
+      .query(`$filter=startswith(SurfaceRole,'map') eq true`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
     expect(res.body).toHaveLength(3);
   });
 
-  it(`Get DataObjects JSON`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Find Resources %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
+
+      .query(`$filter=endswith(SurfaceRole,'map') eq true`)
+      .set(`Authorization`, `Bearer ${token}`)
+      .expect(`Content-Type`, /json/)
+      .expect(200);
+    expect(res.body).toHaveLength(3);
+  });
+
+  it.each(serverData)(`Get DataObjects JSON %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(1);
-    expect(res.header[`content-type`]).toBe("application/json; charset=utf-8");
+    expect(res.header[`content-type`]).toBe(jsonMime);
   });
 
-  it(`Get DataObjects JSON Resolved`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Get DataObjects JSON Resolved %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(1);
-    expect(res.header[`content-type`]).toBe("application/json; charset=utf-8");
+    expect(res.header[`content-type`]).toBe(jsonMime);
   });
 
-  it(`Get DataObjects XML`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Get DataObjects XML %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1081,44 +1114,44 @@ describe(`Resources`, () => {
     expect(res.text).toBeDefined();
   });
 
-  it(`Get Targets`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Get Targets %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
-    const res2 = await request(app)
+    const res2 = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res2.body).toHaveLength(1);
   });
 
-  it(`Get Sources`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Get Sources %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
-    const res2 = await request(app)
+    const res2 = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res2.body).toHaveLength(1);
   });
 
-  it(`Get Arrays`, async () => {
-    const res = await request(app)
+  it.each(serverData)(`Get Arrays %s`, async type => {
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1126,26 +1159,26 @@ describe(`Resources`, () => {
     expect(res.body).toHaveLength(38);
   });
 
-  it(`Get DataArrayMetadata`, async () => {
+  it.each(serverData)(`Get DataArrayMetadata %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/points_patch0`
     );
-    await request(app)
+    await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
   });
 
-  it(`Get DataArray JSON`, async () => {
+  it.each(serverData)(`Get DataArray JSON %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/triangles_patch0`
     );
-    const res = await request(app)
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1153,13 +1186,13 @@ describe(`Resources`, () => {
     expect(res.body.data.data[0]).toBe(48);
   });
 
-  it(`Get DataArray Base64`, async () => {
+  it.each(serverData)(`Get DataArray Base64 %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/triangles_patch0`
     );
-    const res = await request(app)
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query(`format=base64`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -1173,13 +1206,13 @@ describe(`Resources`, () => {
     expect(arr[0]).toBe(48);
   });
 
-  it(`Get DataSubArray`, async () => {
+  it.each(serverData)(`Get DataSubArray %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/points_patch0`
     );
-    const res = await request(app)
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=10")
       .query("starts=1")
@@ -1191,13 +1224,13 @@ describe(`Resources`, () => {
     expect(res.body.data.dimensions[0]).toBe(20);
   });
 
-  it(`Get DataSubArray Base64`, async () => {
+  it.each(serverData)(`Get DataSubArray Base64 %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/points_patch0`
     );
-    const res = await request(app)
+    const res = await testServers[type]
       .get(
-        `${routePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=12")
       .query("starts=1")
@@ -1214,4 +1247,45 @@ describe(`Resources`, () => {
     const arr = Array.from(data);
     expect(arr[0]).toBeCloseTo(8302.13, 2);
   });
+});
+describe(`Manifest`, () => {
+  it.each(serverData)(
+    `Manifest with references %s`,
+    async type => {
+      const manifestInput = {
+        uris: [
+          "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
+          "eml:///dataspace('demo/Volve')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)",
+          "eml:///dataspace('demo/Volve')/resqml20.obj_StratigraphicColumn(86a81e8f-5995-46a6-a84e-57669b167007)",
+          "eml:///dataspace('demo/Volve')/resqml20.obj_SubRepresentation(e802bbac-d36e-4df1-95ee-bbe5ea5a85fb)"
+        ],
+        acl: {
+          viewers: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
+          owners: ["data.rdms-mygroup.owners@mypartition.mycompany.com"]
+        },
+        legal: {
+          legaltags: ["my.legal.tags"],
+          otherRelevantDataCountries: ["US", "UK"]
+        },
+        fileCollection:
+          "mypartition:dataset--FileCollection.Generic:myepcfile:",
+        tags: {
+          quality: "good"
+        },
+        createMissingReferences: true
+      };
+      const res = await testServers[type]
+        .post(`${restApiRoutePath}/manifests/build`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .send(manifestInput)
+        .expect(`Content-Type`, /json/)
+        .expect(201);
+      const manifest = res.body as Manifest;
+      expect(manifest.Data?.Datasets?.length).toBe(1);
+      expect(manifest.Data?.WorkProduct).toBeDefined();
+      expect(manifest.Data?.WorkProductComponents?.length).toBe(28);
+      expect(manifest.ReferenceData?.length).toBe(13);
+    },
+    maxTime
+  );
 });

@@ -153,7 +153,6 @@ export default class ODataParser {
       return res;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     function escape(ch: string): string {
       const charCode = ch.charCodeAt(0);
       let escapeChar: string;
@@ -2761,9 +2760,7 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = ((i, list) => {
-          if (list === "") {
-            list = [];
-          }
+          if (list === "") list = [];
           if (Array.isArray(list[0])) {
             list = list[0];
           }
@@ -3299,9 +3296,7 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = ((i, list) => {
-          if (list === "") {
-            list = [];
-          }
+          if (list === "") list = [];
           if (Array.isArray(list[0])) {
             list = list[0];
           }
@@ -3536,9 +3531,7 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = (function (offset, i, list) {
-          if (list === "") {
-            list = [];
-          }
+          if (list === "") list = [];
           if (Array.isArray(list[0])) {
             list = list[0];
           }
@@ -3727,6 +3720,15 @@ export default class ODataParser {
         }
       }
 
+      if (input.substring(pos, 7) === "indexof") {
+        pos += 7;
+        return "indexof";
+      } else {
+        if (reportFailures === 0) {
+          matchFailed('"indexof"');
+        }
+      }
+
       if (input.substr(pos, 4) === "IsOf") {
         pos += 4;
         return "IsOf";
@@ -3742,6 +3744,15 @@ export default class ODataParser {
       } else {
         if (reportFailures === 0) {
           matchFailed('"contains"');
+        }
+      }
+
+      if (input.substring(pos, 6) === "concat") {
+        pos += 6;
+        return "concat";
+      } else {
+        if (reportFailures === 0) {
+          matchFailed('"concat"');
         }
       }
 

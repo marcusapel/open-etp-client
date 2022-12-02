@@ -7,7 +7,6 @@ This software includes the following software and licenses:
 ========================================================================
 The following software have components provided under the terms of this license:
 
-- @ts-morph/common (from https://www.npmjs.com/package/@ts-morph/common)
 - rxjs (from https://www.npmjs.com/package/rxjs)
 - tslib (from https://www.npmjs.com/package/tslib)
 
@@ -33,7 +32,6 @@ The following software have components provided under the terms of this license:
 
 - dtrace-provider (from https://www.npmjs.com/package/dtrace-provider)
 - qs (from https://www.npmjs.com/package/qs)
-- qs (from https://www.npmjs.com/package/qs)
 - tslib (from https://www.npmjs.com/package/tslib)
 - webidl-conversions (from https://www.npmjs.com/package/webidl-conversions)
 
@@ -43,7 +41,6 @@ BSD-3-Clause
 The following software have components provided under the terms of this license:
 
 - buffer-equal-constant-time (from https://www.npmjs.com/package/buffer-equal-constant-time)
-- qs (from https://www.npmjs.com/package/qs)
 - qs (from https://www.npmjs.com/package/qs)
 
 ========================================================================
@@ -107,6 +104,7 @@ MIT
 ========================================================================
 The following software have components provided under the terms of this license:
 
+- @nestjs/class-transformer (from https://www.npmjs.com/package/@nestjs/class-transformer)
 - @nestjs/class-validator (from https://www.npmjs.com/package/@nestjs/class-validator)
 - @nestjs/common (from https://www.npmjs.com/package/@nestjs/common)
 - @nestjs/core (from https://www.npmjs.com/package/@nestjs/core)
@@ -122,11 +120,8 @@ The following software have components provided under the terms of this license:
 - ansi-styles (from https://www.npmjs.com/package/ansi-styles)
 - append-field (from https://www.npmjs.com/package/append-field)
 - array-flatten (from https://www.npmjs.com/package/array-flatten)
-- asynckit (from https://www.npmjs.com/package/asynckit)
-- axios (from https://www.npmjs.com/package/axios)
 - balanced-match (from https://www.npmjs.com/package/balanced-match)
 - bintrees (from https://www.npmjs.com/package/bintrees)
-- body-parser (from https://www.npmjs.com/package/body-parser)
 - body-parser (from https://www.npmjs.com/package/body-parser)
 - brace-expansion (from https://www.npmjs.com/package/brace-expansion)
 - brace-expansion (from https://www.npmjs.com/package/brace-expansion)
@@ -138,18 +133,14 @@ The following software have components provided under the terms of this license:
 - bytes (from https://www.npmjs.com/package/bytes)
 - call-bind (from https://www.npmjs.com/package/call-bind)
 - chalk (from https://www.npmjs.com/package/chalk)
-- class-transformer (from https://www.npmjs.com/package/class-transformer)
-- class-validator (from https://www.npmjs.com/package/class-validator)
 - code-block-writer (from https://www.npmjs.com/package/code-block-writer)
 - color-convert (from https://www.npmjs.com/package/color-convert)
 - color-name (from https://www.npmjs.com/package/color-name)
-- combined-stream (from https://www.npmjs.com/package/combined-stream)
 - concat-map (from https://www.npmjs.com/package/concat-map)
 - concat-stream (from https://www.npmjs.com/package/concat-stream)
 - consola (from https://www.npmjs.com/package/consola)
 - content-disposition (from https://www.npmjs.com/package/content-disposition)
 - content-type (from https://www.npmjs.com/package/content-type)
-- cookie (from https://www.npmjs.com/package/cookie)
 - cookie (from https://www.npmjs.com/package/cookie)
 - cookie-signature (from https://www.npmjs.com/package/cookie-signature)
 - core-util-is (from https://www.npmjs.com/package/core-util-is)
@@ -157,10 +148,7 @@ The following software have components provided under the terms of this license:
 - date-format (from https://www.npmjs.com/package/date-format)
 - debug (from https://www.npmjs.com/package/debug)
 - debug (from https://www.npmjs.com/package/debug)
-- delayed-stream (from https://www.npmjs.com/package/delayed-stream)
 - depd (from https://www.npmjs.com/package/depd)
-- depd (from https://www.npmjs.com/package/depd)
-- destroy (from https://www.npmjs.com/package/destroy)
 - destroy (from https://www.npmjs.com/package/destroy)
 - ee-first (from https://www.npmjs.com/package/ee-first)
 - encodeurl (from https://www.npmjs.com/package/encodeurl)
@@ -172,14 +160,10 @@ The following software have components provided under the terms of this license:
 - etag (from https://www.npmjs.com/package/etag)
 - events (from https://www.npmjs.com/package/events)
 - express (from https://www.npmjs.com/package/express)
-- express (from https://www.npmjs.com/package/express)
 - fast-glob (from https://www.npmjs.com/package/fast-glob)
 - fast-safe-stringify (from https://www.npmjs.com/package/fast-safe-stringify)
 - fill-range (from https://www.npmjs.com/package/fill-range)
 - finalhandler (from https://www.npmjs.com/package/finalhandler)
-- finalhandler (from https://www.npmjs.com/package/finalhandler)
-- follow-redirects (from https://www.npmjs.com/package/follow-redirects)
-- form-data (from https://www.npmjs.com/package/form-data)
 - forwarded (from https://www.npmjs.com/package/forwarded)
 - fresh (from https://www.npmjs.com/package/fresh)
 - fs-extra (from https://www.npmjs.com/package/fs-extra)
@@ -192,7 +176,6 @@ The following software have components provided under the terms of this license:
 - has-symbols (from https://www.npmjs.com/package/has-symbols)
 - helmet (from https://www.npmjs.com/package/helmet)
 - http-errors (from https://www.npmjs.com/package/http-errors)
-- http-errors (from https://www.npmjs.com/package/http-errors)
 - iconv-lite (from https://www.npmjs.com/package/iconv-lite)
 - ipaddr.js (from https://www.npmjs.com/package/ipaddr.js)
 - is-extglob (from https://www.npmjs.com/package/is-extglob)
@@ -200,6 +183,7 @@ The following software have components provided under the terms of this license:
 - is-number (from https://www.npmjs.com/package/is-number)
 - is-typedarray (from https://www.npmjs.com/package/is-typedarray)
 - isarray (from https://www.npmjs.com/package/isarray)
+- js-yaml (from https://www.npmjs.com/package/js-yaml)
 - jsonfile (from https://www.npmjs.com/package/jsonfile)
 - jsonwebtoken (from https://www.npmjs.com/package/jsonwebtoken)
 - jwa (from https://www.npmjs.com/package/jwa)
@@ -221,6 +205,7 @@ The following software have components provided under the terms of this license:
 - mime (from https://www.npmjs.com/package/mime)
 - mime-db (from https://www.npmjs.com/package/mime-db)
 - mime-types (from https://www.npmjs.com/package/mime-types)
+- minimatch (from https://www.npmjs.com/package/minimatch)
 - minimist (from https://www.npmjs.com/package/minimist)
 - mkdirp (from https://www.npmjs.com/package/mkdirp)
 - mkdirp (from https://www.npmjs.com/package/mkdirp)
@@ -239,7 +224,6 @@ The following software have components provided under the terms of this license:
 - object-hash (from https://www.npmjs.com/package/object-hash)
 - object-inspect (from https://www.npmjs.com/package/object-inspect)
 - on-finished (from https://www.npmjs.com/package/on-finished)
-- on-finished (from https://www.npmjs.com/package/on-finished)
 - parseurl (from https://www.npmjs.com/package/parseurl)
 - path-browserify (from https://www.npmjs.com/package/path-browserify)
 - path-is-absolute (from https://www.npmjs.com/package/path-is-absolute)
@@ -250,7 +234,6 @@ The following software have components provided under the terms of this license:
 - proxy-addr (from https://www.npmjs.com/package/proxy-addr)
 - queue-microtask (from https://www.npmjs.com/package/queue-microtask)
 - range-parser (from https://www.npmjs.com/package/range-parser)
-- raw-body (from https://www.npmjs.com/package/raw-body)
 - raw-body (from https://www.npmjs.com/package/raw-body)
 - readable-stream (from https://www.npmjs.com/package/readable-stream)
 - reflect-metadata (from https://www.npmjs.com/package/reflect-metadata)
@@ -263,16 +246,14 @@ The following software have components provided under the terms of this license:
 - safer-buffer (from https://www.npmjs.com/package/safer-buffer)
 - sax (from https://www.npmjs.com/package/sax)
 - send (from https://www.npmjs.com/package/send)
-- send (from https://www.npmjs.com/package/send)
-- serve-static (from https://www.npmjs.com/package/serve-static)
 - serve-static (from https://www.npmjs.com/package/serve-static)
 - side-channel (from https://www.npmjs.com/package/side-channel)
-- statuses (from https://www.npmjs.com/package/statuses)
 - statuses (from https://www.npmjs.com/package/statuses)
 - streamroller (from https://www.npmjs.com/package/streamroller)
 - streamsearch (from https://www.npmjs.com/package/streamsearch)
 - string_decoder (from https://www.npmjs.com/package/string_decoder)
 - supports-color (from https://www.npmjs.com/package/supports-color)
+- swagger-ui-dist (from https://www.npmjs.com/package/swagger-ui-dist)
 - swagger-ui-express (from https://www.npmjs.com/package/swagger-ui-express)
 - tdigest (from https://www.npmjs.com/package/tdigest)
 - to-regex-range (from https://www.npmjs.com/package/to-regex-range)
@@ -294,6 +275,13 @@ The following software have components provided under the terms of this license:
 - xml-js (from https://www.npmjs.com/package/xml-js)
 - xtend (from https://www.npmjs.com/package/xtend)
 - yaeti (from https://www.npmjs.com/package/yaeti)
+
+========================================================================
+Python-2.0
+========================================================================
+The following software have components provided under the terms of this license:
+
+- argparse (from https://www.npmjs.com/package/argparse)
 
 ========================================================================
 X11

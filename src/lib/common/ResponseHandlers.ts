@@ -53,7 +53,7 @@ export class Timer {
    * @param {number} time (ms)
    * @memberof Timer
    */
-  reset(time?: number) {
+  reset(time?: number): void {
     if (!time) {
       time = this.time;
     }
@@ -66,7 +66,7 @@ export class Timer {
    * @param {boolean} [executeCallback=false] If true the call back wll be executed
    * @memberof Timer
    */
-  cancel(executeCallback = false) {
+  cancel(executeCallback = false): void {
     if (!this.finished) {
       if (this.timer) {
         clearTimeout(this.timer);
@@ -84,7 +84,7 @@ export class Timer {
    * @param {number} time (ms)
    * @memberof Timer
    */
-  add(time: number) {
+  add(time: number): void {
     if (!this.finished) {
       const diff = Date.now() - this.start;
       const newTime = this.time - diff + time;
@@ -98,7 +98,7 @@ export class Timer {
    * @param {number} time (ms)
    * @memberof Timer
    */
-  noTimeoutBefore(time: number) {
+  noTimeoutBefore(time: number): void {
     if (!this.finished) {
       time = Math.max(this.time - (Date.now() - this.start), time);
       this.setTimeout(this.callback, time);
@@ -111,7 +111,7 @@ export class Timer {
    * @param {number} time (ms)
    * @memberof Timer
    */
-  alwaysTimeoutBefore(time: number) {
+  alwaysTimeoutBefore(time: number): void {
     if (!this.finished) {
       // add time to time left
       time = Math.min(this.time - (Date.now() - this.start), time);
@@ -126,7 +126,7 @@ export class Timer {
     this.finished = false;
     this.callback = callback;
     this.time = time;
-    this.timer = setTimeout(() => {
+    this.timer = global.setTimeout(() => {
       this.finished = true;
       callback();
     }, time);
