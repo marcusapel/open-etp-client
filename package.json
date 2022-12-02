@@ -23,7 +23,7 @@
     "docker:build": "npm run env:set -- docker build -t local_etp-rest-api -f devops/osdu/docker/Dockerfile --pull --build-arg NPM_TOKEN .",
     "docker:compose:base": "npm run env:set -- docker-compose -f ./devops/osdu/docker-compose/docker-compose.yml",
     "docker:compose:start": "npm run docker:compose:base -- up -d -V --force-recreate --remove-orphans",
-    "docker:compose:stop": "npm run docker:compose:base -- down --volumes --remove-orphans",
+    "docker:compose:stop": "npm run docker:compose:base -- down --volumes --remove-orphans", 
     "test": "npm run env:set -- jest",
     "test:debug": "npm run env:set -- node --inspect-brk ./node_modules/jest/bin/jest.js --coverage=false --runInBand",
     "test:single": "npm run env:set -- jest --coverage=false --runInBand",
