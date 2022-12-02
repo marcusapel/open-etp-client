@@ -25,13 +25,13 @@ import {
   UseGuards
 } from "@nestjs/common";
 
-import { Type } from "class-transformer";
-import { IsDate, IsUUID } from "class-validator";
+import { Type } from "@nestjs/class-transformer";
 
 import {
   ApiBearerAuth,
   ApiDefaultResponse,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiInternalServerErrorResponse,
   ApiNotAcceptableResponse,
   ApiNotFoundResponse,
@@ -43,8 +43,7 @@ import {
   ApiQueryOptions,
   ApiResponseOptions,
   ApiTags,
-  ApiTooManyRequestsResponse,
-  ApiHeader
+  ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
 import {
@@ -57,17 +56,17 @@ import {
 import type { SupportedType } from "../../client/ResqmlClient";
 
 import {
+  HasBearerGuard,
+  HasDataPartitionGuard,
+  OptionalParseDatePipe,
+  OptionalParseIntPipe,
   alphaSpaceSchema,
   createSession,
   errorMessageSchema,
-  extractToken,
   extractDataPartitionId,
+  extractToken,
   findResources,
   getSchemasForType,
-  HasBearerGuard,
-  HasDataPartitonGuard,
-  OptionalParseDatePipe,
-  OptionalParseIntPipe,
   patternString,
   sliceArray,
   swaggerServers,
@@ -76,8 +75,10 @@ import {
 
 import express from "express";
 import {
+  IsDate,
   IsDateString,
   IsInt,
+  IsUUID,
   Matches,
   MaxLength
 } from "@nestjs/class-validator";
@@ -98,7 +99,7 @@ export const validNamePattern = /^[^\r\n]+$/;
 export const datePattern =
   /^((?:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:.\d+)?))(Z|[+-]\d{2}:\d{2})?)$/;
 
-export const filterPattern = /^(?:(_data)|[0-9a-zA-Z /()]+|'.*')+$/;
+export const filterPattern = /^(?:(_data)|[0-9a-zA-Z /(),.]+|'.*')+$/;
 
 export const dataObjectTypePattern =
   /^(witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?[0-9a-zA-Z]+$/;
@@ -119,20 +120,23 @@ export class DataspaceDto {
   @ApiProperty({
     name: "uri",
     maxLength: 2048,
-    pattern: patternString(dataspaceUriPattern)
+    pattern: patternString(dataspaceUriPattern),
+    example: "eml:///dataspace('demo/Volve')"
   })
   @Matches(dataspaceUriPattern)
   uri!: string;
   @ApiProperty({
     name: "path",
     maxLength: 2048,
-    pattern: patternString(dataspacePathPattern)
+    pattern: patternString(dataspacePathPattern),
+    example: "demo/Volve"
   })
   path!: string;
   @ApiProperty({
     name: "storeCreated",
     maxLength: 2048,
-    pattern: patternString(datePattern)
+    pattern: patternString(datePattern),
+    example: "2021-07-14T10:22:07.228Z"
   })
   @IsDateString()
   storeCreated!: Date;
@@ -140,7 +144,8 @@ export class DataspaceDto {
   @ApiProperty({
     name: "storeLastWrite",
     maxLength: 2048,
-    pattern: patternString(datePattern)
+    pattern: patternString(datePattern),
+    example: "2021-09-06T16:06:31.000Z"
   })
   @IsDateString()
   storeLastWrite!: Date;
@@ -148,7 +153,8 @@ export class DataspaceDto {
   @ApiProperty({
     name: "customData",
     type: "object",
-    additionalProperties: alphaSpaceSchema
+    additionalProperties: alphaSpaceSchema,
+    description: "Extra meta data associated to dataspace"
   })
   customData!: Record<string, string>;
 }
@@ -162,9 +168,8 @@ class ResourceDto {
   @ApiProperty({
     name: "uri",
     description: "Unique Resource Identifier of the resource",
-    example: [
-      "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)"
-    ],
+    example:
+      "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
     maxLength: 2048,
     pattern: patternString(emlUriPattern)
   })
@@ -309,7 +314,7 @@ const toJSonResource = (
     targetCount: d.targetCount === null ? undefined : d.targetCount,
     activeStatus:
       d.activeStatus ===
-        Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
+      Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Inactive
         ? "Inactive"
         : "Active",
     lastChanged: toDate(d.lastChanged),
@@ -513,8 +518,12 @@ export const depthQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
-@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
-@UseGuards(HasDataPartitonGuard())
+@ApiHeader({
+  name: "data-partition-id",
+  description: "Data partition id (ex. 'osdu')",
+  example: "opendes"
+})
+@UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -541,25 +550,35 @@ export default class ResourcesReadAPI {
   })
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "List dataspaces.",
+    description: `List the dataspaces available in a server. Output can be paginated.`,
+    servers: swaggerServers
+  })
   public async ListDataspaces(
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Req() request?: express.Request
   ): Promise<Array<DataspaceDto>> {
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
-      const projects = await c.getProjects();
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      const projects = await c.getDataspaces();
       const pros = projects
         ? sliceArray<Energistics.Etp.v12.Datatypes.Object.Dataspace>(
-          skip,
-          top,
-          projects
-        ).map(p => toJSonDataspace(p))
+            skip,
+            top,
+            projects
+          ).map(p => toJSonDataspace(p))
         : [];
       await c.closeSession();
+      c = undefined;
       return pros;
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );
@@ -583,19 +602,28 @@ export default class ResourcesReadAPI {
       items: getSchemasForType(TypeCountDto)
     }
   })
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "List types inside a dataspace.",
+    description: `List the types present in the dataspace, and the number of items for each type.`,
+    servers: swaggerServers
+  })
   public async ListTypes(
     @Param() params: FindInDataSpaceParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Req() request?: express.Request
   ): Promise<TypeCountDto[] | null> {
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
-      const types = await c.getProjectTypes(
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      const types = await c.getDataspaceTypes(
         EtpUri.createDataSpaceUri(params.dataspaceId).uri
       );
       await c.closeSession();
+      c = undefined;
       return sliceArray<SupportedType>(skip, top, types).map(r => {
         return {
           name: r.dataObjectType,
@@ -603,6 +631,7 @@ export default class ResourcesReadAPI {
         };
       });
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );
@@ -621,7 +650,12 @@ export default class ResourcesReadAPI {
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
   @ApiOkResponse(resourceResponse)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "List all resources.",
+    description: `List all resources in a dataspaces.
+    Output can be paginated and filtered by types, content, last update time.`,
+    servers: swaggerServers
+  })
   public async ListResources(
     @Param() params: FindInDataSpaceParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
@@ -637,8 +671,12 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const resources = await findResources(
         c,
         {
@@ -653,8 +691,10 @@ export default class ResourcesReadAPI {
         storeLastWriteFilter
       );
       await c.closeSession();
+      c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );
@@ -672,7 +712,12 @@ export default class ResourcesReadAPI {
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiOkResponse(resourceResponse)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "Get the resources of a given type.",
+    description: `List all resources of a given type inside a dataspace.
+    Output can be paginated and filtered by content, last update time.`,
+    servers: swaggerServers
+  })
   public async ListResourcesByTypes(
     @Param() params: FindInTypeParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
@@ -687,8 +732,12 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const resources = await findResources(
         c,
         {
@@ -703,8 +752,10 @@ export default class ResourcesReadAPI {
         storeLastWriteFilter
       );
       await c.closeSession();
+      c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );
@@ -725,7 +776,13 @@ export default class ResourcesReadAPI {
   @ApiQuery(versionQueryParam)
   @ApiQuery(depthQueryParam)
   @ApiOkResponse(resourceResponse)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "Get the resources referenced by current one.",
+    description: `List all resources referenced by a given resource.
+    Referencing can be recursive with a depth greater than 1.
+    Output can be paginated and filtered by content, types and last update time.`,
+    servers: swaggerServers
+  })
   public async ListTargets(
     @Param() params: FindInObjectParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
@@ -754,8 +811,12 @@ export default class ResourcesReadAPI {
       params.guid,
       version
     ).uri;
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const resources = await findResources(
         c,
         {
@@ -770,8 +831,10 @@ export default class ResourcesReadAPI {
         storeLastWriteFilter
       );
       await c.closeSession();
+      c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );
@@ -792,7 +855,13 @@ export default class ResourcesReadAPI {
   @ApiQuery(versionQueryParam)
   @ApiQuery(depthQueryParam)
   @ApiOkResponse(resourceResponse)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiOperation({
+    summary: "Get the resources referencing current one.",
+    description: `List all resources referencing a given resource.
+    Referencing can be recursive with a depth greater than 1.
+    Output can be paginated and filtered by content, types and last update time.`,
+    servers: swaggerServers
+  })
   public async ListSources(
     @Param() params: FindInObjectParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
@@ -821,8 +890,12 @@ export default class ResourcesReadAPI {
       params.guid,
       version
     ).uri;
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const resources = await findResources(
         c,
         {
@@ -837,8 +910,10 @@ export default class ResourcesReadAPI {
         storeLastWriteFilter
       );
       await c.closeSession();
+      c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );

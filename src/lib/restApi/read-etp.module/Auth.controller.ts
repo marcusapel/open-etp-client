@@ -37,15 +37,21 @@ import {
 
 import { XmlUtils } from "../../client/ResqmlClient";
 
+/**
+ * Data transfer object representing Json Web Token
+ *
+ * @export
+ * @class TokenDto
+ */
 export class TokenDto {
   @ApiProperty({
     name: "token",
     description: "JWT token",
     maxLength: 2048,
-    pattern: "^[0-9A-Za-z]+$"
+    pattern: "(^[A-Za-z0-9-_]*.[A-Za-z0-9-_]*.[A-Za-z0-9-_]*$)"
   })
   @MaxLength(2048)
-  @Matches(/^[0-9A-Za-z]+$/)
+  @Matches(/(^[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]*$)/)
   token!: string;
 }
 
@@ -72,7 +78,12 @@ export default class Authentication {
     schema: getSchemasForType(TokenDto)
   })
   @ApiOkResponse({ description: "Success", type: TokenDto })
-  @ApiOperation({ security: [], servers: swaggerServers })
+  @ApiOperation({
+    summary: "Get authentication token.",
+    description: `Temporary: Give access to authentication token.`,
+    security: [],
+    servers: swaggerServers
+  })
   public async GetToken(): Promise<TokenDto> {
     return {
       token: XmlUtils.createDefaultJWT()

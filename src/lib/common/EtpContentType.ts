@@ -37,7 +37,7 @@ export class EtpContentType {
     domainFamily: string,
     domainVersion: string,
     objectType: string
-  ) {
+  ): string {
     if (!domainVersion.includes(".") && domainVersion.length > 1) {
       domainVersion = domainVersion.split("").join(".");
     }

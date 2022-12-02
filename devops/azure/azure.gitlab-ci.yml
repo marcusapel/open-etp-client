@@ -29,12 +29,12 @@ azure_containerize_helm:
   variables:
     AZURE_HELM_SUBDIR: osdu-ddms/standard-ddms
 
-
 azure_deploy:
   script:
     # Install or Upgrade Service
     - helm show chart $HELM_CHART_OCI --version $HELM_CHART_OCI_VERSION
     - ENV_VAULT=$(kubectl get cm -n osdu osdu-svc-config -o jsonpath={.data.ENV_KEYVAULT} | sed -e 's/https:\/\///;s/.vault.azure.*//')
+    - kubectl delete deploy -l app=oetp-client -n osdu
     - >-
       helm upgrade -i osdu-gitlab-$CI_PROJECT_NAME $HELM_CHART_OCI --version $HELM_CHART_OCI_VERSION -n osdu --wait --timeout 5m
       -f devops/azure/reservoir.values.yaml
@@ -55,7 +55,6 @@ azure_deploy:
   artifacts:
     reports:
       dotenv: ${CI_PROJECT_DIR}/acr_tokens.env
-
 
 azure_test:
   image:

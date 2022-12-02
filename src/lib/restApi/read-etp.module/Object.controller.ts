@@ -29,6 +29,7 @@ import {
   ApiBearerAuth,
   ApiDefaultResponse,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiInternalServerErrorResponse,
   ApiNotAcceptableResponse,
   ApiNotFoundResponse,
@@ -38,39 +39,38 @@ import {
   ApiQuery,
   ApiQueryOptions,
   ApiTags,
-  ApiTooManyRequestsResponse,
-  ApiHeader
+  ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
 import {
-  byteToString,
   EtpUri,
-  notEmptyFilter,
   ODataUtils,
   ResqmlClient,
-  URI
+  URI,
+  byteToString,
+  notEmptyFilter
 } from "../../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../../client/ResqmlClient";
 
 import {
+  HasBearerGuard,
+  HasDataPartitionGuard,
+  OptionalParseBoolPipe,
   createSession,
   errorMessageSchema,
-  extractToken,
   extractDataPartitionId,
+  extractToken,
   getSchemasForType,
-  HasBearerGuard,
-  HasDataPartitonGuard,
-  OptionalParseBoolPipe,
   patternString,
   sliceArray,
   swaggerServers
 } from "../ControllerUtils";
 
 import {
+  FindInObjectParams,
   dataObjectTypePattern,
   datePattern,
-  FindInObjectParams,
   uuidPattern,
   validNamePattern,
   versionQueryParam
@@ -108,16 +108,20 @@ type ObjectResponse = Array<any> | string;
  * @param {ResqmlClient} client
  * @param {URI[]} uris
  * @param {string} format
+ * @param {boolean} referencedContent
+ * @param {boolean} arrayValues
+ * @param {boolean} arrayMetadata
  * @param {Map<URI, IResqmlDataObject>} [objects=new Map<URI, IResqmlDataObject>()]
  * @returns {(Promise<ObjectResponse>)}
  */
-const sendObjects = async (
+export const sendObjects = async (
   query: QueryInput,
   client: ResqmlClient,
   uris: URI[],
   format: string,
   referencedContent: boolean,
   arrayValues: boolean,
+  arrayMetadata: boolean,
   objects: Map<URI, IResqmlDataObject> = new Map<URI, IResqmlDataObject>()
 ): Promise<ObjectResponse> => {
   if (!uris) {
@@ -134,18 +138,19 @@ const sendObjects = async (
         .map(o =>
           o && o.data
             ? byteToString(o.data).replace(
-              `<?xml version="1.0" encoding="UTF-8"?>`,
-              ""
-            )
+                `<?xml version="1.0" encoding="UTF-8"?>`,
+                ""
+              )
             : ""
         )
         .join("");
       return `<?xml version="1.0" encoding="UTF-8"?><DataObjects>${xml}</DataObjects>`;
-    } else if (referencedContent) {
+    } else if (referencedContent || arrayValues || arrayMetadata) {
       const resolvedObjects = await client.getResolvedObjects(
         uris,
         objects,
-        arrayValues
+        arrayValues,
+        arrayMetadata
       );
       return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
     } else {
@@ -192,6 +197,18 @@ export const arrayValuesQueryParam: ApiQueryOptions = {
   }
 };
 
+export const arrayMetadataQueryParam: ApiQueryOptions = {
+  name: "arrayMetadata",
+  required: false,
+  description:
+    "If true, includes the content of referenced objects and includes the metadata of arrays such as size and type",
+  example: false,
+  schema: {
+    type: "boolean",
+    default: false
+  }
+};
+
 export class EmlCitationDto {
   @ApiProperty({
     name: "Title",
@@ -214,8 +231,8 @@ export class EmlCitationDto {
   @ApiProperty({
     name: "Creation",
     pattern: patternString(datePattern),
-    example: `me`,
-    description: "User creator of the object.",
+    example: `2022-01-12T07:22:00Z`,
+    description: "Creation date of the object.",
     maxLength: 2048
   })
   Creation!: string;
@@ -230,7 +247,7 @@ export class EmlCitationDto {
   Format!: string;
 }
 
-const schemaVersionPattern = /^[.0-9]+$/;
+const schemaVersionPattern = /^"?[.0-9]+"?$/;
 
 /**
  * Describe the Rest information of an eml object
@@ -279,8 +296,12 @@ const xmlDocPattern = /^<\?xml.+$/;
 
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
-@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
-@UseGuards(HasDataPartitonGuard())
+@ApiHeader({
+  name: "data-partition-id",
+  description: "Data partition id (ex. 'osdu')",
+  example: "opendes"
+})
+@UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -293,13 +314,14 @@ export default class ObjectsReadAPI {
   @Get(":dataObjectType/:guid")
   @ApiOperation({
     summary: "Get object content.",
-    description: `Get the actual content of a data object formatted as xml or json.`
+    description: `Get the actual content of a data object formatted as xml or json.`,
+    servers: swaggerServers
   })
   @ApiQuery(formatQueryParam)
   @ApiQuery(versionQueryParam)
   @ApiQuery(referencedContentQueryParam)
   @ApiQuery(arrayValuesQueryParam)
-  @ApiOperation({ servers: swaggerServers })
+  @ApiQuery(arrayMetadataQueryParam)
   @ApiOkResponse({
     description: "Success",
     content: {
@@ -326,8 +348,9 @@ export default class ObjectsReadAPI {
     @Query("$format") format: "xml" | "json" = "json",
     @Query("version") version?: string,
     @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
-    @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false
-  ) {
+    @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
+    @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
+  ): Promise<void> {
     const m = params.dataObjectType.match(
       /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
     );
@@ -346,19 +369,26 @@ export default class ObjectsReadAPI {
     } else {
       res.set("Content-Type", "application/json");
     }
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const b = await sendObjects(
         {},
         c,
         uris,
         format,
         referencedContent,
-        arrayValues
+        arrayValues,
+        arrayMetadata
       );
       await c.closeSession();
+      c = undefined;
       res.send(b);
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(
         err instanceof Error ? err : { description: `Unknown Error` }
       );

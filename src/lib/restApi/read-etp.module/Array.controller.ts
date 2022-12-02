@@ -47,6 +47,8 @@ import {
 } from "@nestjs/swagger";
 
 import {
+  ArrayFormat,
+  ArrayOutput,
   Energistics,
   IArrayId,
   IDataArray,
@@ -55,29 +57,29 @@ import {
 
 import { Integer32 } from "../../common/Etp12";
 
-import { Type } from "class-transformer";
+import { Type } from "@nestjs/class-transformer";
 
-import { IsDate, IsUUID, Matches, MaxLength } from "class-validator";
+import { IsDate, IsUUID, Matches, MaxLength } from "@nestjs/class-validator";
 
 import {
+  HasBearerGuard,
+  HasDataPartitionGuard,
+  OptionalParseIntArrayPipe,
   alphaSpaceSchema,
   createSession,
   errorMessageSchema,
-  extractToken,
   extractDataPartitionId,
+  extractToken,
   getSchemasForType,
-  HasBearerGuard,
-  HasDataPartitonGuard,
-  OptionalParseIntArrayPipe,
   patternString,
   swaggerServers,
   toJSonCustomData
 } from "../ControllerUtils";
 
 import {
-  dataObjectTypePattern,
   FindInDataSpaceParams,
   FindInObjectParams,
+  dataObjectTypePattern,
   uriPattern,
   uuidPattern,
   versionQueryParam
@@ -168,30 +170,37 @@ export class ArrayIdDto {
 
 export class DataArrayMetadataDto {
   @ApiProperty({
+    ...getSchemasForType(ArrayIdDto),
+    required: true,
     name: "uid",
-    type: ArrayIdDto
+    description: "Array identifiers",
+    additionalProperties: false
   })
   uid!: IArrayId;
 
   @ApiPropertyOptional({
     name: "dimensions",
+    description: "Number of items in each dimension",
     type: "integer",
     format: "int32",
     isArray: true,
     maxItems: 1000,
     minimum: 1,
-    maximum: 1000000
+    maximum: 1000000,
+    example: [100, 120, 130]
   })
   dimensions?: Integer32[];
 
   @ApiPropertyOptional({
     name: "preferredSubarrayDimensions",
+    description: "Recommended slice dimensions when accessing data",
     type: "integer",
     format: "int32",
     isArray: true,
     maxItems: 1000,
     minimum: 1,
-    maximum: 1000000
+    maximum: 1000000,
+    example: [100, 10, 1]
   })
   preferredSubarrayDimensions?: Integer32[];
 
@@ -233,16 +242,22 @@ export class DataArrayDataDto {
   @ApiPropertyOptional({
     name: "data",
     description: "Array content (as an array or its base64 representation).",
-    additionalProperties: false,
+    additionalProperties: true,
     oneOf: [
       {
-        type: "string"
+        type: "string",
+        maxLength: 100000000,
+        pattern:
+          "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$",
+        description: "Base64 string."
       },
       {
         type: "array",
         maxItems: 100000000,
         items: {
-          type: "number"
+          type: "number",
+          maximum: 1000000000,
+          minimum: -1000000000
         }
       },
       {
@@ -256,7 +271,9 @@ export class DataArrayDataDto {
         type: "array",
         maxItems: 100000000,
         items: {
-          type: "string"
+          type: "string",
+          maxLength: 100000000,
+          pattern: "^.*$"
         }
       }
     ]
@@ -281,6 +298,7 @@ export class DataArrayDto {
     ...getSchemasForType(ArrayIdDto),
     required: true,
     name: "uid",
+    description: "Array identifiers",
     additionalProperties: false
   })
   uid!: IArrayId;
@@ -289,6 +307,7 @@ export class DataArrayDto {
     ...getSchemasForType(DataArrayDataDto),
     required: true,
     name: "data",
+    description: "Array content",
     additionalProperties: false
   })
   data?: DataArrayDataDto;
@@ -333,35 +352,30 @@ const getObjectDataArrays = async (
 ): Promise<GetObjectDataArraysOutput> => {
   const c = await createSession(jwt, dataPartitionId);
   const dataArrays = new Map<string, IDataArray>();
-  return c
-    .getObjectDataArrays(uri, dataArrays)
-    .then(async () => {
-      const arrays: (IDataArrayMetadata | null)[] = [];
-      const arrayList = Array.from(dataArrays.values());
-      let message = "";
-      while (arrayList.length > 0) {
-        // Limit concurrent requests to what server can handle
-        const sp = arrayList.splice(0, c.messageQueueDepth());
-        await Promise.all(
-          sp.map(v => c.getDataArrayMetadata(v.uid.uri, v.uid.pathInResource))
-        )
-          .then(a => arrays.push(...a))
-          .catch((err: string) => {
-            message += (err ? err : "") + " ";
-          });
-      }
-      if (message !== "") {
-        throw new Error(message);
-      }
-      return arrays.filter(m => m != null);
-    })
-    .catch((err: any) => {
-      throw err;
-    })
-    .then(arrays =>
-      arrays.map(a =>
-        a
-          ? {
+  try {
+    await c.getObjectDataArrays(uri, dataArrays);
+
+    const arrays: (IDataArrayMetadata | null)[] = [];
+    const arrayList = Array.from(dataArrays.values());
+    let message = "";
+
+    const concatMessage = (err: string) => (message += `${err} `);
+    while (arrayList.length > 0) {
+      // Limit concurrent requests to what server can handle
+      const sp = arrayList.splice(0, c.messageQueueDepth());
+      await Promise.all(
+        sp.map(v => c.getDataArrayMetadata(v.uid.uri, v.uid.pathInResource))
+      )
+        .then(a => arrays.push(...a))
+        .catch(concatMessage);
+    }
+    if (message !== "") {
+      throw new Error(message);
+    }
+    const filteredArrays = arrays.filter(m => m != null);
+    return filteredArrays.map(a =>
+      a
+        ? {
             uid: a.uid,
             dimensions: a.dimensions,
             arrayType: toArrayTypeString(a.logicalArrayType),
@@ -370,99 +384,11 @@ const getObjectDataArrays = async (
             storeCreated: a.storeCreated,
             customData: toJSonCustomData(a.customData)
           }
-          : null
-      )
-    )
-    .catch(err => {
-      throw err;
-    })
-    .finally(() => c.closeSession());
-};
-
-/**
- * @default "json"
- */
-type ArrayFormat = "json" | "base64";
-
-type ArrayOutput = number[] | boolean[] | string[] | string;
-
-type NumberArray = Int32Array | Float32Array | Float64Array;
-
-function formattedTypedArray<T extends NumberArray>(
-  values: number[],
-  t: { new(arr: number[]): T },
-  format: ArrayFormat
-): ArrayOutput | undefined {
-  if (format === "base64") {
-    const fa = new t(values);
-    return Buffer.from(fa.buffer).toString("base64");
+        : null
+    );
+  } finally {
+    c.closeSession();
   }
-  return values;
-}
-
-/**
- * Format the data array as either JSON or Base64
- *
- * @param {Energistics.Etp.v12.Datatypes.AnyArray} array
- * @param {ArrayFormat} format
- * @returns {(number[] | boolean[] | string[] | string | undefined)}
- */
-const formatArrayData = (
-  array: Energistics.Etp.v12.Datatypes.AnyArray,
-  format: ArrayFormat
-): ArrayOutput | undefined => {
-  const values = array.item[array.item.__keyName]?.values;
-  if (!values) {
-    return undefined;
-  }
-  switch (array.item.__keyName) {
-    case "_ArrayOfBoolean": {
-      const typedValues = values as boolean[];
-      if (format === "base64") {
-        const fa = new Int8Array(typedValues.map(v => (v ? 1 : 0)));
-        return Buffer.from(fa.buffer).toString("base64");
-      }
-      return typedValues;
-    }
-    case "_ArrayOfFloat": {
-      return formattedTypedArray<Float32Array>(
-        values as number[],
-        Float32Array,
-        format
-      );
-    }
-    case "_ArrayOfDouble": {
-      return formattedTypedArray<Float64Array>(
-        values as number[],
-        Float64Array,
-        format
-      );
-    }
-    case "_ArrayOfInt": {
-      return formattedTypedArray<Int32Array>(
-        values as number[],
-        Int32Array,
-        format
-      );
-    }
-    case "_ArrayOfLong": {
-      const typedValues = values as bigint[];
-      if (format === "base64") {
-        const fa = new BigInt64Array(typedValues);
-        return Buffer.from(fa.buffer).toString("base64");
-      }
-      return typedValues.map(v => v.toString() + "n");
-    }
-    case "_ArrayOfString": {
-      const typedValues = values as string[];
-      if (format === "base64") {
-        return Buffer.from(typedValues.join(",")).toString("base64");
-      }
-      return typedValues;
-    }
-  }
-
-  return values.toString();
 };
 
 /**
@@ -516,7 +442,7 @@ export const startsQueryParam: ApiQueryOptions = {
     type: "array",
     maxItems: 1000,
     items: {
-      type: "number",
+      type: "integer",
       format: "int32",
       minimum: 0,
       maximum: 1000000
@@ -535,7 +461,7 @@ export const countsQueryParam: ApiQueryOptions = {
     type: "array",
     maxItems: 1000,
     items: {
-      type: "number",
+      type: "integer",
       format: "int32",
       minimum: 1,
       maximum: 1000000
@@ -562,8 +488,12 @@ export const formatQueryParam: ApiQueryOptions = {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
-@ApiHeader({ name: "data-partition-id", description: "Data partition id (ex. 'osdu')" })
-@UseGuards(HasDataPartitonGuard())
+@ApiHeader({
+  name: "data-partition-id",
+  description: "Data partition id (ex. 'osdu')",
+  example: "opendes"
+})
+@UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -575,7 +505,8 @@ export const formatQueryParam: ApiQueryOptions = {
 export default class DataArrayReadAPI {
   @ApiOperation({
     summary: "Get the description of all arrays.",
-    description: `Get the description of a all the arrays (Type and dimensions) referenced by a data object.`
+    description: `Get the description of a all the arrays (Type and dimensions) referenced by a data object.`,
+    servers: swaggerServers
   })
   @Get("arrays")
   @ApiQuery(versionQueryParam)
@@ -584,11 +515,9 @@ export default class DataArrayReadAPI {
     schema: {
       type: "array",
       maxItems: 256,
-      additionalProperties: false,
       items: getSchemasForType(DataArrayMetadataDto)
     }
   })
-  @ApiOperation({ servers: swaggerServers })
   public async GetObjectArrays(
     @Param() params: FindInObjectParams,
     @Query("version") version?: string,
@@ -606,24 +535,26 @@ export default class DataArrayReadAPI {
       version
     ).uri;
 
-    return getObjectDataArrays(uri, extractToken(request), extractDataPartitionId(request)).catch(
-      (err: Error) => {
-        throw new InternalServerErrorException({ description: err.message });
-      }
-    );
+    return getObjectDataArrays(
+      uri,
+      extractToken(request),
+      extractDataPartitionId(request)
+    ).catch((err: Error) => {
+      throw new InternalServerErrorException({ description: err.message });
+    });
   }
 
   @Get("arrays/:pathInResource/metadata")
   @ApiOperation({
     summary: "Get the description of an array.",
-    description: `Returns type and dimension of the array.`
+    description: `Returns type and dimension of the array.`,
+    servers: swaggerServers
   })
   @ApiQuery(versionQueryParam)
   @ApiOkResponse({
     description: "Success",
     schema: getSchemasForType(DataArrayMetadataDto)
   })
-  @ApiOperation({ servers: swaggerServers })
   public async GetArrayMetaData(
     @Param() params: DataArrayParams,
     @Query("version") version?: string,
@@ -640,17 +571,23 @@ export default class DataArrayReadAPI {
       params.guid,
       version
     ).uri;
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const d = await c.getDataArrayMetadata(uri, params.pathInResource);
       await c.closeSession();
+      c = undefined;
       return d
         ? {
-          ...d,
-          customData: toJSonCustomData(d.customData)
-        }
+            ...d,
+            customData: toJSonCustomData(d.customData)
+          }
         : null;
     } catch (err) {
+      await c?.closeSession();
       throw new InternalServerErrorException(err);
     }
   }
@@ -666,7 +603,8 @@ export default class DataArrayReadAPI {
   @ApiOperation({
     summary: "Get the content of an array.",
     description: `For large arrays, it is recommended to use starts and counts and get array by slices. 
-      Note that starts and counts need to be used together or not at all.`
+      Note that starts and counts need to be used together or not at all.`,
+    servers: swaggerServers
   })
   @ApiQuery(versionQueryParam)
   @ApiQuery(startsQueryParam)
@@ -701,8 +639,12 @@ export default class DataArrayReadAPI {
       params.guid,
       version
     ).uri;
+    let c = undefined;
     try {
-      const c = await createSession(extractToken(request), extractDataPartitionId(request));
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
       const metadata = await c.getDataArrayMetadata(uri, params.pathInResource);
       if (!metadata) {
         throw new InternalServerErrorException({
@@ -718,7 +660,7 @@ export default class DataArrayReadAPI {
             description: `starts and counts dimensions not compatible with array dimensions`
           });
         }
-        metadata.dimensions.forEach((d, i) => {
+        metadata.dimensions.forEach((d: number, i: number) => {
           if (starts[i] < 0 || counts[i] < 0 || starts[i] + counts[i] > d) {
             throw new BadRequestException({
               description: `starts and counts dimensions not compatible with array dimensions`
@@ -731,7 +673,7 @@ export default class DataArrayReadAPI {
           starts,
           counts
         );
-        await c.closeSession();
+
         if (
           !subArray ||
           !subArray.data ||
@@ -741,16 +683,18 @@ export default class DataArrayReadAPI {
             description: "Cannot fetch subarray"
           });
         }
-        return {
+        const res = {
           uid: subArray.uid,
           data: {
-            data: formatArrayData(subArray.data.data, format || "json"),
+            data: c.formatArrayData(subArray.data.data, format || "json"),
             dimensions: subArray.data.dimensions.map(Number)
           }
         };
+        await c.closeSession();
+        c = undefined;
+        return res;
       }
       const a = await c.getDataArray(uri, params.pathInResource, metadata);
-      await c.closeSession();
       if (
         !a ||
         !a.data ||
@@ -760,14 +704,18 @@ export default class DataArrayReadAPI {
           description: "Cannot fetch array"
         });
       }
-      return {
+      const res = {
         uid: a.uid,
         data: {
-          data: formatArrayData(a.data.data, format || "json"),
+          data: c.formatArrayData(a.data.data, format || "json"),
           dimensions: a.data.dimensions.map(Number)
         }
       };
+      await c.closeSession();
+      c = undefined;
+      return res;
     } catch (err) {
+      await c?.closeSession();
       if (err instanceof Error) {
         throw err;
       } else {

@@ -208,10 +208,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get hasDataSpace(): boolean {
-    if (this.dataSpace) {
-      return true;
-    }
-    return false;
+    return this.dataSpace.length !== 0;
   }
 
   /**
@@ -388,7 +385,7 @@ export class EtpUri {
     uuid: string,
     version?: string,
     oDataQuery?: ODataQuery
-  ) {
+  ): EtpUri {
     const ds =
       EtpUri.createDataSpaceUri(dataspace).uri + (dataspace ? "/" : "");
     const dVersion = domainVersion?.replace(".", "");
@@ -421,7 +418,7 @@ export class EtpUri {
     objectType: string,
     uuid: string,
     oDataQuery?: ODataQuery
-  ) {
+  ): string {
     return EtpUri.createObjectUri(
       dataspace,
       domainFamily,

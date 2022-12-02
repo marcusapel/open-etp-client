@@ -72,7 +72,7 @@ export class ETPCore extends EventEmitter {
   }
 
   /// Send an acknowledgement of receipt of a message.
-  public acknowledge(messageId: Integer64) {
+  public acknowledge(messageId: Integer64): void {
     const header = this.createFinalMessageHeader(
       PROTOCOL.Core,
       Core.MsgAcknowledge,
@@ -84,7 +84,7 @@ export class ETPCore extends EventEmitter {
   }
 
   /// Close the current Session. Other party should respond by closing the socket.
-  public closeSession() {
+  public closeSession(): void {
     const closed = this.sessionId.every(v => v === 0);
     if (!closed) {
       this.logTrace(`Session closure requested.`);
@@ -148,8 +148,12 @@ export class ETPCore extends EventEmitter {
   /// Handle a parsed message. Overloaded in all handlers.  Includes default handling for common messages
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.Core.Acknowledge
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+      | Energistics.Etp.v12.Protocol.Core.Ping
+      | Energistics.Etp.v12.Protocol.Core.Pong
+  ): void {
     switch (messageHeader.messageType) {
       case Core.MsgAcknowledge:
         this.onAcknowledge(messageHeader, messageBody);
@@ -158,16 +162,22 @@ export class ETPCore extends EventEmitter {
         this.onException(messageHeader, messageBody);
         break;
       case Core.MsgPing:
-        this.onPing(messageHeader, messageBody);
+        this.onPing(
+          messageHeader,
+          messageBody as Energistics.Etp.v12.Protocol.Core.Ping
+        );
         break;
       case Core.MsgPong:
-        this.onPong(messageHeader, messageBody);
+        this.onPong(
+          messageHeader,
+          messageBody as Energistics.Etp.v12.Protocol.Core.Pong
+        );
         break;
     }
   }
 
   /// Log a message
-  public log(message: string) {
+  public log(message: string): void {
     this.emit("log", message);
   }
 
@@ -177,7 +187,7 @@ export class ETPCore extends EventEmitter {
    * @param {string} str
    * @memberof BaseHandler
    */
-  public logTrace(str: string) {
+  public logTrace(str: string): void {
     if (this.traceCalls) {
       this.log(str);
     }
@@ -208,7 +218,7 @@ export class ETPCore extends EventEmitter {
   public onPing(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Core.Ping
-  ) {
+  ): void {
     const currentDateTime = BigInt(new Date().getTime()) * BigInt(1000); // In microseconds
     const deltaTime = message.currentDateTime
       ? currentDateTime - message.currentDateTime
@@ -235,7 +245,7 @@ export class ETPCore extends EventEmitter {
   public onPong(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Core.Pong
-  ) {
+  ): void {
     const currentDateTime = BigInt(new Date().getTime()) * BigInt(1000);
     if (!header.correlationId) {
       throw new Error(`No correlation ID on success response message`);
@@ -260,7 +270,7 @@ export class ETPCore extends EventEmitter {
   public onCloseSession(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Core.CloseSession
-  ) {
+  ): void {
     this.handlers.forEach(h => h && h.stop());
     this.logTrace(
       `Received CloseSession message for session ${this.sessionId}. Reason ${message.reason}. Closing WebSocket.`
@@ -273,8 +283,8 @@ export class ETPCore extends EventEmitter {
   /// Handle an acknowledgement model.
   public onAcknowledge(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: any
-  ) {
+    message: unknown
+  ): void {
     this.logTrace(
       `Received Acknowledge message for ${header.correlationId}: ${message}.`
     );
@@ -284,8 +294,8 @@ export class ETPCore extends EventEmitter {
   /// Handle an exception message.
   public onException(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: any
-  ) {
+    message: unknown
+  ): void {
     this.logTrace(
       `Received Exception message for ${header.correlationId}: ${message}.`
     );
@@ -300,7 +310,7 @@ export class ETPCore extends EventEmitter {
 
   public send(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: any
+    message: unknown
   ): Integer64 {
     if (!this.binary) {
       throw new Error(
@@ -328,7 +338,7 @@ export class ETPCore extends EventEmitter {
     code: number,
     message: string,
     correlationId: Integer64
-  ) {
+  ): void {
     const header = this.createFinalMessageHeader(
       PROTOCOL.Core,
       Core.MsgProtocolException,
@@ -344,8 +354,8 @@ export class ETPCore extends EventEmitter {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   // Default body, so client and server can fill in their own way
   public computeData(
-    header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: any
+    _header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    _message: unknown
   ): ArrayBuffer {
     return new ArrayBuffer(0);
   }

@@ -17,12 +17,12 @@
 import { v5 as uuidNameSpace, v4 as uuidRandom } from "uuid";
 
 import * as websocket from "websocket";
-import { ErrorCode } from "../common/EtpTypes";
+import { DataQueryValue, ErrorCode } from "../common/EtpTypes";
 
 import type {
   DataObject,
-  Dataspace,
   DataValue,
+  Dataspace,
   IArrayId,
   IDataArray,
   IDataArrayMetadata,
@@ -56,8 +56,8 @@ import { TransactionCustomer } from "../protocols/TransactionCustomer";
 
 import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { Timer } from "../common/ResponseHandlers";
+import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
-import { simpleJson, SimpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 
 const socket = websocket.w3cwebsocket;
 
@@ -130,7 +130,7 @@ export const notEmptyFilter = notEmpty;
  * @returns
  * @memberof ResqmlClient
  */
-export const byteToString = (bytes: number[]) => {
+export const byteToString = (bytes: number[]): string => {
   const length = bytes.length;
   const chunk = 1024;
   let str = "";
@@ -140,6 +140,27 @@ export const byteToString = (bytes: number[]) => {
   }
   return str;
 };
+
+/**
+ * @default "json"
+ */
+export type ArrayFormat = "json" | "base64";
+
+export type ArrayOutput = number[] | boolean[] | string[] | string;
+
+export type NumberArray = Int32Array | Float32Array | Float64Array;
+
+function formattedTypedArray<T extends NumberArray>(
+  values: number[],
+  t: { new (arr: number[]): T },
+  format: ArrayFormat
+): ArrayOutput | undefined {
+  if (format === "base64") {
+    const fa = new t(values);
+    return Buffer.from(fa.buffer).toString("base64");
+  }
+  return values;
+}
 
 /**
  * ETP client allowing to get RESQML information from an ETP server.
@@ -154,9 +175,7 @@ export class ResqmlClient {
     this.logger.info.bind(this.logger);
   public readonly options: IOptions = {
     collapseTextElement: true,
-    removeNamespace: true,
-    resolveReference: true,
-    resolveArrayMetadata: true
+    removeNamespace: true
   };
 
   private readonly client: ETPClient.ETPClient = new ETPClient.ETPClient({
@@ -188,7 +207,6 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   constructor(opt?: IOptions) {
-
     this.client.on("log", this.logger.info.bind(this.logger));
     this.client.on("disconnect", this.onSocketDisconnect.bind(this));
     this.client.registerHandler(
@@ -266,11 +284,11 @@ export class ResqmlClient {
         clientId: authenticationKey
           ? uuidNameSpace(authenticationKey, authenticationKeyBase)
           : undefined,
+        dataPartitionId,
         encoding: "binary",
         maxReceivedMessageSize: maxMessagePayloadSize,
         noHeaders: false,
-        url,
-        dataPartitionId: dataPartitionId
+        url
       };
       try {
         this.client.on("connect", resolve);
@@ -302,18 +320,18 @@ export class ResqmlClient {
   }
 
   /**
-   * Check if client currently in open session
+   * @returns true if client currently in open session
    *
    * @memberof ResqmlClient
    */
-  public isInSession() {
+  public isInSession(): boolean {
     return this.client.isInSession();
   }
 
   /**
    * Indicates if the client is currently connected
    *
-   * @returns {boolean} true if client currently connected to server
+   * @returns true if client currently connected to server
    * @memberof ResqmlClient
    */
   public isConnected(): boolean {
@@ -411,7 +429,7 @@ export class ResqmlClient {
     return this.store.get(
       uris.map(u => {
         const index = u.indexOf("?");
-        return index === -1 ? u : u.substr(0, index);
+        return index === -1 ? u : u.slice(0, index);
       })
     );
   }
@@ -454,14 +472,14 @@ export class ResqmlClient {
   /**
    * Subscribe for notifications about dataSpace change
    *
-   * @param {URI} project to be notified about
+   * @param {URI} dataspaceURI to be notified about
    * @param {string[]} [dataObjectTypes=[]] Types to listen to
    * @param {number} [startTime=Date.now()] Start of the notification (can go back in time)
    * @returns {Energistics.Etp.v12.Datatypes.Uuid} Identifier of notification
    * @memberof ResqmlClient
    */
   public subscribeNotifications(
-    projectURI: URI,
+    dataspaceURI: URI,
     dataObjectTypes: string[] = [],
     startTime: number = Date.now(),
     onChanged?: (
@@ -474,29 +492,29 @@ export class ResqmlClient {
     const uuid: string = uuidRandom();
     const requestUuid = EtpUri.uuidStringToByteArray(uuid);
     const subscription: Energistics.Etp.v12.Protocol.StoreNotification.SubscribeNotifications =
-    {
-      request: new Map([
-        [
-          "project",
-          {
-            context: {
-              dataObjectTypes,
-              depth: 10,
-              includeSecondarySources: false,
-              includeSecondaryTargets: false,
-              navigableEdges:
-                Energistics.Etp.v12.Datatypes.Object.RelationshipKind.Both,
-              uri: projectURI
-            },
-            format: "xml",
-            includeObjectData: false,
-            requestUuid,
-            scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
-            startTime
-          }
-        ]
-      ])
-    };
+      {
+        request: new Map([
+          [
+            "project",
+            {
+              context: {
+                dataObjectTypes,
+                depth: 10,
+                includeSecondarySources: false,
+                includeSecondaryTargets: false,
+                navigableEdges:
+                  Energistics.Etp.v12.Datatypes.Object.RelationshipKind.Both,
+                uri: dataspaceURI
+              },
+              format: "xml",
+              includeObjectData: false,
+              requestUuid,
+              scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
+              startTime
+            }
+          ]
+        ])
+      };
     if (onChanged) {
       this.storeNotification.on(
         "objectChanged",
@@ -537,11 +555,11 @@ export class ResqmlClient {
    */
   public unsubscribeNotifications(
     requestUuid: Energistics.Etp.v12.Datatypes.Uuid
-  ) {
+  ): void {
     const subscription: Energistics.Etp.v12.Protocol.StoreNotification.UnsubscribeNotifications =
-    {
-      requestUuid
-    };
+      {
+        requestUuid
+      };
     this.storeNotification.unSubscribeNotifications(subscription);
   }
 
@@ -549,62 +567,173 @@ export class ResqmlClient {
    * Use the supportedTypes service to get the SupportedTypes in a given project.
    * Create a promise that will be resolved by {@link onGetSupportedTypes}
    *
-   * @param {URI} projectURI uri of the project
-   * @returns {Promise<SupportedType[]>} List of types present in the project
+   * @param {URI} dataspaceURI uri of the dataspace
+   * @returns {Promise<SupportedType[]>} List of types present in the dataspace
    * @memberof ResqmlClient
    */
-  public getProjectTypes(projectURI: URI): Promise<SupportedType[]> {
+  public getDataspaceTypes(dataspaceURI: URI): Promise<SupportedType[]> {
     return this.supportedTypes.getSupportedTypes(
-      this.client.dataSpaceSupported && projectURI ? projectURI : `eml:///`,
+      this.client.dataSpaceSupported && dataspaceURI ? dataspaceURI : `eml:///`,
       true
     );
   }
 
   /**
-   * Look for all projects, if server does not support dataspaces, return null
+   * Use the supportedTypes service to get the SupportedTypes in a given project.
+   * Create a promise that will be resolved by {@link onGetSupportedTypes}
+   * @deprecated Use {@link getDataspaceTypes} function instead.
+   *
+   * @param {URI} projectURI uri of the project
+   * @returns {Promise<SupportedType[]>} List of types present in the project
+   * @memberof ResqmlClient
+   */
+  public getProjectTypes(projectURI: URI): Promise<SupportedType[]> {
+    return this.getDataspaceTypes(projectURI);
+  }
+
+  /**
+   * Look for all dataspaces, if server does not support dataspaces, return null
    *
    * @returns {(Promise<Dataspace[]> | null )} List of project resources, null if no server support
    * @memberof ResqmlClient
    */
-  public getProjects(): Promise<Dataspace[] | null> {
+  public getDataspaces(): Promise<Dataspace[] | null> {
     if (!this.isInSession()) {
       return Promise.resolve(null);
     }
     return this.client.dataSpaceSupported
       ? this.dataspace.getDataspaces()
       : Promise.resolve([
-        // Handle servers with no dataspace support
-        {
-          path: "/default",
-          uri: "eml:///",
-          storeCreated: BigInt(0),
-          storeLastWrite: BigInt(0),
-          customData: new Map()
-        }
-      ]);
+          // Handle servers with no dataspace support
+          {
+            path: "/default",
+            uri: "eml:///",
+            storeCreated: BigInt(0),
+            storeLastWrite: BigInt(0),
+            customData: new Map()
+          }
+        ]);
   }
 
   /**
-   * Create a list of new dataspaces corresponding to projects
+   * Look for all dataspaces, if server does not support dataspaces, return null
+   * @deprecated Use {@link getDataspaces} function instead.
+   *
+   * @returns {(Promise<Dataspace[]> | null )} List of project resources, null if no server support
+   * @memberof ResqmlClient
+   */
+  public getProjects(): Promise<Dataspace[] | null> {
+    return this.getDataspaces();
+  }
+
+  /**
+   * Create a list of new dataspaces
+   *
+   * @param {Dataspace[]} dataspaces List of dataspaces to create
+   * @returns {Promise<boolean>} Return creation success
+   * @memberof ResqmlClient
+   */
+  public async createDataspaces(dataspaces: Dataspace[]): Promise<boolean> {
+    return this.client.dataSpaceSupported
+      ? this.dataspace
+          .PutDataspaces(dataspaces)
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
+  }
+
+  /**
+   * Create a list of new dataspaces corresponding to scenario
+   * @deprecated Use {@link createDataspaces} function instead.
    *
    * @param {Dataspace[]} dataspaces List of projects to create
    * @returns {Promise<boolean>} Return creation success
    * @memberof ResqmlClient
    */
   public async createProjects(dataspaces: Dataspace[]): Promise<boolean> {
-    return this.client.dataSpaceSupported
-      ? this.dataspace
-        .PutDataspaces(dataspaces)
-        .then(this.checkErrors.bind(this))
-        .catch(reason => {
-          this.logger.error(reason);
-          return false;
-        })
-      : false;
+    return this.createDataspaces(dataspaces);
   }
 
   /**
    * Find an existing dataspace or create a new one
+   *
+   * @param {string} dataspaceUid UUID of the dataspace
+   * @param {string} path path of the dataspace if it needs to be created
+   * @param {Map<string, DataValue>} [customData=new Map<string, DataValue>()] path path of the dataspace if it needs to be created
+   * @returns {Promise<boolean>}
+   * @memberof ResqmlClient
+   */
+  public async findOrCreateDataspace(
+    dataspaceUid: string,
+    path: string,
+    customData: Map<string, DataValue> = new Map<string, DataValue>()
+  ): Promise<boolean> {
+    const uri = EtpUri.createDataSpaceUri(dataspaceUid).uri;
+    return this.getDataspaces()
+      .then(dataspaces => dataspaces?.filter(f => f.uri === uri))
+      .then(dataspaces => {
+        if (dataspaces && dataspaces.length > 0) {
+          return true;
+        }
+        const p: Dataspace = {
+          uri,
+          path,
+          storeCreated: BigInt(Date.now()),
+          storeLastWrite: BigInt(Date.now()),
+          customData
+        };
+        return this.createDataspaces([p]);
+      })
+      .catch(err => {
+        this.logger.error(err);
+        return false;
+      });
+  }
+
+  /**
+   * Duplicate existing dataspace
+   *
+   * @param {string} dataspaceUid UUID of the dataspace
+   * @param {string} path path of the dataspace if it needs to be created
+   * @param {Map<string, DataValue>} [customData=new Map<string, DataValue>()] path path of the dataspace if it needs to be created
+   * @returns {Promise<boolean>}
+   * @memberof ResqmlClient
+   */
+  public async cloneDataspace(
+    dataspaceUid: string,
+    path: string,
+    originURI: string,
+    customData: Map<string, DataValue> = new Map<string, DataValue>()
+  ): Promise<boolean> {
+    const uri = EtpUri.createDataSpaceUri(dataspaceUid).uri;
+    const dataspaces = await this.getDataspaces();
+    if (!dataspaces || dataspaces.findIndex(f => f.uri === uri) !== -1) {
+      return false;
+    }
+    if (dataspaces.findIndex(f => f.uri === originURI) === -1) {
+      return false;
+    }
+
+    customData.set("fromDataspace", {
+      item: { _string: originURI, __keyName: "_string" }
+    });
+
+    const p: Dataspace = {
+      uri,
+      path,
+      storeCreated: BigInt(Date.now()),
+      storeLastWrite: BigInt(Date.now()),
+      customData
+    };
+    return this.createDataspaces([p]);
+  }
+
+  /**
+   * Find an existing dataspace or create a new one
+   * @deprecated Use {@link findOrCreateDataspace} function instead.
    *
    * @param {string} dataspaceUid UUID of the dataspace
    * @param {string} path path of the dataspace if it needs to be created
@@ -617,45 +746,38 @@ export class ResqmlClient {
     path: string,
     customData: Map<string, DataValue> = new Map<string, DataValue>()
   ): Promise<boolean> {
-    const uri = EtpUri.createDataSpaceUri(dataspaceUid).uri;
-    return this.getProjects()
-      .then(projects => projects?.filter(f => f.uri === uri))
-      .then(projects => {
-        if (projects && projects.length > 0) {
-          return true;
-        }
-        const p: Dataspace = {
-          uri,
-          path,
-          storeCreated: BigInt(Date.now()),
-          storeLastWrite: BigInt(Date.now()),
-          customData
-        };
-        return this.createProjects([p]);
-      })
-      .catch(err => {
-        this.logger.error(err);
-        return false;
-      });
+    return this.findOrCreateDataspace(dataspaceUid, path, customData);
+  }
+
+  /**
+   * Delete dataspaces
+   *
+   * @param {URI[]} dataspaces List of project dataspaces URI
+   * @returns {Promise<boolean>} Success of deletion
+   * @memberof ResqmlClient
+   */
+  public async deleteDataspaces(dataspaces: URI[]): Promise<boolean> {
+    return this.client.dataSpaceSupported && dataspaces.length > 0
+      ? this.dataspace
+          .DeleteDataspaces(dataspaces)
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
   }
 
   /**
    * Delete projects
+   * @deprecated Use {@link deleteDataspaces} function instead.
    *
    * @param {URI[]} dataspaces List of project dataspaces URI
    * @returns {Promise<boolean>} Success of deletion
    * @memberof ResqmlClient
    */
   public async deleteProjects(dataspaces: URI[]): Promise<boolean> {
-    return this.client.dataSpaceSupported && dataspaces.length > 0
-      ? this.dataspace
-        .DeleteDataspaces(dataspaces)
-        .then(this.checkErrors.bind(this))
-        .catch(reason => {
-          this.logger.error(reason);
-          return false;
-        })
-      : false;
+    return this.deleteDataspaces(dataspaces);
   }
 
   /**
@@ -671,14 +793,17 @@ export class ResqmlClient {
   public async getObjects(
     uris: URI[]
   ): Promise<Array<IResqmlDataObject | null>> {
+    if (uris.length === 0) {
+      return [];
+    }
     return this.getDataObjects(uris).then(dobs =>
       Promise.all(
         dobs.map(dob =>
           dob
             ? xml2typescript(
-              byteToString(dob.data),
-              new EtpUri(dob.resource.uri).dataObjectType
-            )
+                byteToString(dob.data),
+                new EtpUri(dob.resource.uri).dataObjectType
+              )
             : null
         )
       )
@@ -732,7 +857,9 @@ export class ResqmlClient {
    * @returns
    * @memberof ResqmlClient
    */
-  public async deleteObjects(uris: URI[]) {
+  public async deleteObjects(
+    uris: URI[]
+  ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
     return this.store.deleteObjects(uris);
   }
 
@@ -771,7 +898,7 @@ export class ResqmlClient {
     } else {
       uri = new EtpUri(context.uri);
       context.uri = uri.uriPath;
-      if (dataObjectTypes) {
+      if (dataObjectTypes && !context.dataObjectTypes.length) {
         context.dataObjectTypes = dataObjectTypes;
       }
     }
@@ -853,7 +980,7 @@ export class ResqmlClient {
     dataSpace: string,
     resqmlObj: IResqmlDataObject,
     uris: Set<URI> = new Set<URI>()
-  ) {
+  ): void {
     const obj = resqmlObj as Record<string, any>;
     Object.keys(obj).forEach(async key => {
       if (!obj[key] || typeof obj[key] !== "object") {
@@ -862,19 +989,6 @@ export class ResqmlClient {
         obj[key].map((o: IResqmlDataObject) =>
           this.getObjectTargets(dataSpace, o, uris)
         );
-      } else if (
-        obj[key].$type &&
-        obj[key].$type.lastIndexOf("Hdf5Dataset") !== -1
-      ) {
-        const nURI = EtpUri.createObjectUri(
-          dataSpace,
-          "eml",
-          "20",
-          "EpcExternalPartReference",
-          obj[key].HdfProxy.UUID,
-          obj[key].HdfProxy.Version
-        );
-        uris.add(nURI.uri);
       } else if (
         obj[key] &&
         obj[key].$type &&
@@ -900,25 +1014,27 @@ export class ResqmlClient {
 
   /**
    * From the store get the resolved objects corresponding to the given URIs.
-   * If only the non resolved object is needed, use {@link getObject} instead
+   * If only the non resolved object is needed, use {@link getObjects} instead
    *
    * @param {URI[]} uris of the objects to get
    * @param {Map<URI, IResqmlDataObject>} [objects=new Map<URI, IResqmlDataObject>()] map of existing objects URI=>object
    * @param {boolean} [includeArrayValues=false]
+   * @param {boolean} [includeArrayMetadata=false]
    * @returns {Promise<Array<IResqmlDataObject|null>>} resolved objects in order or query, null for failed queries
    * @memberof ResqmlClient
    */
   public async getResolvedObjects(
     uris: URI[],
     objects: Map<URI, IResqmlDataObject> = new Map<URI, IResqmlDataObject>(),
-    includeArrayValues = false
+    includeArrayValues = false,
+    includeArrayMetadata = false
   ): Promise<Array<IResqmlDataObject | null>> {
     if (uris.length === 0) {
       throw new Error("Empty uris");
     }
     uris = uris.map(u => {
       const index = u.indexOf("?");
-      return index === -1 ? u : u.substr(0, index);
+      return index === -1 ? u : u.substring(0, index);
     });
     try {
       let cURIs = uris;
@@ -927,6 +1043,7 @@ export class ResqmlClient {
         const tUris = cURIs.filter(u => !objects.get(u));
         if (tUris.length > 0) {
           (await this.getObjects(tUris)).forEach(
+            // eslint-disable-next-line no-loop-func
             (o, i) => o && objects.set(cURIs[i], o)
           );
         }
@@ -945,12 +1062,12 @@ export class ResqmlClient {
       }
 
       const dataArrays = new Map<URI, IDataArray>(); // Map URI=>DataArray
-      if (includeArrayValues || this.options.resolveArrayMetadata) {
+      if (includeArrayValues || includeArrayMetadata) {
         ancestors.forEach((o, uri) => this.findDataArrays(uri, o, dataArrays));
         if (includeArrayValues) {
           await this.getArraysContent(dataArrays);
         }
-        if (this.options.resolveArrayMetadata) {
+        if (includeArrayMetadata) {
           // Fill dataArrays map with HDF5 metadata
           await Promise.all(
             Array.from(dataArrays.values()).map(({ uid }) =>
@@ -1055,6 +1172,9 @@ export class ResqmlClient {
 
     const min = slowStart && slowStart < desc.dimensions[0] ? slowStart : 0;
     const requestDimensions = [...desc.dimensions];
+    if (slowCount !== undefined && slowCount + min > desc.dimensions[0]) {
+      slowCount = desc.dimensions[0] - min;
+    }
     requestDimensions[0] =
       slowCount !== undefined ? slowCount : desc.dimensions[0] - min;
     if (
@@ -1065,8 +1185,8 @@ export class ResqmlClient {
       let dividingDimension = 0;
       const eSize = ArrayCustomer.getElementSizeFromMetaData(desc);
       let curSize = eSize;
-      for (let il = desc.dimensions.length - 1; il >= 0; il--) {
-        curSize *= desc.dimensions[il];
+      for (let il = requestDimensions.length - 1; il >= 0; il--) {
+        curSize *= requestDimensions[il];
         dividingDimension = il;
         if (curSize + this.overhead > this.client.negotiatedSize) {
           break;
@@ -1079,24 +1199,24 @@ export class ResqmlClient {
       const sizeOfSingleIndex =
         eSize *
         this.reduceArraySizeDimension(
-          desc.dimensions,
+          requestDimensions,
           dividingDimension + 1,
-          desc.dimensions.length
+          requestDimensions.length
         );
       const nbIndicesInMessage = Math.floor(
         (this.client.negotiatedSize - this.overhead) / sizeOfSingleIndex
       );
       const nbMessages = Math.ceil(
-        desc.dimensions[dividingDimension] / nbIndicesInMessage
+        requestDimensions[dividingDimension] / nbIndicesInMessage
       );
       let nbIndicesInLastMessage =
-        desc.dimensions[dividingDimension] % nbIndicesInMessage;
+        requestDimensions[dividingDimension] % nbIndicesInMessage;
       if (nbIndicesInLastMessage === 0) {
         nbIndicesInLastMessage = nbIndicesInMessage;
       }
 
       // Compute the maximum length of an array in message to help compute offset
-      const newCounts: number[] = [...desc.dimensions];
+      const newCounts: number[] = [...requestDimensions];
       for (let e = 0; e < dividingDimension; e++) {
         newCounts[e] = 1;
       }
@@ -1104,13 +1224,13 @@ export class ResqmlClient {
 
       // Get the number of loops to perform outside the dividing dimensions
       const nbExternalLoop = this.reduceArraySizeDimension(
-        desc.dimensions,
+        requestDimensions,
         0,
         dividingDimension
       );
 
       const starts: number[] = Array.from(
-        { length: desc.dimensions.length },
+        { length: requestDimensions.length },
         () => 0
       );
 
@@ -1119,7 +1239,7 @@ export class ResqmlClient {
         let externalIndices = e;
         for (let il = 0; il < dividingDimension; il++) {
           const lp = this.reduceArraySizeDimension(
-            desc.dimensions,
+            requestDimensions,
             il + 1,
             dividingDimension
           );
@@ -1216,7 +1336,7 @@ export class ResqmlClient {
         uid: desc.uid
       };
     } catch (err) {
-      this.logger(err);
+      this.logger.error("getDataArrayBySubarray", err);
       return null;
     }
   }
@@ -1237,7 +1357,7 @@ export class ResqmlClient {
     pathInResource: string
   ): Promise<IArrayId> {
     const index = uri.indexOf("?");
-    uri = index === -1 ? uri : uri.substr(0, index);
+    uri = index === -1 ? uri : uri.substring(0, index);
     if (uri.indexOf("EpcExternalPartReference") !== -1) {
       return { uri, pathInResource };
     }
@@ -1335,10 +1455,9 @@ export class ResqmlClient {
         }
       }
     } catch (err) {
-      this.logger(err);
-      throw new Error(
-        `Cannot get metadata of ${dataArray.uri}/${dataArray.pathInResource}`
-      );
+      const errMessage = `Cannot get metadata of ${dataArray.uri}/${dataArray.pathInResource}`;
+      this.logger.error(errMessage);
+      throw new Error(errMessage);
     }
   }
 
@@ -1417,14 +1536,14 @@ export class ResqmlClient {
         Array.prototype.slice.call(array)
       );
       const da: Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataArraysType =
-      {
-        array: {
-          data,
-          dimensions: dimensions.map(BigInt)
-        },
-        uid,
-        customData
-      };
+        {
+          array: {
+            data,
+            dimensions: dimensions.map(BigInt)
+          },
+          uid,
+          customData
+        };
       return this.dataArray
         .put([da])
         .then(e => e.length > 0 && e[0].code === 0);
@@ -1558,15 +1677,15 @@ export class ResqmlClient {
     const logicalArrayType: Energistics.Etp.v12.Datatypes.AnyLogicalArrayType =
       ArrayCustomer.getLogicalArrayType(array);
     const metadata: Energistics.Etp.v12.Datatypes.DataArrayTypes.DataArrayMetadata =
-    {
-      dimensions: dimensions.map(BigInt),
-      preferredSubarrayDimensions: preferredSubArrayDimensions.map(BigInt),
-      customData,
-      transportArrayType,
-      logicalArrayType,
-      storeCreated: BigInt(Date.now()),
-      storeLastWrite: BigInt(Date.now())
-    };
+      {
+        dimensions: dimensions.map(BigInt),
+        preferredSubarrayDimensions: preferredSubArrayDimensions.map(BigInt),
+        customData,
+        transportArrayType,
+        logicalArrayType,
+        storeCreated: BigInt(Date.now()),
+        storeLastWrite: BigInt(Date.now())
+      };
     return this.dataArray
       .putUninitializedArray([
         {
@@ -1602,18 +1721,18 @@ export class ResqmlClient {
   ) {
     const promises: Array<Promise<boolean>> = [];
     const di: Energistics.Etp.v12.Datatypes.DataArrayTypes.PutUninitializedDataArrayType =
-    {
-      metadata: {
-        logicalArrayType,
-        transportArrayType,
-        dimensions: dimensions.map(BigInt),
-        preferredSubarrayDimensions: preferredSubarrayDimensions.map(BigInt),
-        customData,
-        storeCreated: BigInt(Date.now()),
-        storeLastWrite: BigInt(Date.now())
-      },
-      uid
-    };
+      {
+        metadata: {
+          logicalArrayType,
+          transportArrayType,
+          dimensions: dimensions.map(BigInt),
+          preferredSubarrayDimensions: preferredSubarrayDimensions.map(BigInt),
+          customData,
+          storeCreated: BigInt(Date.now()),
+          storeLastWrite: BigInt(Date.now())
+        },
+        uid
+      };
     promises.push(
       this.dataArray
         .putUninitializedArray([di])
@@ -1694,16 +1813,16 @@ export class ResqmlClient {
       const start = d * maxSliceLength;
 
       const da: Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataSubarraysType =
-      {
-        counts: counts.map(BigInt),
-        data: this.dataArray.getArraySlice(
-          array.array,
-          start,
-          start + sliceLength
-        ),
-        starts: starts.map(BigInt),
-        uid: array.uid
-      };
+        {
+          counts: counts.map(BigInt),
+          data: this.dataArray.getArraySlice(
+            array.array,
+            start,
+            start + sliceLength
+          ),
+          starts: starts.map(BigInt),
+          uid: array.uid
+        };
       promises.push(
         this.dataArray
           .putSubarrays([da])
@@ -1774,6 +1893,34 @@ export class ResqmlClient {
   /**
    * Get the resources contained by a given project
    *
+   * @param {URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo} dataSpaceContext uri of dataspace
+   * @param {string[]} dataObjectTypes object types to filter against
+   * @param {boolean} [countObjects=false] Indicates that the server is requested to provide the source and target count
+   * @param {(Integer64 | null)} [lastChangedFilter=null] Indicates that the only the resources created after the given time is provided
+   * @returns {Promise<Resource>} resource map for the data space
+   * @memberof ResqmlClient
+   */
+  public async getDataspaceResources(
+    dataSpaceContext: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
+    dataObjectTypes: string[] = [],
+    countObjects = false,
+    lastChangedFilter: Integer64 | null = null,
+    objects?: Map<URI, IResqmlDataObject>
+  ): Promise<Resource[]> {
+    return this.getResources(
+      dataSpaceContext,
+      Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
+      dataObjectTypes,
+      countObjects,
+      lastChangedFilter,
+      objects
+    );
+  }
+
+  /**
+   * Get the resources contained by a given project
+   * @deprecated Use {@link getDataspaceResources} function instead.
+   *
    * @param {URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo} dataSpaceContext uri of project
    * @param {string[]} dataObjectTypes object types to filter against
    * @param {boolean} [countObjects=false] Indicates that the server is requested to provide the source and target count
@@ -1788,9 +1935,8 @@ export class ResqmlClient {
     lastChangedFilter: Integer64 | null = null,
     objects?: Map<URI, IResqmlDataObject>
   ): Promise<Resource[]> {
-    return this.getResources(
+    return this.getDataspaceResources(
       dataSpaceContext,
-      Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
       dataObjectTypes,
       countObjects,
       lastChangedFilter,
@@ -1834,7 +1980,8 @@ export class ResqmlClient {
    * Create a search map to allow searching inside XML
    *
    * @param {URI[]} uris
-   * @param {boolean} deepSearch
+   * @param {boolean} deepSearch Whether or not to resolve the objects given by uris
+   * @param {Map<URI, IResqmlDataObject>} objects The initial search map to use. Defaults to empty map
    * @returns {Promise<Map<URI, IResqmlDataObject>>}
    * @memberof ResqmlClient
    */
@@ -1846,7 +1993,7 @@ export class ResqmlClient {
     uris = uris
       .map(u => {
         const index = u.indexOf("?");
-        return index === -1 ? u : u.substr(0, index);
+        return index === -1 ? u : u.substring(0, index);
       })
       .filter(u => !objects.get(u));
     const chunk = 100;
@@ -1858,14 +2005,11 @@ export class ResqmlClient {
     }
 
     if (deepSearch) {
-      const resolveArrayMetadata = this.options.resolveArrayMetadata;
-      this.options.resolveArrayMetadata = false;
       try {
-        await this.getResolvedObjects(uris, objects, false);
+        await this.getResolvedObjects(uris, objects, false, false);
       } catch (e) {
         // Do Nothing
       }
-      this.options.resolveArrayMetadata = resolveArrayMetadata;
     }
     return objects;
   }
@@ -1873,8 +2017,8 @@ export class ResqmlClient {
   /**
    * Filter a list of resources, following given queries
    * @param {Resource[]} resources list of resources to filter
-   * @param {IDataQuery[]} queries list of queries to test against
-   * @param {boolean} deepSearch indicate if deep search are required to check queries
+   * @param {string[]} filters list of oData filters to apply to the resources
+   * @param {Map<URI, IResqmlDataObject>} objects The initial search map to use. Defaults to empty map
    * @returns {Promise<Resource[]>}
    * @memberof ResqmlClient
    */
@@ -1890,14 +2034,23 @@ export class ResqmlClient {
       }
     });
 
-    const queries = createODataQueries(filters);
-    return queries.length === 0
-      ? resources
-      : this.buildSearchMap(
-        resources.map(r => r.uri),
-        deepSearch,
-        objects
-      ).then(map => resources.filter(r => queryFilter(map, queries, r.uri)));
+    let queries: DataQueryValue[] = [];
+    try {
+      queries = createODataQueries(filters);
+    } catch (err) {
+      return resources;
+    }
+
+    if (queries.length === 0) {
+      return resources;
+    }
+
+    const searchMap = await this.buildSearchMap(
+      resources.map(r => r.uri),
+      deepSearch,
+      objects
+    );
+    return resources.filter(r => queryFilter(searchMap, queries, r.uri));
   }
 
   /**
@@ -1928,7 +2081,6 @@ export class ResqmlClient {
    * @param {Map<string, IDataArray>} dataArrays map of found data arrays
    * @memberof ResqmlClient
    */
-
   public findDataArrays(
     uri: URI,
     obj: Record<string, any>,
@@ -1947,7 +2099,7 @@ export class ResqmlClient {
         ) {
           let contentType = "obj_EpcExternalPartReference";
           if (obj[key].HdfProxy && obj[key].HdfProxy.ContentType) {
-            contentType = obj[key].HdfProxy.ContentType.substr(
+            contentType = obj[key].HdfProxy.ContentType.substring(
               obj[key].HdfProxy.ContentType.indexOf("type=") + 5
             );
           }
@@ -1983,7 +2135,7 @@ export class ResqmlClient {
    * @param {boolean} trace activate traceability of the calls
    * @memberof ResqmlClient
    */
-  public setCallsTraceability(trace: boolean) {
+  public setCallsTraceability(trace: boolean): void {
     this.client.traceCalls = trace;
   }
 
@@ -2000,7 +2152,7 @@ export class ResqmlClient {
     objectTypes: string[]
   ): Promise<IResqmlDataObject[]> => {
     const uri = EtpUri.createDataSpaceUri(dataspaceId);
-    const resources = await this.getProjectResources(uri.uri, objectTypes);
+    const resources = await this.getDataspaceResources(uri.uri, objectTypes);
     const objs = await this.getObjects(resources.map(r => r.uri));
     return objs.filter(o => o !== null).map(o => o as IResqmlDataObject);
   };
@@ -2127,8 +2279,73 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   private onSocketDisconnect() {
-    this.log("Disconnected");
+    this.logger.debug("Disconnected");
     this.connected = false;
+  }
+
+  /**
+   * Format the data array as either JSON or Base64
+   *
+   * @param {Energistics.Etp.v12.Datatypes.AnyArray} array
+   * @param {ArrayFormat} format
+   * @returns {(number[] | boolean[] | string[] | string | undefined)}
+   */
+  public formatArrayData(
+    array: Energistics.Etp.v12.Datatypes.AnyArray,
+    format: ArrayFormat
+  ): ArrayOutput | undefined {
+    const values = array.item[array.item.__keyName]?.values;
+    if (!values) {
+      return undefined;
+    }
+    switch (array.item.__keyName) {
+      case "_ArrayOfBoolean": {
+        const typedValues = values as boolean[];
+        if (format === "base64") {
+          const fa = new Int8Array(typedValues.map(v => (v ? 1 : 0)));
+          return Buffer.from(fa.buffer).toString("base64");
+        }
+        return typedValues;
+      }
+      case "_ArrayOfFloat": {
+        return formattedTypedArray<Float32Array>(
+          values as number[],
+          Float32Array,
+          format
+        );
+      }
+      case "_ArrayOfDouble": {
+        return formattedTypedArray<Float64Array>(
+          values as number[],
+          Float64Array,
+          format
+        );
+      }
+      case "_ArrayOfInt": {
+        return formattedTypedArray<Int32Array>(
+          values as number[],
+          Int32Array,
+          format
+        );
+      }
+      case "_ArrayOfLong": {
+        const typedValues = values as bigint[];
+        if (format === "base64") {
+          const fa = new BigInt64Array(typedValues);
+          return Buffer.from(fa.buffer).toString("base64");
+        }
+        return typedValues.map(v => v.toString() + "n");
+      }
+      case "_ArrayOfString": {
+        const typedValues = values as string[];
+        if (format === "base64") {
+          return Buffer.from(typedValues.join(",")).toString("base64");
+        }
+        return typedValues;
+      }
+    }
+
+    return values.toString();
   }
 
   /**
@@ -2143,7 +2360,6 @@ export class ResqmlClient {
    * @returns {IResqmlDataObject} resolved object
    * @memberof ResqmlClient
    */
-
   private resolveReferences(
     uri: URI,
     resqmlObj: IResqmlDataObject,
@@ -2171,22 +2387,28 @@ export class ResqmlClient {
         // Resolve the data arrays
         let contentType = "obj_EpcExternalPartReference";
         if (obj[key].HdfProxy && obj[key].HdfProxy.ContentType) {
-          contentType = obj[key].HdfProxy.ContentType.substr(
+          contentType = obj[key].HdfProxy.ContentType.substring(
             obj[key].HdfProxy.ContentType.indexOf("type=") + 5
           );
         }
-        const nURI = `${EtpUri.createObjectUri(
-          etpUri.dataSpace,
-          "eml",
-          "2.0",
-          contentType,
-          obj[key].HdfProxy.UUID,
-          obj[key].HdfProxy.Version
-        ).uri
-          }${obj[key].PathInHdfFile}`;
+        const nURI = `${
+          EtpUri.createObjectUri(
+            etpUri.dataSpace,
+            "eml",
+            "2.0",
+            contentType,
+            obj[key].HdfProxy.UUID,
+            obj[key].HdfProxy.Version
+          ).uri
+        }${obj[key].PathInHdfFile}`;
 
-        if (dataArrays.get(nURI)) {
-          obj[key] = { ...obj[key], _data: simpleJson(dataArrays.get(nURI)) };
+        const arr = dataArrays.get(nURI);
+        if (arr?.data) {
+          const arrayData = this.formatArrayData(arr.data.data, "base64");
+          const o = { ...arr, data: { ...arr.data, data: arrayData } };
+          obj[key] = { ...obj[key], _data: simpleJson(o) };
+        } else if (arr) {
+          obj[key] = { ...obj[key], _data: simpleJson(arr) };
         }
       } else if (
         obj[key].$type &&

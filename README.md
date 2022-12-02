@@ -188,9 +188,9 @@ To publish a new version of the library, please follow these instructions:
 
 In order to discover and get data from a server the following methods are available:
 
-- `getProjects()` to get the list of projects/dataspace available
-- `getProjectTypes()` to get the list of types available in a project
-- `getDataObjects()` to get data objects directly from the messages, it typically contains the row server message with XML string content.
+- `getDataspaces()` to get the list of projects/dataspace available
+- `getDataspaceTypes()` to get the list of types available in a project
+- `getDataObjects()` to get data objects directly from the messages, it will typically contains the row server message with XML string content.
 - `getObjects()` to get the object resulting from XML translation into javascript, data object references and data array are not resolved
 - `getResolvedObjects()` get the full objects resulting from the XML translation into Javascript, where data object references and data array are resolved and replaced. This may result in very large objects.
 
@@ -228,6 +228,7 @@ The class `ResqmlTypeUtils` amd `WitsmlTypeUtils` implement the RESQML and WITSM
 ### Rest API
 
 A [REST server](./src/lib/restApi/RestServer.ts) exposes a REST [API](./src/examples/openAPI.ts) using an ETP server as backend. This rest server is also supporting OData queries available for data and resolved objects.
+The REST API can also be used to create the manifest information corresponding to entities stored in the RDMS using (/manifests/build). It will use the information accessible through storage and coordinate system APIs, to resolve references and provide mapping information.
 
 ### Examples
 

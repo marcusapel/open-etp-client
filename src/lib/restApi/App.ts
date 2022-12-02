@@ -14,9 +14,10 @@
 // limitations under the License.
 // ============================================================================
 
+// This is needed until we upgrade eslint, currently nestjs generate false positive
 import fs from "fs";
 
-import { NestFactory, APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, NestFactory } from "@nestjs/core";
 import {
   MiddlewareConsumer,
   Module,
@@ -30,20 +31,21 @@ import {
 } from "@nestjs/platform-express";
 
 import express from "express";
+import glob from "glob";
 import helmet from "helmet";
 
 import { bigIntToString } from "../mlTypes/XmlJsonUtil";
 
 import * as clouds from "../providers";
-import logging from "../common/Logging";
+import Logging from "../common/Logging";
 
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
-import { routePath, swaggerUIUrl } from "./ControllerUtils";
+import { restApiRoutePath, swaggerUIUrl } from "./ControllerUtils";
 
 import ExceptionCounterFilter from "../restApi/monitoring.module/ExceptionCounter.filter";
 
-import glob from "glob";
+Logging.getLogger("EtpClient");
 
 // requires all the files which conform to the given pattern and returns the list of defaults exports
 function requireDefaults(pattern: string) {
@@ -78,14 +80,14 @@ class ApplicationModule implements NestModule {
   }
 }
 
-export default async function app() {
+export default async function app(): Promise<NestExpressApplication> {
   if (process.env.CLOUD_PROVIDER) {
     clouds.Config.setCloudProvider(process.env.CLOUD_PROVIDER);
     await clouds.ConfigFactory.build(clouds.Config.CLOUD_PROVIDER).init();
   }
 
-  const logger = logging.getLogger("EtpClient");
-  logger.info(
+  const etpLogger = Logging.getLogger("EtpClient");
+  etpLogger.info(
     `- Initializing ${clouds.Config.CLOUD_PROVIDER || "default"} configurations`
   );
 
@@ -97,11 +99,13 @@ export default async function app() {
   nestApp.useGlobalPipes(
     new ValidationPipe({
       transform: true,
-      skipUndefinedProperties: true
+      skipUndefinedProperties: true,
+      transformerPackage: require("@nestjs/class-transformer"),
+      validatorPackage: require("@nestjs/class-validator")
     })
   );
 
-  logger.info(`- Swagger running on ${swaggerUIUrl}`);
+  etpLogger.info(`- Swagger running on ${swaggerUIUrl}`);
 
   // allows for NestJS's auto documentation feature to be used
   const config = new DocumentBuilder()
@@ -120,11 +124,12 @@ export default async function app() {
     .build();
 
   const document = SwaggerModule.createDocument(nestApp, config);
+  // Generate API file with 2 space indentation forced.
   // Do not generate the file in production
   process.env.NODE_ENV !== "production" &&
-    fs.writeFileSync("./swagger.json", JSON.stringify(document));
+    fs.writeFileSync("./swagger.json", JSON.stringify(document, null, 2));
 
-  SwaggerModule.setup(routePath, nestApp, document, {
+  SwaggerModule.setup(restApiRoutePath, nestApp, document, {
     swaggerOptions: {
       apisSorter: "alpha",
       operationsSorter: "alpha",
@@ -132,7 +137,7 @@ export default async function app() {
     }
   });
 
-  nestApp.setGlobalPrefix(routePath);
+  nestApp.setGlobalPrefix(restApiRoutePath);
 
   nestApp.use(express.json({ limit: "50mb" }));
   nestApp.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -143,7 +148,7 @@ export default async function app() {
 
   const adapt: ExpressAdapter = nestApp.getHttpAdapter().getInstance();
   adapt.get("/swagger-ui/index.html", function (req, res) {
-    return res.redirect(302, "/Reservoir/v2");
+    return res.redirect(302, restApiRoutePath);
   });
 
   /*****************************************************************/

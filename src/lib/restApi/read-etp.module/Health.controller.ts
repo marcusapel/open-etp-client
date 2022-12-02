@@ -27,14 +27,17 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
+import { errorMessageSchema, swaggerServers } from "../ControllerUtils";
+
 import {
-  errorMessageSchema,
   etpServerHost,
+  etpServerPath,
   etpServerPort,
-  swaggerServers
-} from "../ControllerUtils";
+  etpServerProtocol
+} from "../../common/config";
 
 import http from "http";
+import https from "https";
 
 /**
  * Class for checking service health
@@ -50,19 +53,27 @@ import http from "http";
 @Controller("health")
 export default class HealthAPI {
   /**
-   * Checking service health, and access to underlying data repository
+   * Checking service readiness and access to underlying data repository
    *
    * @memberof HealthAPI
    */
   @Get("readiness")
   @ApiOkResponse({ description: "Success", type: Boolean })
   @ApiInternalServerErrorResponse(errorMessageSchema("Unknown Error"))
-  @ApiOperation({ security: [], servers: swaggerServers })
+  @ApiOperation({
+    summary: "Check the readiness of the server.",
+    description: `Used by to check server availability. Can be used by orchestrator for services availability`,
+    security: [],
+    servers: swaggerServers
+  })
   public IsReady(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
-        const url = `http://${etpServerHost()}:${etpServerPort()}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
-        const req = http
+        const prot = etpServerProtocol === "wss" ? https : http;
+        const url = `${
+          etpServerProtocol === "wss" ? "https" : "http"
+        }://${etpServerHost}:${etpServerPort}${etpServerPath}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
+        const req = prot
           .get(url, response => {
             if (response.statusCode === 200 || response.statusCode === 301) {
               resolve(true);
@@ -76,6 +87,32 @@ export default class HealthAPI {
             reject("Server not available");
           });
         req.end();
+      } catch (e) {
+        throw new InternalServerErrorException({
+          description: "Unknown Server Error"
+        });
+      }
+    });
+  }
+
+  /**
+   * Checking service liveness
+   *
+   * @memberof HealthAPI
+   */
+  @Get("liveness")
+  @ApiOkResponse({ description: "Success", type: Boolean })
+  @ApiInternalServerErrorResponse(errorMessageSchema("Unknown Error"))
+  @ApiOperation({
+    summary: "Check liveness of the server.",
+    description: `Used by to check server availability. Can be used by orchestrator for services availability`,
+    security: [],
+    servers: swaggerServers
+  })
+  public IsLive(): Promise<boolean> {
+    return new Promise(resolve => {
+      try {
+        resolve(true);
       } catch (e) {
         throw new InternalServerErrorException({
           description: "Unknown Server Error"

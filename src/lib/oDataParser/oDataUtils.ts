@@ -61,7 +61,10 @@ export class OrderByComparator {
  * @returns {any}
  * @memberof OrderByComparator
  */
-export const getPropertyValue = (object: Record<string, any>, path: string) => {
+export const getPropertyValue = (
+  object: Record<string, any>,
+  path: string
+): any => {
   let cur: any = object;
   if (path.length === 0) {
     return null;
@@ -84,7 +87,8 @@ export const getPropertyValue = (object: Record<string, any>, path: string) => {
  *
  * @param {SimpleJson<AbstractResqmlDataObject>} cur
  * @param {DataQueryValue} qv
- * @returns {(string | number | boolean | null)}
+ * @returns {(string | number | boolean | null)} The value, or null if the function operators are invalid, or call fails.
+ * @see queryCheckValue()
  */
 const getValue = (
   cur: SimpleJson<AbstractResqmlDataObject>,
@@ -93,21 +97,37 @@ const getValue = (
   if (qv.type === "functioncall") {
     const args = qv.args.map(a => getValue(cur, a));
     if (args.length === 2) {
+      if (args[0] === null || args[1] === null) {
+        return null;
+      }
       if (qv.func === "startswith") {
-        return `${args[0]}`.startsWith(`${args[1]}`);
+        return `${args[0]}`.startsWith(`${args[1]}`) || null;
       } else if (qv.func === "endswith") {
-        return `${args[0]}`.startsWith(`${args[1]}`);
+        return `${args[0]}`.endsWith(`${args[1]}`) || null;
       } else if (qv.func === "contains") {
-        return `${args[0]}`.indexOf(`${args[1]}`) !== -1;
+        return `${args[0]}`.indexOf(`${args[1]}`) !== -1 || null;
+      } else if (qv.func === "substringof") {
+        return `${args[1]}`.indexOf(`${args[0]}`) !== -1 || null;
+      } else if (qv.func === "indexof") {
+        return `${args[0]}`.indexOf(`${args[1]}`);
+      } else if (qv.func === "concat") {
+        return `${args[0]}${args[1]}`;
       }
     } else if (args.length === 1) {
+      if (args[0] === null) {
+        return null;
+      }
       if (qv.func === "tolower") {
         return `${args[0]}`.toLowerCase();
       } else if (qv.func === "toupper") {
         return `${args[0]}`.toUpperCase();
+      } else if (qv.func === "length") {
+        return `${args[0]}`.length;
+      } else if (qv.func === "trim") {
+        return `${args[0]}`.trim();
       }
     }
-    return false;
+    return null;
   } else if (qv.type === "property") {
     cur = getPropertyValue(cur, qv.name);
     return typeof cur === "string" || typeof cur === "number" ? cur : null;
@@ -163,7 +183,7 @@ const compareValue = (
  *
  * @param {SimpleJson<AbstractResqmlDataObject>} cur Object to check against
  * @param {IDataQuery} filter filter description
- * @returns
+ * @returns true if the given object satisfies the filter
  */
 const queryCheckValue = (
   cur: SimpleJson<AbstractResqmlDataObject>,
@@ -183,11 +203,7 @@ const queryCheckValue = (
   const value1 = getValue(cur, filter.left);
   const value2 = getValue(cur, filter.right);
 
-  if (value1 === null || value2 === null) {
-    return false;
-  }
-
-  if (value1 && value2) {
+  if (value1 !== null && value2 !== null) {
     // If both side are values, compare
     return compareValue(value1, value2, filter.type);
   } else if (
@@ -209,16 +225,16 @@ const queryCheckValue = (
 /**
  * Check if a given uri satisfy all queries
  *
- * @param {Map<string, SimpleJson<AbstractResqmlDataObject>>} map
- * @param {IDataQuery[]} queries
- * @param {URI} uri
+ * @param map
+ * @param queries
+ * @param uri
  * @returns
  */
 export const queryFilter = (
   map: Map<string, SimpleJson<AbstractResqmlDataObject>>,
   queries: DataQueryValue[],
   uri: URI
-) => {
+): boolean => {
   const o = map.get(uri);
   if (!o) {
     return false;

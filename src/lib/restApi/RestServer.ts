@@ -15,8 +15,8 @@
 // ============================================================================
 
 import app from "./App";
-import { port } from "./ControllerUtils";
+import { restApiPort } from "./ControllerUtils";
 const main = async (p: number): Promise<void> => {
   return app().then((a: any) => a.listen(p));
 };
-main(port);
+main(restApiPort);

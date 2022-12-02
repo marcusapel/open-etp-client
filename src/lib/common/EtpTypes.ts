@@ -95,8 +95,6 @@ export interface IDataSubarray {
 export interface IOptions {
   collapseTextElement: boolean;
   removeNamespace: boolean;
-  resolveReference: boolean;
-  resolveArrayMetadata: boolean;
 }
 
 export type DataQueryOperator =
@@ -146,10 +144,14 @@ export interface QueryLiteral {
 type StringUnionType =
   | "startswith"
   | "endswith"
+  | "indexof"
+  | "substringof"
   | "contains"
+  | "concat"
   | "tolower"
-  | "toupper";
-
+  | "toupper"
+  | "trim"
+  | "length";
 export interface QueryFunction {
   type: "functioncall";
   func: StringUnionType;

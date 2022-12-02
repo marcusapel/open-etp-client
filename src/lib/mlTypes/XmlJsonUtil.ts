@@ -14,11 +14,9 @@
 // limitations under the License.
 // ============================================================================
 
-import { sign, verify } from "jsonwebtoken";
-
-import * as cxml from "../cxml/cxml";
-
 import path from "path";
+
+import { sign, verify } from "jsonwebtoken";
 
 import {
   InterfaceDeclaration,
@@ -29,6 +27,13 @@ import {
   Type,
   TypeAliasDeclaration
 } from "ts-morph";
+
+import * as cxml from "../cxml/cxml";
+
+import { Abstract, Convert } from "./ResqmlTypes";
+
+import * as eml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
+import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 
 // Create a new type where the keys of an object to their CamelCase version
 type Camel<T> = T extends any[]
@@ -62,11 +67,6 @@ export type OmitRecursively<T, K extends PropertyKey> = Omit<
 export type SimpleJson<T> = OmitRecursively<T, keyof eml20.HandlerInstance>;
 
 const parser = new cxml.Parser();
-
-import { Abstract, Convert } from "./ResqmlTypes";
-
-import * as eml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
-import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 
 if (!process.env.RDMS_JWT_SECRET) {
   throw new Error("RDMS_JWT_SECRET environment variable must be defined");
@@ -107,7 +107,8 @@ export const createJWT = (
 /**
  * Create JWT corresponding to default server configuration
  */
-export const createDefaultJWT = () => createJWT(jwtSecret, "foo", "bar");
+export const createDefaultJWT = (): string =>
+  createJWT(jwtSecret, "foo", "bar");
 
 /**
  * Verify and decode a JWT object
@@ -130,24 +131,33 @@ export const decodeJWT = (
 /**
  * Transform a bigint to string, during JSON stringify
  *
- * @param {string} _
- * @param {*} value
+ * @param _key The key of the value to transform (unused, be required by JSON.stringify replacer parameter)
+ * @param value The value to transform
+ * @returns the value if it is not a BigInt, or its string representation if it exceeds Number.MAX_SAFE_INTEGER. Returns value as a number otherwise
  */
-export const bigIntToString = (_: string, value: any) =>
-  typeof value === "bigint"
-    ? value > Number.MAX_SAFE_INTEGER
+export const bigIntToString = (
+  _key: string,
+  value: unknown
+): typeof value | number | string => {
+  if (typeof value === "bigint") {
+    return value > Number.MAX_SAFE_INTEGER
       ? value.toString() + "n"
-      : Number(value)
-    : value;
+      : Number(value);
+  }
+  return value;
+};
 
 /**
- * * Transform a string to bigint, during JSON parse
+ * Transform a string to BigInt, during JSON parse
  *
- * @param {string} _
- * @param {*} value
- * @returns
+ * @param _key  The key of the value to transform (unused, be required by JSON.parse reviver parameter)
+ * @param value The value to transform
+ * @returns the bigint representation of value, if it is a string matching /^\d+n$/, or value otherwise
  */
-export const stringToBigInt = (_: string, value: any) => {
+export const stringToBigInt = (
+  _key: string,
+  value: unknown
+): bigint | typeof value => {
   if (typeof value === "string" && /^\d+n$/.test(value)) {
     return BigInt(value.slice(0, -1));
   }
@@ -292,7 +302,7 @@ const domainAndType = (emlType: string): [string, string] => {
 };
 
 /**
- * Base utility class to check at runtime that an object is implementing an interface
+ * Base utility class to check at runtime that an object is implementing an interface, or create GraphQL schemas
  * This validator is using the interface name.
  * This class must be derived to handle specific interfaces defined in one or several definition files.
  *
@@ -314,7 +324,7 @@ export class InterfaceTypeUtils {
    * @readonly
    * @memberof InterfaceTypeUtils
    */
-  public get domains() {
+  public get domains(): string[] {
     return Array.from(this.files.keys());
   }
 
@@ -557,6 +567,8 @@ export class InterfaceTypeUtils {
     }
     const t = p.getType();
     const val = Object.keys(o).includes(n) ? o[n] : o[pn];
+    // For readability, prefer no single return statement
+    /* eslint-disable-next-line */
     if (!t || !this.checkValueType(val, t, interfaceName)) {
       return false;
     }
