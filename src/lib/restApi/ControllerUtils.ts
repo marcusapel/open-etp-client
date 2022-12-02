@@ -64,6 +64,7 @@ export const swaggerServers = [
 const getSHA256 = (input: string) => {
   return crypto.createHash("sha256").update(input).digest("hex");
 };
+var userInfo: string;
 
 const etpClients = new Map<string, { client: ResqmlClient; sha256: string }>();
 
@@ -162,8 +163,10 @@ export interface ContextInput {
  */
 export const extractToken = (request?: express.Request): string => {
   const authHeader = request?.headers?.authorization;
-
-  if (!authHeader) {
+  userInfo = "";
+  if (!authHeader || authHeader.includes('Basic')) {
+    userInfo = authHeader ? authHeader : "";
+    console.log("value of userInfo: " + userInfo);
     return "";
   }
   const token = authHeader.split(" ");
@@ -402,7 +405,7 @@ export const createSession = async (
   } else {
     try {
       const c = new ResqmlClient(options);
-      await c.openSession(etpServerUrl, jwt, dataPartitionId);
+      await c.openSession(etpServerUrl, jwt, dataPartitionId, userInfo);
       return c;
     } catch (err) {
       throw new Error(`Cannot create session with ETP server: ${err}`);
@@ -514,7 +517,7 @@ const getContext = (
 
   const navigable: Energistics.Etp.v12.Datatypes.Object.RelationshipKind =
     Energistics.Etp.v12.Datatypes.Object.RelationshipKind[
-      context.navigableEdges || "Both"
+    context.navigableEdges || "Both"
     ];
 
   return {
