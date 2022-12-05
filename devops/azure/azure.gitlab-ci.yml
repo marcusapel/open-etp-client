@@ -83,14 +83,13 @@ azure_test:
     variables:
       - $AZURE_SKIP_TEST == 'true'
 
+# It is a temporary change as azure_code_coverage not yet been implemented for CPP services.
+# Therefore the job has been disabled
 azure_code_coverage:
   extends:
     - .azure_variables
-  allow_failure: true
-  before_script:
-    - ""
-  script:
-    - echo "TODO FOR AZURE"
+  variables:
+    AZURE_SKIP_COVERAGE: 'true'
 
 azure_test_py:
   extends:
