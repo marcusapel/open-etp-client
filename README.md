@@ -247,3 +247,6 @@ In the **single-partition mode**, the ETP Client deals with a specific partition
 The **multi-partition mode** allows you to work with several partitions. The ETP Client expects the data partition specified in the `data-partition-id` header in REST requests and transmits the value to the server.
 
 Specify the partition mode in the [config](config.default.env#L34) before building.
+
+
+
