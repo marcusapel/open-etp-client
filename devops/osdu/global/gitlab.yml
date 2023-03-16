@@ -32,6 +32,7 @@ variables:
 
   # Main url for REST API
   RDMS_REST_MAIN_URL: http://172.17.0.1
+  RDMS_OSDU_URL: http://172.17.0.1
 
   # Local folder that contains data for ETP server
   RDMS_HOST_DOCKER_MOUNT_RESQML_DATA_PATH: ../../data

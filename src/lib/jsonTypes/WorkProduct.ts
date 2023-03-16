@@ -17,7 +17,7 @@ class WorkProductOSDU implements WorkProduct {
     legaltags: [],
     otherRelevantDataCountries: []
   };
-  public ancestry: ParentList;
+  public ancestry?: ParentList;
   public createTime: Date;
   public id: string;
   public modifyTime: Date;
@@ -30,7 +30,7 @@ class WorkProductOSDU implements WorkProduct {
     dataspace: Energistics.Etp.v12.Datatypes.Object.Dataspace,
     context: OSDUContext
   ) {
-    this.ancestry = {};
+    this.ancestry = undefined;
     this.createTime = new Date(Number(dataspace.storeCreated / BigInt(1000)));
     this.modifyTime = dataspace.storeLastWrite
       ? new Date(Number(dataspace.storeLastWrite / BigInt(1000)))
@@ -38,7 +38,7 @@ class WorkProductOSDU implements WorkProduct {
     const etpUri = new EtpUri(dataspace.uri);
     this.id = `${
       context.partition
-    }:work-product--WorkProduct:${encodeURIComponent(etpUri.dataSpace)}`;
+    }:work-product--WorkProduct:${context.datasetId(etpUri)}`;
     this.version = 1;
 
     this.data = {

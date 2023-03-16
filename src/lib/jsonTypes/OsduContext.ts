@@ -360,6 +360,20 @@ export class OSDUContext {
   }
 
   /**
+   * Build the dataset Id from an URI
+   *
+   * @param {string} uri
+   * @return {*}
+   * @memberof OSDUContext
+   */
+  public datasetId(uri: EtpUri) {
+    return encodeURIComponent(uri.dataSpace.replace("/", "-")).replace(
+      "%",
+      "_"
+    );
+  }
+
+  /**
    * Create dataset SRN
    *
    * @param {string} objectUri
@@ -367,9 +381,14 @@ export class OSDUContext {
    * @memberof WorkProductComponent
    */
   public datasets(objectUri: string): string[] | undefined {
+    // TODO the current manifest ingestion does not ingest WPC id datasets info is present, so temporary removing it
+    const bugInManifestIngestion = true;
+    if (bugInManifestIngestion) {
+      return [];
+    }
     const d = [
-      `${this.partition}:dataset--ETPDataspace:${encodeURIComponent(
-        new EtpUri(objectUri).dataSpace
+      `${this.partition}:dataset--ETPDataspace:${this.datasetId(
+        new EtpUri(objectUri)
       )}:`
     ];
 
@@ -577,8 +596,13 @@ export class OSDUContext {
     }
     const url = this.osduUrl + path;
     return fetch(url, init)
-      .then(r => (r.status === 200 ? (r.json() as unknown as T) : undefined))
-      .catch(e => {
+      .then(async r => {
+        if (r.status !== 200) {
+          return undefined;
+        }
+        return (await r.json()) as T;
+      })
+      .catch(() => {
         return undefined;
       });
   }

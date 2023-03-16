@@ -27,11 +27,6 @@ import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretat
 import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.0.0";
 import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.0.0";
 import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
-import {
-  GeoJSONPointType,
-  StickyType,
-  Wgs84CoordinatesType
-} from "./Generated/manifest/Manifest.1.0.0";
 
 enum AnyCRSGeoJSONPointType {
   AnyCRSGeometryCollection = "AnyCrsGeometryCollection",
@@ -49,6 +44,24 @@ enum FluffyType {
 
 enum AsIngestedCoordinatesType {
   AnyCRSFeatureCollection = "AnyCrsFeatureCollection"
+}
+
+enum Wgs84CoordinatesType {
+  FeatureCollection = "FeatureCollection"
+}
+
+enum StickyType {
+  Feature = "Feature"
+}
+
+enum GeoJSONPointType {
+  GeometryCollection = "GeometryCollection",
+  LineString = "LineString",
+  MultiLineString = "MultiLineString",
+  MultiPoint = "MultiPoint",
+  MultiPolygon = "MultiPolygon",
+  Point = "Point",
+  Polygon = "Polygon"
 }
 
 const DBL_CST_ARRAY = "resqml20.DoubleConstantArray";
@@ -420,7 +433,7 @@ export class ResqmlWorkProductComponent<
     legaltags: [],
     otherRelevantDataCountries: []
   };
-  public ancestry: ParentList;
+  public ancestry?: ParentList;
   public createTime: Date;
   public createUser: string;
   public id: string;
@@ -434,7 +447,7 @@ export class ResqmlWorkProductComponent<
   constructor(xml: RES_TYPE, context: OSDUContext, osduType: string) {
     this.__context = context;
 
-    this.ancestry = {};
+    this.ancestry = undefined;
     this.createTime = xml.Citation.Creation;
     this.createUser = xml.Citation.Originator;
     this.modifyTime = xml.Citation.LastUpdate || this.createTime;

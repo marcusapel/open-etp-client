@@ -17,7 +17,7 @@
 import { v5 as uuidNameSpace, v4 as uuidRandom } from "uuid";
 
 import * as websocket from "websocket";
-import { DataQueryValue, ErrorCode } from "../common/EtpTypes";
+import { ErrorCode } from "../common/EtpTypes";
 
 import type {
   DataObject,
@@ -2034,23 +2034,14 @@ export class ResqmlClient {
       }
     });
 
-    let queries: DataQueryValue[] = [];
-    try {
-      queries = createODataQueries(filters);
-    } catch (err) {
-      return resources;
-    }
-
-    if (queries.length === 0) {
-      return resources;
-    }
-
-    const searchMap = await this.buildSearchMap(
-      resources.map(r => r.uri),
-      deepSearch,
-      objects
-    );
-    return resources.filter(r => queryFilter(searchMap, queries, r.uri));
+    const queries = createODataQueries(filters);
+    return queries.length === 0
+      ? resources
+      : this.buildSearchMap(
+          resources.map(r => r.uri),
+          deepSearch,
+          objects
+        ).then(map => resources.filter(r => queryFilter(map, queries, r.uri)));
   }
 
   /**

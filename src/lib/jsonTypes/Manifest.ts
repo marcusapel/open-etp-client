@@ -9,6 +9,7 @@ import ResqmlOSDU, {
 } from "./ResqmlOsdu";
 
 import { Manifest } from "./Generated/manifest/Manifest.1.0.0";
+import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.controller";
 
 /**
  * Create a manifest for a list of uris
@@ -36,12 +37,24 @@ export const createManifest = async (
 
     const objectUris = [];
     const currentDataspaces = new Set<string>();
+
+    const allUris = new Set<string>();
+
     for (const uri of uris) {
+      if (uri.match(dataspaceUriPattern)) {
+        // Add entire dataspace content
+        (await client.getDataspaceResources(uri)).map(r => allUris.add(r.uri));
+      } else {
+        allUris.add(uri);
+      }
+    }
+
+    for (const uri of allUris) {
       const etpUri = new EtpUri(uri);
 
       const dataspaceId = `${
         context.partition
-      }:dataset--ETPDataspace:${encodeURIComponent(etpUri.dataSpace)}`;
+      }:dataset--ETPDataspace:${context.datasetId(etpUri)}`;
 
       // Create dataspace entry if not exists
       if (!currentDataspaces.has(dataspaceId)) {
@@ -137,9 +150,7 @@ export const createManifest = async (
           res[1].data.SpatialPoint = context.spatialPoint;
         }
         manifests.Data.WorkProductComponents.push(res[1]);
-        manifests.Data.WorkProduct?.data?.Components?.push(
-          `${res[0]}:${res[1].version || ""}`
-        );
+        manifests.Data.WorkProduct?.data?.Components?.push(`${res[0]}:`);
       }
 
       const osduVersion = versions.get(res[0]);
