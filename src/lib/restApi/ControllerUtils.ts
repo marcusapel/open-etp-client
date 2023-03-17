@@ -49,9 +49,7 @@ import {
   etpServerUrl,
   restApiMainUrl,
   restApiPort,
-  restApiRoutePath,
-  etpServerHost,
-  etpServerPort
+  restApiRoutePath
 } from "../common/config";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
@@ -64,7 +62,8 @@ export const swaggerServers = [
 const getSHA256 = (input: string) => {
   return crypto.createHash("sha256").update(input).digest("hex");
 };
-var userInfo: string;
+
+let userInfo: string;
 
 const etpClients = new Map<string, { client: ResqmlClient; sha256: string }>();
 
@@ -164,7 +163,7 @@ export interface ContextInput {
 export const extractToken = (request?: express.Request): string => {
   const authHeader = request?.headers?.authorization;
   userInfo = "";
-  if (!authHeader || authHeader.includes('Basic')) {
+  if (!authHeader || authHeader.includes("Basic")) {
     userInfo = authHeader ? authHeader : "";
     console.log("value of userInfo: " + userInfo);
     return "";
@@ -517,7 +516,7 @@ const getContext = (
 
   const navigable: Energistics.Etp.v12.Datatypes.Object.RelationshipKind =
     Energistics.Etp.v12.Datatypes.Object.RelationshipKind[
-    context.navigableEdges || "Both"
+      context.navigableEdges || "Both"
     ];
 
   return {

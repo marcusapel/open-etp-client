@@ -20,7 +20,7 @@ class ETPDataspaceOSDU implements ETPDataspace {
     legaltags: [],
     otherRelevantDataCountries: []
   };
-  public ancestry: ParentList;
+  public ancestry?: ParentList;
   public createTime: Date;
   public id: string;
   public modifyTime: Date;
@@ -33,14 +33,14 @@ class ETPDataspaceOSDU implements ETPDataspace {
     dataspace: Energistics.Etp.v12.Datatypes.Object.Dataspace,
     context: OSDUContext
   ) {
-    this.ancestry = {};
+    this.ancestry = undefined;
     this.createTime = new Date(Number(dataspace.storeCreated / BigInt(1000)));
     this.modifyTime = dataspace.storeLastWrite
       ? new Date(Number(dataspace.storeLastWrite / BigInt(1000)))
       : this.createTime;
     const etpUri = new EtpUri(dataspace.uri);
-    this.id = `${context.partition}:dataset--ETPDataspace:${encodeURIComponent(
-      etpUri.dataSpace
+    this.id = `${context.partition}:dataset--ETPDataspace:${context.datasetId(
+      etpUri
     )}`;
     this.version = 1;
 

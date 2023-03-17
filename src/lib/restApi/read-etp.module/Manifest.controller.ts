@@ -52,7 +52,11 @@ import {
   swaggerServers
 } from "../ControllerUtils";
 
-import { uriPattern, versionQueryParam } from "./Resource.controller";
+import {
+  emlUriPattern,
+  dataspaceUriPattern,
+  versionQueryParam
+} from "./Resource.controller";
 
 import { decode } from "jsonwebtoken";
 import express from "express";
@@ -128,7 +132,9 @@ export class ManifestInputDto {
       "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
       "eml:///dataspace('demo/Volve')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)"
     ],
-    pattern: patternString(uriPattern)
+    pattern: `${patternString(emlUriPattern)}|${patternString(
+      dataspaceUriPattern
+    )}`
   })
   uris!: string[];
 
@@ -267,7 +273,12 @@ export default class ObjectsManifestAPI {
     } catch (err) {
       c?.closeSession();
       throw new InternalServerErrorException({
-        description: err instanceof Error ? err.message : `Unknown Error`
+        description:
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+            ? err
+            : `Unknown Error`
       });
     }
   }
