@@ -18,14 +18,14 @@ import {
   FrameOfReferenceMetaDataItem,
   LegalMetaData,
   ParentList
-} from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+} from "./Generated/work-product-component/GenericRepresentation.1.1.0";
 
 import { OSDUContext } from "./OsduContext";
 
 import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.0";
 import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.0.0";
-import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.0.0";
-import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.0.0";
+import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.1.0";
+import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.1.0";
 import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
 
 enum AnyCRSGeoJSONPointType {
@@ -356,6 +356,21 @@ export const getMinMaxPoints = async (
         }
       });
     });
+    // } else if (geo.$type === "resqml20.Point3dParametricArray") {
+    //   const param = geo as SimpleJson<resqml20.Point3dParametricArray>;
+    //   if (param.ParametricLines.$type === "resqml20.ParametricLineArray") {
+    //     const lineArray =
+    //       param.ParametricLines as SimpleJson<resqml20.ParametricLineArray>;
+    //     const v = await getMinMaxPoints(
+    //       client,
+    //       dataspaceUri,
+    //       lineArray.ControlPoints
+    //     );
+    //     minX = v.minX;
+    //     minY = v.minY;
+    //     maxX = v.maxX;
+    //     maxY = v.maxY;
+    //   }
   } else if (geo.$type === "resqml20.Point3dZValueArray") {
     const zArray = geo as SimpleJson<resqml20.Point3dZValueArray>;
     const sup =
@@ -631,8 +646,8 @@ export class ResqmlWorkProductComponent<
    * @param {string} dataspaceUri
    * @param {SimpleJson<resqml20.PointGeometry>[]} geometries
    * @return {Promise<{
-   *     SpatialPoint: AbstractSpatialLocation;
-   *     SpatialArea: AbstractSpatialLocation;
+   *     SpatialPoint: AbstractSpatialLocation|undefined;
+   *     SpatialArea: AbstractSpatialLocation|undefined;
    *     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
    *     NodeCount: number;
    *   }>}
@@ -643,8 +658,8 @@ export class ResqmlWorkProductComponent<
     dataspaceUri: string,
     geometries: SimpleJson<resqml20.PointGeometry>[]
   ): Promise<{
-    SpatialPoint: AbstractSpatialLocation;
-    SpatialArea: AbstractSpatialLocation;
+    SpatialPoint: AbstractSpatialLocation | undefined;
+    SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
     NodeCount: number;
   }> {
@@ -713,6 +728,21 @@ export class ResqmlWorkProductComponent<
       } catch (e) {
         ///Nothing
       }
+    }
+
+    const FrameOfReferenceCRS = {
+      kind: "CRS",
+      persistableReference: persistableReferenceCrs,
+      coordinateReferenceSystemID: CoordinateReferenceSystemID
+    };
+
+    if (!Number.isFinite(aMinX)) {
+      return {
+        FrameOfReferenceCRS,
+        NodeCount,
+        SpatialArea: undefined,
+        SpatialPoint: undefined
+      };
     }
 
     const SpatialPoint = {
@@ -793,11 +823,6 @@ export class ResqmlWorkProductComponent<
                 }
               ]
             }
-    };
-    const FrameOfReferenceCRS = {
-      kind: "CRS",
-      persistableReference: persistableReferenceCrs,
-      coordinateReferenceSystemID: CoordinateReferenceSystemID
     };
     if (SpatialPoint !== undefined && context.spatialPoint === undefined) {
       context.spatialPoint = SpatialPoint;
@@ -903,6 +928,9 @@ export class ResqmlWorkProductComponent<
     return {
       Artefacts: undefined,
       Datasets: context.datasets(ReservoirDMSUrl),
+      DDMSDatasets: [
+        ReservoirDMSUrl.replace("eml:///", `eml://${context.rddmsId}/`)
+      ],
       IsDiscoverable: true,
       IsExtendedLoad: false,
       TechnicalAssurances: undefined
@@ -932,7 +960,7 @@ export class ResqmlWorkProductComponent<
       SpatialArea: undefined,
       SpatialPoint: undefined,
       SubmitterName: context.submitter,
-      Tags: []
+      Tags: undefined
     };
   }
 

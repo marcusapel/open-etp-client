@@ -122,6 +122,8 @@ export class OSDUContext {
 
   public spatialPoint?: AbstractSpatialLocation = undefined;
 
+  public rddmsId: string;
+
   constructor(
     partition: string,
     acl: {
@@ -135,7 +137,8 @@ export class OSDUContext {
     submitter: string,
     tags?: { [key: string]: string },
     fileCollection?: string,
-    createMissingReferences?: boolean
+    createMissingReferences?: boolean,
+    rddmsId = "rddms1"
   ) {
     this.partition = partition;
     this.acl = acl;
@@ -146,6 +149,7 @@ export class OSDUContext {
     if (createMissingReferences !== undefined) {
       this.createMissingReferences = createMissingReferences;
     }
+    this.rddmsId = rddmsId;
   }
 
   /**
@@ -382,21 +386,17 @@ export class OSDUContext {
    */
   public datasets(objectUri: string): string[] | undefined {
     // TODO the current manifest ingestion does not ingest WPC id datasets info is present, so temporary removing it
-    const bugInManifestIngestion = true;
-    if (bugInManifestIngestion) {
-      return [];
-    }
     const d = [
-      `${this.partition}:dataset--ETPDataspace:${this.datasetId(
-        new EtpUri(objectUri)
-      )}:`
+      //   `${this.partition}:dataset--ETPDataspace:${this.datasetId(
+      //     new EtpUri(objectUri)
+      //   )}:`
     ];
 
     if (this.fileCollection) {
       d.push(this.fileCollection);
     }
 
-    return d;
+    return d.length > 0 ? d : undefined;
   }
 
   /**

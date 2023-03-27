@@ -63,7 +63,7 @@ class WorkProductOSDU implements WorkProduct {
       SpatialArea: undefined,
       SpatialPoint: undefined,
       SubmitterName: context.submitter,
-      Tags: [],
+      Tags: undefined,
       ExtensionProperties: {
         ETPDataspace: dataspace.uri
       }

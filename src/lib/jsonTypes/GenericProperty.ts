@@ -114,7 +114,7 @@ export class GenericPropertyOSDU
     xml: SimpleJson<resqml20.AbstractValuesProperty>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericProperty.1.0.0");
+    super(xml, context, "GenericProperty.1.1.0");
   }
 
   public async initData(
@@ -199,9 +199,7 @@ export class GenericPropertyOSDU
       TimeIndices: undefined,
       TimeSeriesID: undefined,
       TimeValues: undefined,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     if (xml.TimeIndex) {

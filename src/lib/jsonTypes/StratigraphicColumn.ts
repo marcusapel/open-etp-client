@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicColumn
-} from "./Generated/work-product-component/StratigraphicColumn.1.0.0";
+} from "./Generated/work-product-component/StratigraphicColumn.1.1.0";
 
 export class StratigraphicColumnOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class StratigraphicColumnOSDU
     xml: SimpleJson<resqml20.obj_StratigraphicColumn>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicColumn.1.0.0");
+    super(xml, context, "StratigraphicColumn.1.1.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
@@ -42,9 +42,7 @@ export class StratigraphicColumnOSDU
       StratigraphicColumnValidityAreaType: undefined,
       ValidationDate: undefined,
       ValueChainStatusType: undefined,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

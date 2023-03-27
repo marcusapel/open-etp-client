@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   EarthModelInterpretation
-} from "./Generated/work-product-component/EarthModelInterpretation.1.0.0";
+} from "./Generated/work-product-component/EarthModelInterpretation.1.1.0";
 
 export class EarthModelInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -46,9 +46,7 @@ export class EarthModelInterpretationOSDU
         context
       )),
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

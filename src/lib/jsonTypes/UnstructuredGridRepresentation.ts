@@ -12,7 +12,7 @@ import {
   AbstractGridRepresentation,
   StratigraphicUnits,
   UnstructuredGridRepresentation
-} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.0.0";
+} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.1.0";
 
 export class UnstructuredGridRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -26,7 +26,7 @@ export class UnstructuredGridRepresentationOSDU
     xml: SimpleJson<resqml20.obj_UnstructuredGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "UnstructuredGridRepresentation.1.0.0");
+    super(xml, context, "UnstructuredGridRepresentation.1.1.0");
   }
 
   private async stratigraphicUnits(
@@ -108,9 +108,7 @@ export class UnstructuredGridRepresentationOSDU
         client
       ),
       HasNoGeometry: xml.Geometry === undefined,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     if (xml?.Geometry?.NodeCount !== undefined) {

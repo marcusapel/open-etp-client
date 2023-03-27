@@ -22,7 +22,8 @@ import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.control
 export const createManifest = async (
   client: ResqmlClient,
   uris: URI[],
-  context: OSDUContext
+  context: OSDUContext,
+  typePatterns?: string[]
 ): Promise<Manifest> => {
   if (uris.length === 0) {
     return Promise.reject("No URI provided");
@@ -40,10 +41,26 @@ export const createManifest = async (
 
     const allUris = new Set<string>();
 
+    const matchPatterns: RegExp[] | undefined = typePatterns?.map(
+      t => new RegExp(t.replaceAll("*", "\\w*").replaceAll("?", "\\w?"))
+    );
+
     for (const uri of uris) {
       if (uri.match(dataspaceUriPattern)) {
         // Add entire dataspace content
-        (await client.getDataspaceResources(uri)).map(r => allUris.add(r.uri));
+        let dataspaceUris = await client.getDataspaceResources(uri);
+        if (matchPatterns) {
+          dataspaceUris = dataspaceUris.filter(f => {
+            const u: EtpUri = new EtpUri(f.uri);
+            for (const p of matchPatterns) {
+              if (u.dataObjectType.match(p)) {
+                return true;
+              }
+            }
+            return false;
+          });
+        }
+        dataspaceUris.forEach(r => allUris.add(r.uri));
       } else {
         allUris.add(uri);
       }
@@ -71,22 +88,22 @@ export const createManifest = async (
           continue;
         }
 
-        const dataset = EtpDataspaceManifest(dataspaces[0], context);
-        if (dataset.id !== undefined) {
-          const osduVersion = await context.getOSDUResourceVersion(dataset.id);
-          if (osduVersion !== undefined) {
-            dataset.version = osduVersion + 1;
-          }
-          manifests.Data.Datasets = [dataset];
-          currentDataspaces.add(dataspaceId);
-        }
+        // const dataset = EtpDataspaceManifest(dataspaces[0], context);
+        // if (dataset.id !== undefined) {
+        //   const osduVersion = await context.getOSDUResourceVersion(dataset.id);
+        //   if (osduVersion !== undefined) {
+        //     dataset.version = osduVersion + 1;
+        //   }
+        //   manifests.Data.Datasets = [dataset];
+        //   currentDataspaces.add(dataspaceId);
+        // }
 
         //Create WorkProduct
-        manifests.Data.WorkProduct = WorkProductManifest(
-          dataspaces[0],
-          context
-        );
-        manifests.Data.WorkProduct.version = dataset.version;
+        // manifests.Data.WorkProduct = WorkProductManifest(
+        //   dataspaces[0],
+        //   context
+        // );
+        // manifests.Data.WorkProduct.version = dataset.version;
       }
 
       // Check that it is an object

@@ -8,7 +8,7 @@ import { OSDUContext, ResqmlOSDUMap } from "./OsduContext";
 import {
   Data,
   PersistedCollection
-} from "./Generated/work-product-component/PersistedCollection.1.0.0";
+} from "./Generated/work-product-component/PersistedCollection.1.1.0";
 
 export class PersistedCollectionPropertySetOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_PropertySet>>
@@ -17,7 +17,7 @@ export class PersistedCollectionPropertySetOSDU
   public data: Data;
 
   constructor(xml: SimpleJson<resqml20.obj_PropertySet>, context: OSDUContext) {
-    super(xml, context, "PersistedCollection.1.0.0");
+    super(xml, context, "PersistedCollection.1.1.0");
     this.data = {};
   }
   public async initData(
@@ -58,9 +58,7 @@ export class PersistedCollectionPropertySetOSDU
        */
       PurposeID: undefined,
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

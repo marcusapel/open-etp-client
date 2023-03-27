@@ -21,7 +21,7 @@ export class ActivityTemplateOSDU
     xml: SimpleJson<resqml20.obj_ActivityTemplate>,
     context: OSDUContext
   ) {
-    super(xml, context, "ActivityTemplate.1.0.0");
+    super(xml, context, "ActivityTemplate.1.1.0");
   }
 
   public async getParameters(

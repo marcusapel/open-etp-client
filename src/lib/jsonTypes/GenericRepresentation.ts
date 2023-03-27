@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   GenericRepresentation
-} from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+} from "./Generated/work-product-component/GenericRepresentation.1.1.0";
 
 export class GenericRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class GenericRepresentationOSDU
     xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericRepresentation.1.0.0");
+    super(xml, context, "GenericRepresentation.1.1.0");
   }
 
   private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
@@ -143,9 +143,7 @@ export class GenericRepresentationOSDU
       ),
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
 
-      ExtensionProperties: {
-        ReservoirDMSUrl: ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

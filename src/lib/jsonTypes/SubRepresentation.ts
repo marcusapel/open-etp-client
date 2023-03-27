@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SubRepresentation
-} from "./Generated/work-product-component/SubRepresentation.1.0.0";
+} from "./Generated/work-product-component/SubRepresentation.1.1.0";
 
 export class SubRepresentationOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_SubRepresentation>>
@@ -20,7 +20,7 @@ export class SubRepresentationOSDU
     xml: SimpleJson<resqml20.obj_SubRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SubRepresentation.1.0.0");
+    super(xml, context, "SubRepresentation.1.1.0");
   }
 
   public async initData(
@@ -67,9 +67,7 @@ export class SubRepresentationOSDU
       SupportingRepresentationIDs: [
         this.dorToSrn(ReservoirDMSUrl, xml.SupportingRepresentation) || ""
       ],
-      ExtensionProperties: {
-        ReservoirDMSUrl: ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

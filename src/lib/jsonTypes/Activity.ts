@@ -10,7 +10,7 @@ import {
   Activity,
   Data,
   ParameterKey
-} from "./Generated/work-product-component/Activity.1.0.0";
+} from "./Generated/work-product-component/Activity.1.2.0";
 
 export class ActivityOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_Activity>>
@@ -21,7 +21,7 @@ export class ActivityOSDU
   };
 
   constructor(xml: SimpleJson<resqml20.obj_Activity>, context: OSDUContext) {
-    super(xml, context, "Activity.1.0.0");
+    super(xml, context, "Activity.1.2.0");
   }
 
   public async getKeys(

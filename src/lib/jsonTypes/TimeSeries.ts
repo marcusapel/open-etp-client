@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   TimeSeries
-} from "./Generated/work-product-component/TimeSeries.1.0.0";
+} from "./Generated/work-product-component/TimeSeries.1.1.0";
 
 export class TimeSeriesOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_TimeSeries>>
@@ -17,7 +17,7 @@ export class TimeSeriesOSDU
   public data: Data = {};
 
   constructor(xml: SimpleJson<resqml20.obj_TimeSeries>, context: OSDUContext) {
-    super(xml, context, "TimeSeries.1.0.0");
+    super(xml, context, "TimeSeries.1.1.0");
   }
 
   public async initData(
@@ -43,9 +43,7 @@ export class TimeSeriesOSDU
       ...(await this.AbstractWorkProductComponent(xml, context)),
       GeologicTimeValues,
       UTCDateTimeValues: xml.Time.map(t => t.DateTime.toISOString()),
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

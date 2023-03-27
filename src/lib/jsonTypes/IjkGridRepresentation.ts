@@ -15,7 +15,7 @@ import {
   Abstract,
   IjkGridRepresentation,
   StratigraphicUnits
-} from "./Generated/work-product-component/IjkGridRepresentation.1.0.0";
+} from "./Generated/work-product-component/IjkGridRepresentation.1.1.0";
 
 enum ExpansionInDirection {
   I = "I",
@@ -35,7 +35,7 @@ export class IjkGridRepresentationOSDU
     xml: SimpleJson<resqml20.obj_IjkGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "IjkGridRepresentation.1.0.0");
+    super(xml, context, "IjkGridRepresentation.1.1.0");
   }
 
   private async activeCellCount(
@@ -173,9 +173,7 @@ export class IjkGridRepresentationOSDU
       PillarShapeID: context.addReferenceData("PillarShapeType", "Curved"), //Straight, Linear, Curved
       IsRadial: xml.RadialGridIsComplete,
       IsRightHanded: xml.Geometry?.GridIsRighthanded,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

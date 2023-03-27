@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   GridConnectionSetRepresentation
-} from "./Generated/work-product-component/GridConnectionSetRepresentation.1.0.0";
+} from "./Generated/work-product-component/GridConnectionSetRepresentation.1.1.0";
 
 export class GridConnectionSetRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class GridConnectionSetRepresentationOSDU
     xml: SimpleJson<resqml20.obj_GridConnectionSetRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GridConnectionSetRepresentation.1.0.0");
+    super(xml, context, "GridConnectionSetRepresentation.1.1.0");
   }
 
   public async initData(
@@ -73,9 +73,7 @@ export class GridConnectionSetRepresentationOSDU
             ) || ""
         )
         .filter(a => a !== ""),
-      ExtensionProperties: {
-        ReservoirDMSUrl: ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

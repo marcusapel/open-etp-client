@@ -75,7 +75,7 @@ export class ACLDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of groups with viewer role for the dataspace",
-    example: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
+    example: ["data.default.viewers@mypartition.mycompany.com"],
     pattern: patternString(emailPattern)
   })
   viewers!: string[];
@@ -86,7 +86,7 @@ export class ACLDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of groups with owner role for the dataspace",
-    example: ["data.rdms-mygroup.owners@mypartition.mycompany.com"],
+    example: ["data.default.owners@mypartition.mycompany.com"],
     pattern: patternString(emailPattern)
   })
   owners!: string[];
@@ -99,7 +99,7 @@ export class LegaltagsDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of legal tags",
-    example: ["my.legal.tags"]
+    example: ["opendes-ReservoirDDMS-Legal-Tag"]
   })
   legaltags!: string[];
 
@@ -137,6 +137,16 @@ export class ManifestInputDto {
     )}`
   })
   uris!: string[];
+
+  @ApiPropertyOptional({
+    name: "typePatterns",
+    type: [String],
+    maxItems: 99999,
+    maxLength: 2048,
+    description: `Energistics types to restrict the search against when searching entire dataspaces.`,
+    example: ["resqml20.obj_\\w+Representation"]
+  })
+  typePatterns?: string[];
 
   @ApiPropertyOptional({
     name: "acl",
@@ -266,7 +276,7 @@ export default class ObjectsManifestAPI {
       await context.checkLegalTags();
 
       c = await createSession(bearer, partition);
-      const b = await createManifest(c, body.uris, context);
+      const b = await createManifest(c, body.uris, context, body.typePatterns);
       await c.closeSession();
       c = undefined;
       res.send(b);
