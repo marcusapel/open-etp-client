@@ -1,4 +1,8 @@
-import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
+import {
+  EtpUri,
+  IResqmlDataObject,
+  ResqmlClient
+} from "../client/ResqmlClient";
 
 import {
   AccessControlList,
@@ -23,8 +27,7 @@ type Converter = (
 ) => any;
 
 type OSDUEntry = {
-  osduType: string;
-  version: string;
+  osduKind: (obj: IResqmlDataObject) => string;
   convert: Converter;
 };
 
@@ -63,13 +66,11 @@ export class ResqmlOSDUMap {
 
   add(
     resqmlType: string,
-    osduType: string,
-    version: string,
+    osduKind: (obj: IResqmlDataObject) => string,
     convert: Converter
   ): void {
     this.resqml2osdu.set(resqmlType, {
-      osduType,
-      version,
+      osduKind,
       convert
     });
   }
@@ -84,6 +85,30 @@ export class ResqmlOSDUMap {
   ): GenericReferenceData | undefined {
     return new ReferenceData(context, id);
   }
+}
+
+export interface IContact {
+  EmailAddress?: string;
+  PhoneNumber?: string;
+  RoleTypeID?: string;
+  DataGovernanceRoleTypeID?: string;
+  WorkflowPersonaTypeID?: string;
+  OrganisationID?: string;
+  Name?: string;
+}
+
+export interface IAcceptableUsage {
+  WorkflowUsage?: string;
+  WorkflowPersona?: string;
+}
+
+export interface ITechnicalAssurance {
+  AcceptableUsage?: IAcceptableUsage[];
+  Comment?: string;
+  EffectiveDate?: Date;
+  Reviewers?: IContact[];
+  TechnicalAssuranceTypeID: string;
+  UnacceptableUsage?: IAcceptableUsage[];
 }
 
 const ResqmlOSDU = ResqmlOSDUMap.getInstance();
@@ -123,6 +148,8 @@ export class OSDUContext {
   public spatialPoint?: AbstractSpatialLocation = undefined;
 
   public rddmsId: string;
+
+  public technicalAssurances?: ITechnicalAssurance[];
 
   constructor(
     partition: string,
@@ -347,14 +374,15 @@ export class OSDUContext {
    * @return {(string | undefined)}
    * @memberof WorkProductComponent
    */
-  public uriToSrn(uri: string): string | undefined {
+  public uriToSrn(uri: string, obj: IResqmlDataObject): string | undefined {
     if (uri === undefined) {
       return undefined;
     }
     const etp = new EtpUri(uri);
     const r: OSDUEntry | undefined = ResqmlOSDU.get(etp.dataObjectType);
+    const kind = r?.osduKind(obj);
     const srn = r
-      ? `${this.partition}:work-product-component--${r.osduType}:${etp.uuid}:${etp.version}`
+      ? `${this.partition}:${kind?.split(":")[2]}:${etp.uuid}:${etp.version}`
       : undefined;
     if (!srn) {
       return undefined;
@@ -476,6 +504,7 @@ export class OSDUContext {
    * @memberof OSDUContext
    */
   public async filterOSDUReferenceData(srn: string[]): Promise<string[]> {
+    srn = srn.filter(s => this.created.get(s.slice(0, -1)) === undefined);
     const chunks = this.divideIntoChunks(srn, 20);
     return Promise.all(
       chunks.map(async chunk => {
@@ -577,7 +606,7 @@ export class OSDUContext {
    * @return {(Promise<T | undefined>)}
    * @memberof OSDUContext
    */
-  private async fetchOSDU<T>(
+  public async fetchOSDU<T>(
     path: string,
     init?: RequestInit
   ): Promise<T | undefined> {
@@ -597,7 +626,7 @@ export class OSDUContext {
     const url = this.osduUrl + path;
     return fetch(url, init)
       .then(async r => {
-        if (r.status !== 200) {
+        if (r.status < 200 || r.status >= 300) {
           return undefined;
         }
         return (await r.json()) as T;
@@ -605,6 +634,33 @@ export class OSDUContext {
       .catch(() => {
         return undefined;
       });
+  }
+
+  /**
+   * Post data in OSDU environment
+   *
+   * @template T
+   * @template R
+   * @param {string} url to post at
+   * @param {T} body payload
+   * @return {Promise<boolean>}
+   * @memberof OSDUContext
+   */
+  public async pushOSDU<T, R>(url: string, body: T): Promise<R | undefined> {
+    try {
+      const bodyString = JSON.stringify(body);
+      const found = await this.fetchOSDU<R>(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": `application/json`,
+          "Content-Length": `${bodyString.length}`
+        },
+        body: bodyString
+      });
+      return found;
+    } catch (e) {
+      return undefined;
+    }
   }
 }
 

@@ -294,12 +294,14 @@ export class EmlObjectDto {
 
 const xmlDocPattern = /^<\?xml.+$/;
 
+const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
   description: "Data partition id (ex. 'osdu')",
-  example: "opendes"
+  example: partitionId
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")

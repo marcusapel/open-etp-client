@@ -10,6 +10,14 @@ import {
   GridConnectionSetRepresentation
 } from "./Generated/work-product-component/GridConnectionSetRepresentation.1.1.0";
 
+/**
+ * Extract OSDU GridConnectionSetRepresentation information from RESQML GridConnectionSetRepresentation
+ *
+ * @export
+ * @class GridConnectionSetRepresentationOSDU
+ * @extends {ResqmlWorkProductComponent<SimpleJson<resqml20.obj_GridConnectionSetRepresentation>>}
+ * @implements {GridConnectionSetRepresentation}
+ */
 export class GridConnectionSetRepresentationOSDU
   extends ResqmlWorkProductComponent<
     SimpleJson<resqml20.obj_GridConnectionSetRepresentation>
@@ -39,6 +47,18 @@ export class GridConnectionSetRepresentationOSDU
     );
     const grids = await client.getResolvedObjects(gridUris);
 
+    const InterpretationIDs = [];
+    for (const gr of grids) {
+      InterpretationIDs.push(
+        (await this.dorToSrn(
+          ReservoirDMSUrl,
+          (gr as SimpleJson<resqml20.AbstractRepresentation>)
+            .RepresentedInterpretation,
+          client
+        )) || ""
+      );
+    }
+
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
@@ -52,27 +72,25 @@ export class GridConnectionSetRepresentationOSDU
           )
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID: undefined,
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
       ConnectionCount: xml.Count,
-      GridRepresentationIDs: gridUris.map(g => context.uriToSrn(g) || ""),
+      GridRepresentationIDs: gridUris.map((g, i) => {
+        const gr = grids[i];
+        if (gr !== null) {
+          return context.uriToSrn(g, gr) || "";
+        }
+        return "";
+      }),
 
-      InterpretationIDs: grids
-        .map(
-          g =>
-            this.dorToSrn(
-              ReservoirDMSUrl,
-              (g as SimpleJson<resqml20.AbstractRepresentation>)
-                .RepresentedInterpretation
-            ) || ""
-        )
-        .filter(a => a !== ""),
+      InterpretationIDs: InterpretationIDs.filter(a => a !== ""),
       ExtensionProperties: undefined
     };
 
@@ -87,6 +105,15 @@ export class GridConnectionSetRepresentationOSDU
   }
 }
 
+/**
+ * Convert RESQML GridConnectionSetRepresentation to OSDU type
+ *
+ * @param {string} uri
+ * @param {SimpleJson<resqml20.obj_GridConnectionSetRepresentation>} xml
+ * @param {OSDUContext} context
+ * @param {ResqmlClient} client
+ * @return {Promise<GridConnectionSetRepresentationOSDU>}
+ */
 export const GridConnectionSetRepresentationManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_GridConnectionSetRepresentation>,

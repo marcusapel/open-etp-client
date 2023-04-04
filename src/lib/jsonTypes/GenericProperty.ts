@@ -136,9 +136,10 @@ export class GenericPropertyOSDU
         ? (xml as SimpleJson<resqml20.obj_CategoricalProperty>)
         : undefined;
 
-    const PropertyTopologyID = this.dorToSrn(
+    const PropertyTopologyID = await this.dorToSrn(
       ReservoirDMSUrl,
-      xml.SupportingRepresentation
+      xml.SupportingRepresentation,
+      client
     );
 
     const { MinValue, MaxValue, MeanValue, StdDeviation, ValueCount } =
@@ -176,9 +177,10 @@ export class GenericPropertyOSDU
       UnitQuantityID: undefined,
       ValueCount,
       ValueType: continuous ? "number" : "integer",
-      ClassificationTableID: this.dorToSrn(
+      ClassificationTableID: await this.dorToSrn(
         ReservoirDMSUrl,
-        categorical?.Lookup
+        categorical?.Lookup,
+        client
       ),
       IndexableElementID: context.addReferenceData(
         "IndexableElement",
@@ -208,9 +210,10 @@ export class GenericPropertyOSDU
         ReservoirDMSUrl,
         xml.TimeIndex.TimeSeries
       )) as SimpleJson<resqml20.obj_TimeSeries>;
-      this.data.TimeSeriesID = this.dorToSrn(
+      this.data.TimeSeriesID = await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.TimeIndex.TimeSeries
+        xml.TimeIndex.TimeSeries,
+        client
       );
       this.data.TimeIndices = xml.TimeIndex.Index;
       this.data.TimeValues = [
@@ -222,7 +225,7 @@ export class GenericPropertyOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }

@@ -1,7 +1,8 @@
 import {
   EtpUri,
   IResqmlDataObject,
-  ResqmlClient
+  ResqmlClient,
+  URI
 } from "../client/ResqmlClient";
 
 import * as eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
@@ -235,8 +236,8 @@ export const visitDoubleValues = async (
   if (array.$type === DBL_HDF_ARRAY) {
     const hdfArray = array as resqml20.DoubleHdf5Array;
     const etpType = new EtpContentType(hdfArray.Values.HdfProxy.ContentType)
-      .etpType;
-    const uri = `${dataspaceUri}/${etpType}(${hdfArray.Values.HdfProxy.UUID})`;
+      .dataType;
+    const uri = `${dataspaceUri}/eml20.${etpType}(${hdfArray.Values.HdfProxy.UUID})`;
     await client.visitDataArrayValues(
       { uri, pathInResource: hdfArray.Values.PathInHdfFile },
       visitor
@@ -298,12 +299,40 @@ export const visitPoint3dValues = async (
 };
 
 /**
+ * Extract the geometries from representations
+ *
+ * @param {SimpleJson<resqml20.AbstractRepresentation>} xml
+ * @return {SimpleJson<resqml20.PointGeometry>[]}
+ */
+export const getGeometries = (
+  xml: SimpleJson<resqml20.AbstractRepresentation>
+): SimpleJson<resqml20.PointGeometry>[] => {
+  if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
+    const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
+    return [grid2d.Grid2dPatch.Geometry];
+  } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
+    const trig = xml as SimpleJson<resqml20.obj_TriangulatedSetRepresentation>;
+    return trig.TrianglePatch.map(p => p.Geometry);
+  } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
+    const polyLine = xml as SimpleJson<resqml20.obj_PolylineSetRepresentation>;
+    return polyLine.LinePatch.map(p => p.Geometry);
+  } else if (xml.$type === "resqml20.obj_PointSetRepresentation") {
+    const points = xml as SimpleJson<resqml20.obj_PointSetRepresentation>;
+    return points.NodePatch.map(p => p.Geometry);
+  } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
+    const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
+    return [line.NodePatch.Geometry];
+  }
+  return [];
+};
+
+/**
  * Get the minimum and maximum coordinate of a Point array
  *
  * @param {ResqmlClient} client
  * @param {string} dataspaceUri
  * @param {SimpleJson<resqml20.AbstractPoint3dArray>} geo
- * @return {*}  {Promise<{
+ * @return {Promise<{
  *   minX: number;
  *   minY: number;
  *   minZ: number;
@@ -320,18 +349,14 @@ export const getMinMaxPoints = async (
 ): Promise<{
   minX: number;
   minY: number;
-  minZ: number;
   maxX: number;
   maxY: number;
-  maxZ: number;
   pNodeCount: number;
 }> => {
   let minX: number = Number.POSITIVE_INFINITY;
   let maxX: number = Number.NEGATIVE_INFINITY;
   let minY: number = Number.POSITIVE_INFINITY;
   let maxY: number = Number.NEGATIVE_INFINITY;
-  let minZ: number = Number.POSITIVE_INFINITY;
-  let maxZ: number = Number.NEGATIVE_INFINITY;
 
   let pNodeCount = 0;
 
@@ -348,54 +373,31 @@ export const getMinMaxPoints = async (
           } else if (mod === 1) {
             minY = Math.min(v, minY);
             maxY = Math.max(v, maxY);
-          } else {
-            minZ = Math.min(v, minZ);
-            maxZ = Math.max(v, maxZ);
           }
           pNodeCount++;
         }
       });
     });
-    // } else if (geo.$type === "resqml20.Point3dParametricArray") {
-    //   const param = geo as SimpleJson<resqml20.Point3dParametricArray>;
-    //   if (param.ParametricLines.$type === "resqml20.ParametricLineArray") {
-    //     const lineArray =
-    //       param.ParametricLines as SimpleJson<resqml20.ParametricLineArray>;
-    //     const v = await getMinMaxPoints(
-    //       client,
-    //       dataspaceUri,
-    //       lineArray.ControlPoints
-    //     );
-    //     minX = v.minX;
-    //     minY = v.minY;
-    //     maxX = v.maxX;
-    //     maxY = v.maxY;
-    //   }
+  } else if (geo.$type === "resqml20.Point3dParametricArray") {
+    const param = geo as SimpleJson<resqml20.Point3dParametricArray>;
+    if (param.ParametricLines.$type === "resqml20.ParametricLineArray") {
+      const lineArray =
+        param.ParametricLines as SimpleJson<resqml20.ParametricLineArray>;
+      const v = await getMinMaxPoints(
+        client,
+        dataspaceUri,
+        lineArray.ControlPoints
+      );
+      minX = v.minX;
+      minY = v.minY;
+      maxX = v.maxX;
+      maxY = v.maxY;
+    }
   } else if (geo.$type === "resqml20.Point3dZValueArray") {
     const zArray = geo as SimpleJson<resqml20.Point3dZValueArray>;
     const sup =
       zArray.SupportingGeometry as SimpleJson<resqml20.Point3dZValueArray>;
-    const v = await getMinMaxPoints(client, dataspaceUri, sup);
-    minX = v.minX;
-    minY = v.minY;
-    maxX = v.maxX;
-    maxY = v.maxY;
-    await visitDoubleValues(
-      dataspaceUri,
-      zArray.ZValues,
-      client,
-      (values: boolean[] | number[] | bigint[], _: IDataSubarray) => {
-        const v = values as number[];
-        for (const n of v) {
-          if (Number.isNaN(n)) {
-            continue;
-          }
-          minZ = Math.min(n, minZ);
-          maxZ = Math.max(n, maxZ);
-          pNodeCount++;
-        }
-      }
-    );
+    return await getMinMaxPoints(client, dataspaceUri, sup);
   } else if (geo.$type === "resqml20.Point3dLatticeArray") {
     const lArray = geo as SimpleJson<resqml20.Point3dLatticeArray>;
     const [ox, oy] = [lArray.Origin.Coordinate1, lArray.Origin.Coordinate2];
@@ -407,14 +409,25 @@ export const getMinMaxPoints = async (
       const uSpacing = u.Spacing as SimpleJson<resqml20.DoubleConstantArray>;
       const vSpacing = v.Spacing as SimpleJson<resqml20.DoubleConstantArray>;
       const [uLen, vLen] = [uSpacing.Value, vSpacing.Value];
-      const [nu, nv] = [uSpacing.Count, vSpacing.Count];
+      const [nu, nv] = [uSpacing.Count + 1, vSpacing.Count + 1];
+
+      const uOffsetLen = Math.sqrt(
+        u.Offset.Coordinate1 * u.Offset.Coordinate1 +
+          u.Offset.Coordinate2 * u.Offset.Coordinate2
+      );
+
+      const vOffsetLen = Math.sqrt(
+        v.Offset.Coordinate1 * v.Offset.Coordinate1 +
+          v.Offset.Coordinate2 * v.Offset.Coordinate2
+      );
+
       const [ux, uy] = [
-        uLen * u.Offset.Coordinate1,
-        uLen * u.Offset.Coordinate2
+        (uLen * u.Offset.Coordinate1) / uOffsetLen,
+        (uLen * u.Offset.Coordinate2) / uOffsetLen
       ];
       const [vx, vy] = [
-        vLen * v.Offset.Coordinate1,
-        vLen * v.Offset.Coordinate2
+        (vLen * v.Offset.Coordinate1) / vOffsetLen,
+        (vLen * v.Offset.Coordinate2) / vOffsetLen
       ];
       pNodeCount = nu * nv;
       for (let vv = 0; vv < nv; vv++) {
@@ -428,8 +441,22 @@ export const getMinMaxPoints = async (
         }
       }
     }
+  } else if (geo.$type === "resqml20.Point3dFromRepresentationLatticeArray") {
+    const lArray =
+      geo as SimpleJson<resqml20.Point3dFromRepresentationLatticeArray>;
+    const rep = lArray.SupportingRepresentation
+      ?._data as SimpleJson<resqml20.AbstractRepresentation>;
+    const geometries = getGeometries(rep);
+    for await (const g of geometries) {
+      const v = await getMinMaxPoints(client, dataspaceUri, g.Points);
+      minX = Math.min(minX, v.minX);
+      minY = Math.min(minY, v.minY);
+      maxX = Math.max(maxX, v.maxX);
+      maxY = Math.max(maxY, v.maxY);
+      pNodeCount += v.pNodeCount;
+    }
   }
-  return { minX, minY, minZ, maxX, maxY, maxZ, pNodeCount };
+  return { minX, minY, maxX, maxY, pNodeCount };
 };
 
 /**
@@ -439,7 +466,7 @@ export const getMinMaxPoints = async (
  * @class WorkProductComponent
  * @template RES_TYPE
  */
-export class ResqmlWorkProductComponent<
+export class ResqmlResource<
   RES_TYPE extends SimpleJson<resqml20.AbstractResqmlDataObject>
 > {
   public acl: AccessControlList = { owners: [], viewers: [] };
@@ -459,7 +486,12 @@ export class ResqmlWorkProductComponent<
   public meta?: FrameOfReferenceMetaDataItem[];
   protected __context?: OSDUContext;
 
-  constructor(xml: RES_TYPE, context: OSDUContext, osduType: string) {
+  constructor(
+    xml: RES_TYPE,
+    context: OSDUContext,
+    resourceType: string,
+    osduType: string
+  ) {
     this.__context = context;
 
     this.ancestry = undefined;
@@ -470,11 +502,11 @@ export class ResqmlWorkProductComponent<
 
     const kind = osduType.split(".")[0];
 
-    this.kind = `osdu:wks:work-product-component--${kind}:${osduType
+    this.kind = `osdu:wks:${resourceType}--${kind}:${osduType
       .split(".")
       .slice(1)
       .join(".")}`;
-    this.id = `${this.__context.partition}:work-product-component--${kind}:${xml.Uuid}`;
+    this.id = `${this.__context.partition}:${resourceType}--${kind}:${xml.Uuid}`;
     this.version = 1;
 
     this.acl = context.acl;
@@ -483,20 +515,52 @@ export class ResqmlWorkProductComponent<
   }
 
   /**
+   * Return the resource type ("reference-data", "work-product-component", ...)
+   *
+   * @return {string}
+   * @memberof ResqmlResource
+   */
+  public resourceType(): string {
+    const split = this.id.split(":");
+    return split[1].split("--")[0];
+  }
+
+  /**
+   * Return the osdu type ("GenericRepresentation", "HorizonInterpretation", ...)
+   *
+   * @return {string}
+   * @memberof ResqmlResource
+   */
+  public osduType(): string {
+    const split = this.id.split(":");
+    return split[1].split("--")[1];
+  }
+
+  /**
    * Convert a Data Object Reference to an OSDU SRN
    *
    * @param {string} uri
    * @param {(SimpleJson<eml20.DataObjectReference> | undefined)} dor
-   * @return {(string | undefined)}
-   * @memberof WorkProductComponent
+   * @param {ResqmlClient} client
+   * @return {Promise<string | undefined>}
+   * @memberof ResqmlResource
    */
-  public dorToSrn(
+  public async dorToSrn(
     uri: string,
-    dor: SimpleJson<eml20.DataObjectReference> | undefined
-  ): string | undefined {
-    return dor === undefined || this.__context === undefined
+    dor: SimpleJson<eml20.DataObjectReference> | undefined,
+    client: ResqmlClient
+  ): Promise<string | undefined> {
+    const xml = dor
+      ? await ResqmlWorkProductComponent.getObject(client, uri, dor)
+      : undefined;
+    return dor === undefined ||
+      this.__context === undefined ||
+      xml === undefined
       ? undefined
-      : this.__context.uriToSrn(ResqmlWorkProductComponent.dorToUri(uri, dor));
+      : this.__context.uriToSrn(
+          ResqmlWorkProductComponent.dorToUri(uri, dor),
+          xml
+        );
   }
 
   /**
@@ -506,7 +570,7 @@ export class ResqmlWorkProductComponent<
    * @param {string} uri
    * @param {SimpleJson<eml20.DataObjectReference>} dor
    * @return {string}
-   * @memberof WorkProductComponent
+   * @memberof ResqmlResource
    */
   public static dorToUri(
     uri: string,
@@ -522,7 +586,7 @@ export class ResqmlWorkProductComponent<
    *
    * @param {(string | undefined)} str
    * @return {(string | undefined)}
-   * @memberof WorkProductComponent
+   * @memberof ResqmlResource
    */
   public capitalize(str: string | undefined): string | undefined {
     if (str === undefined) {
@@ -542,7 +606,7 @@ export class ResqmlWorkProductComponent<
    * @param {string} uri URI of the containing object
    * @param {SimpleJson<eml20.DataObjectReference>} dor
    * @return {(Promise<IResqmlDataObject | undefined>)}
-   * @memberof WorkProductComponent
+   * @memberof ResqmlResource
    */
   public static async getObject(
     client: ResqmlClient,
@@ -558,6 +622,42 @@ export class ResqmlWorkProductComponent<
   }
 
   /**
+   * Create the AbstractCommonResources part of WPC Data
+   *
+   * @return {Promise<AbstractCommonResources>}
+   * @memberof ResqmlResource
+   */
+  public async AbstractCommonResources(
+    context: OSDUContext
+  ): Promise<AbstractCommonResources> {
+    return {
+      ExistenceKind: context.addReferenceData("ExistenceKind", "Prototype"),
+      ResourceCurationStatus: undefined,
+      ResourceHomeRegionID: undefined,
+      ResourceHostRegionIDs: undefined,
+      ResourceLifecycleStatus: undefined,
+      ResourceSecurityClassification: undefined,
+      Source: undefined,
+      TechnicalAssuranceID: undefined
+    };
+  }
+}
+
+/**
+ * Generic class for all WorkProductComponent created from Resqml Objects
+ *
+ * @export
+ * @class WorkProductComponent
+ * @template RES_TYPE
+ */
+export class ResqmlWorkProductComponent<
+  RES_TYPE extends SimpleJson<resqml20.AbstractResqmlDataObject>
+> extends ResqmlResource<RES_TYPE> {
+  constructor(xml: RES_TYPE, context: OSDUContext, osduType: string) {
+    super(xml, context, "work-product-component", osduType);
+  }
+
+  /**
    * Compute the age of an interpretation using feature information
    *
    * @static
@@ -566,7 +666,7 @@ export class ResqmlWorkProductComponent<
    * @param {(SimpleJson<resqml20.AbstractFeatureInterpretation>
    *       | undefined)} interpretation
    * @return {(Promise<number | undefined>)}
-   * @memberof WorkProductComponent
+   * @memberof ResqmlWorkProductComponent
    */
   public static async age(
     client: ResqmlClient,
@@ -640,74 +740,49 @@ export class ResqmlWorkProductComponent<
   }
 
   /**
-   * Create the OSDU spatial informations from a list of geometries
+   * Create the OSDU spatial information from an array of points
    *
-   * @param {ResqmlClient} client
-   * @param {string} dataspaceUri
-   * @param {SimpleJson<resqml20.PointGeometry>[]} geometries
-   * @return {Promise<{
-   *     SpatialPoint: AbstractSpatialLocation|undefined;
-   *     SpatialArea: AbstractSpatialLocation|undefined;
+   * @param {[number, number][]} pointCoordinates
+   * @param {SimpleJson<resqml20.obj_LocalDepth3dCrs>} crs
+   * @return {(Promise<{
+   *     SpatialPoint: AbstractSpatialLocation | undefined;
+   *     SpatialArea: AbstractSpatialLocation | undefined;
    *     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
-   *     NodeCount: number;
-   *   }>}
-   * @memberof WorkProductComponent
+   *   }>)}
+   * @memberof ResqmlWorkProductComponent
    */
-  public async createSpatialInfo(
-    client: ResqmlClient,
-    dataspaceUri: string,
-    geometries: SimpleJson<resqml20.PointGeometry>[]
+  public async createSpatialInfoFrom2dPoints(
+    pointCoordinates: [number, number][],
+    crs: SimpleJson<resqml20.obj_LocalDepth3dCrs>
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
-    NodeCount: number;
+    Wgs84Coordinates: [number, number][] | undefined;
   }> {
     const context = this.__context;
     if (context === undefined) {
       return Promise.reject("No context");
     }
-    if (geometries.length < 1) {
+    if (pointCoordinates.length === 0) {
       return Promise.reject("No geometry provided");
     }
-
-    const crsObj = await ResqmlWorkProductComponent.getObject(
-      client,
-      dataspaceUri,
-      geometries[0].LocalCrs
-    );
-    const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
 
     let aMinX: number = Number.POSITIVE_INFINITY;
     let aMaxX: number = Number.NEGATIVE_INFINITY;
     let aMinY: number = Number.POSITIVE_INFINITY;
     let aMaxY: number = Number.NEGATIVE_INFINITY;
-    let aMinZ: number = Number.POSITIVE_INFINITY;
-    let aMaxZ: number = Number.NEGATIVE_INFINITY;
-    let NodeCount = 0;
 
-    for await (const g of geometries) {
-      const { minX, minY, minZ, maxX, maxY, maxZ, pNodeCount } =
-        await getMinMaxPoints(client, dataspaceUri, g.Points);
-      aMinX = Math.min(minX, aMinX);
-      aMinY = Math.min(minY, aMinY);
-      aMinZ = Math.min(minZ, aMinZ);
-      aMaxX = Math.max(maxX, aMaxX);
-      aMaxY = Math.max(maxY, aMaxY);
-      aMaxZ = Math.max(maxZ, aMaxZ);
-      NodeCount += pNodeCount;
+    for (const g of pointCoordinates) {
+      aMinX = Math.min(g[0], aMinX);
+      aMinY = Math.min(g[1], aMinY);
+      aMaxX = Math.max(g[0], aMaxX);
+      aMaxY = Math.max(g[1], aMaxY);
     }
 
     let CoordinateReferenceSystemID = undefined;
     let persistableReferenceCrs = "";
     let Wgs84Coordinates = undefined;
-
-    const pointCoordinates: [number, number][] = [
-      [aMinX + crs.XOffset, aMinY + crs.YOffset],
-      [aMinX + crs.XOffset, aMaxY + crs.YOffset],
-      [aMaxX + crs.XOffset, aMaxY + crs.YOffset],
-      [aMaxX + crs.XOffset, aMinY + crs.YOffset]
-    ];
 
     if (crs.ProjectedCrs.$type === "eml20.ProjectedCrsEpsgCode") {
       const epsgCode = (
@@ -735,15 +810,6 @@ export class ResqmlWorkProductComponent<
       persistableReference: persistableReferenceCrs,
       coordinateReferenceSystemID: CoordinateReferenceSystemID
     };
-
-    if (!Number.isFinite(aMinX)) {
-      return {
-        FrameOfReferenceCRS,
-        NodeCount,
-        SpatialArea: undefined,
-        SpatialPoint: undefined
-      };
-    }
 
     const SpatialPoint = {
       AsIngestedCoordinates: {
@@ -792,14 +858,10 @@ export class ResqmlWorkProductComponent<
             type: FluffyType.AnyCRSFeature,
             geometry: {
               type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
-              coordinates: [
-                [
-                  [aMinX + crs.XOffset, aMinY + crs.YOffset],
-                  [aMinX + crs.XOffset, aMaxY + crs.YOffset],
-                  [aMaxX + crs.XOffset, aMaxY + crs.YOffset],
-                  [aMaxX + crs.XOffset, aMinY + crs.YOffset]
-                ]
-              ]
+              coordinates: pointCoordinates.map(p => [
+                p[0] + crs.XOffset,
+                p[1] + crs.YOffset
+              ])
             },
             properties: {}
           }
@@ -827,7 +889,85 @@ export class ResqmlWorkProductComponent<
     if (SpatialPoint !== undefined && context.spatialPoint === undefined) {
       context.spatialPoint = SpatialPoint;
     }
-    return { SpatialPoint, SpatialArea, FrameOfReferenceCRS, NodeCount };
+    return { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates };
+  }
+
+  /**
+   * Create the OSDU spatial information from a list of geometries
+   *
+   * @param {ResqmlClient} client
+   * @param {string} dataspaceUri
+   * @param {SimpleJson<resqml20.PointGeometry>[]} geometries
+   * @return {Promise<{
+   *     SpatialPoint: AbstractSpatialLocation|undefined;
+   *     SpatialArea: AbstractSpatialLocation|undefined;
+   *     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
+   *     NodeCount: number;
+   *   }>}
+   * @memberof ResqmlWorkProductComponent
+   */
+  public async createSpatialInfo(
+    client: ResqmlClient,
+    dataspaceUri: string,
+    geometries: SimpleJson<resqml20.PointGeometry>[]
+  ): Promise<{
+    SpatialPoint: AbstractSpatialLocation | undefined;
+    SpatialArea: AbstractSpatialLocation | undefined;
+    FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
+    NodeCount: number;
+  }> {
+    const context = this.__context;
+    if (context === undefined) {
+      return Promise.reject("No context");
+    }
+    if (geometries.length < 1) {
+      return Promise.reject("No geometry provided");
+    }
+
+    const crsObj = await ResqmlWorkProductComponent.getObject(
+      client,
+      dataspaceUri,
+      geometries[0].LocalCrs
+    );
+    const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
+
+    let aMinX: number = Number.POSITIVE_INFINITY;
+    let aMaxX: number = Number.NEGATIVE_INFINITY;
+    let aMinY: number = Number.POSITIVE_INFINITY;
+    let aMaxY: number = Number.NEGATIVE_INFINITY;
+
+    let NodeCount = 0;
+
+    for await (const g of geometries) {
+      const { minX, minY, maxX, maxY, pNodeCount } = await getMinMaxPoints(
+        client,
+        dataspaceUri,
+        g.Points
+      );
+      aMinX = Math.min(minX, aMinX);
+      aMinY = Math.min(minY, aMinY);
+      aMaxX = Math.max(maxX, aMaxX);
+      aMaxY = Math.max(maxY, aMaxY);
+      NodeCount += pNodeCount;
+    }
+
+    const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
+      await this.createSpatialInfoFrom2dPoints(
+        [
+          [aMinX, aMinY],
+          [aMaxY, aMinY],
+          [aMaxX, aMaxY],
+          [aMinX, aMaxY]
+        ],
+        crs
+      );
+
+    return {
+      SpatialPoint,
+      SpatialArea,
+      FrameOfReferenceCRS,
+      NodeCount
+    };
   }
 
   /**
@@ -836,6 +976,7 @@ export class ResqmlWorkProductComponent<
    * @param {ResqmlETPClient} client
    * @param {string} objectUri
    * @returns {Promise<SimpleJson<eml20.DataObjectReference>[]>}
+   * @memberof ResqmlWorkProductComponent
    */
   public async getCreatingObjects(
     client: ResqmlClient,
@@ -890,28 +1031,54 @@ export class ResqmlWorkProductComponent<
       }
     }
 
-    return dors;
-  }
-
-  /**
-   * Create the AbstractCommonResources part of WPC Data
-   *
-   * @return {Promise<AbstractCommonResources>}
-   * @memberof WorkProductComponent
-   */
-  public async AbstractCommonResources(
-    context: OSDUContext
-  ): Promise<AbstractCommonResources> {
-    return {
-      ExistenceKind: context.addReferenceData("ExistenceKind", "Prototype"),
-      ResourceCurationStatus: undefined,
-      ResourceHomeRegionID: undefined,
-      ResourceHostRegionIDs: undefined,
-      ResourceLifecycleStatus: undefined,
-      ResourceSecurityClassification: undefined,
-      Source: undefined,
-      TechnicalAssuranceID: undefined
-    };
+    // From objects that are input of the activity, identify the one
+    // pointing to the same target (Typically interpretation) that is not a crs or
+    // hdf
+    const matchingDors: SimpleJson<eml20.DataObjectReference>[] = [];
+    if (dors.length === 0) {
+      return dors;
+    }
+    const tgUris = new Set<URI>();
+    const xml = await client.getObjects([objectUri]);
+    if (xml.length === 0 || xml[0] === null) {
+      return dors;
+    }
+    await client.getObjectTargets(
+      new EtpUri(objectUri).dataSpace,
+      xml[0],
+      tgUris
+    );
+    for (const d of dors) {
+      const tg = await ResqmlWorkProductComponent.getObject(
+        client,
+        objectUri,
+        d
+      );
+      const oUris = new Set<URI>();
+      if (tg) {
+        await client.getObjectTargets(
+          new EtpUri(objectUri).dataSpace,
+          tg,
+          oUris
+        );
+        if (
+          [...oUris].filter(o => {
+            if (tgUris.has(o)) {
+              return false;
+            }
+            const ou = new EtpUri(o).dataObjectType;
+            return (
+              ou.indexOf("Crs") === -1 && ou.indexOf("ExternalPart") === -1
+            );
+          }).length > 0
+        ) {
+          if (matchingDors.indexOf(d) === -1) {
+            matchingDors.push(d);
+          }
+        }
+      }
+    }
+    return matchingDors;
   }
 
   /**
@@ -933,7 +1100,8 @@ export class ResqmlWorkProductComponent<
       ],
       IsDiscoverable: true,
       IsExtendedLoad: false,
-      TechnicalAssurances: undefined
+      NameAliases: undefined,
+      TechnicalAssurances: context.technicalAssurances
     };
   }
 
@@ -1023,7 +1191,11 @@ export class ResqmlWorkProductComponent<
         "DomainType",
         this.capitalize(xml.Domain)
       ),
-      FeatureID: this.dorToSrn(ReservoirDMSUrl, xml.InterpretedFeature),
+      FeatureID: await this.dorToSrn(
+        ReservoirDMSUrl,
+        xml.InterpretedFeature,
+        client
+      ),
       FeatureName: feat.Citation.Title,
       OlderPossibleAge,
       YoungerPossibleAge

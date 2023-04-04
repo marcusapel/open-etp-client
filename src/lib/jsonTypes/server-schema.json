@@ -1,0 +1,234 @@
+{
+  "id": "rdms1",
+  "name": "reservoirDMS",
+  "description": "OSDU Reservoir DMS.",
+  "interfaces": [
+    {
+      "entityType": "resqml",
+      "schema": {
+        "openapi": "3.0.0",
+        "paths": {
+          "/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org": {
+            "get": {
+              "operationId": "Server_capabilities",
+              "summary": "Get the capabilities of ETP server",
+              "security": [],
+              "parameters": [],
+              "responses": {
+                "200": {
+                  "description": "Success",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "applicationName": {
+                            "type": "string",
+                            "description": "Name of the application.",
+                            "example": "ReservoirDDMS - OSDU Reservoir DDMS ETP-1.2 Server"
+                          },
+                          "applicationVersion": {
+                            "type": "string",
+                            "description": "Full version of the application.",
+                            "example": "1.0 - e9.... (Mon Feb 20 01:07:33 2023 +0100)"
+                          },
+                          "contactInformation": {
+                            "type": "object",
+                            "description": "Information about the contact.",
+                            "properties": {
+                              "organizationName": {
+                                "type": "string",
+                                "description": "Name of the publishing organization.",
+                                "example": "OSDU-Energistics"
+                              },
+                              "contactName": {
+                                "type": "string",
+                                "description": "Name of the Contact.",
+                                "example": "FirstName LastName"
+                              },
+                              "contactPhone": {
+                                "type": "string",
+                                "description": "Phone of the Contact.",
+                                "example": "800-000-0000"
+                              },
+                              "contactEmail": {
+                                "type": "string",
+                                "description": "Email of the Contact.",
+                                "example": "FirstName.LastName@company.com"
+                              }
+                            }
+                          },
+                          "supportedCompression": {
+                            "maxItems": 8,
+                            "description": "Types of compression supported.",
+                            "example": ["gzip"],
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 2048
+                            }
+                          },
+                          "supportedEncodings": {
+                            "maxItems": 8,
+                            "description": "Types of encodings supported.",
+                            "example": ["binary"],
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 2048
+                            }
+                          },
+                          "supportedFormats": {
+                            "maxItems": 8,
+                            "description": "Types of formats supported.",
+                            "example": ["xml"],
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 2048
+                            }
+                          },
+                          "supportedDataObjects": {
+                            "maxItems": 2048,
+                            "description": "Types of objects supported and associated capabilities.",
+                            "example": [
+                              {
+                                "qualifiedType": "eml20.*",
+                                "dataObjectCapabilities": {
+                                  "SupportsDelete": true
+                                }
+                              }
+                            ],
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "qualifiedType": {
+                                  "type": "string",
+                                  "description": "Supported etp types.",
+                                  "example": "eml20.*"
+                                },
+                                "dataObjectCapabilities": {
+                                  "description": "Capability for each type.",
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          },
+                          "supportedProtocols": {
+                            "maxItems": 128,
+                            "description": "Supported protocols.",
+                            "example": [
+                              {
+                                "protocol": 0,
+                                "protocolVersion": {
+                                  "major": 1,
+                                  "minor": 2,
+                                  "revision": 0,
+                                  "patch": 0
+                                },
+                                "role": "server",
+                                "protocolCapabilities": {}
+                              }
+                            ],
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "endpointCapabilities": {
+                            "type": "object",
+                            "example": [
+                              {
+                                "DataPartitionMode": {
+                                  "item": {
+                                    "string": "osdu"
+                                  }
+                                },
+                                "MaxMessagePayloadUncompressedSize": {
+                                  "item": {
+                                    "long": 5000000000
+                                  }
+                                },
+                                "MaxWebSocketMessagePayloadSize": {
+                                  "item": {
+                                    "long": 500000000
+                                  }
+                                },
+                                "MessageQueueDepth": {
+                                  "item": {
+                                    "long": 1000
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "500": {
+                  "description": "Unknown Error",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "statusCode": {
+                            "type": "number",
+                            "format": "integer",
+                            "minimum": 500,
+                            "maximum": 500,
+                            "example": 500
+                          },
+                          "message": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9 ]*$",
+                            "maxLength": 2048
+                          },
+                          "error": {
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9 ]*$",
+                            "maxLength": 2048
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "tags": ["Server Capabilities"]
+            }
+          }
+        },
+        "info": {
+          "title": "Reservoir DMS",
+          "description": "ETP server OSDU Reservoir DMS",
+          "version": "1.0",
+          "contact": {},
+          "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+          }
+        },
+        "tags": [],
+        "servers": [
+          {
+            "url": ""
+          }
+        ],
+        "components": {
+          "securitySchemes": {
+            "access-token": {
+              "scheme": "bearer",
+              "bearerFormat": "JWT",
+              "type": "http"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

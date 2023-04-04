@@ -54,9 +54,10 @@ export class SubRepresentationOSDU
           IndexableElementID
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID: undefined,
@@ -65,7 +66,11 @@ export class SubRepresentationOSDU
       ElementCount: Count,
       IndexableElementID,
       SupportingRepresentationIDs: [
-        this.dorToSrn(ReservoirDMSUrl, xml.SupportingRepresentation) || ""
+        (await this.dorToSrn(
+          ReservoirDMSUrl,
+          xml.SupportingRepresentation,
+          client
+        )) || ""
       ],
       ExtensionProperties: undefined
     };
@@ -74,7 +79,7 @@ export class SubRepresentationOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }

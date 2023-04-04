@@ -33,6 +33,15 @@ export class StratigraphicColumnRankInterpretationOSDU
     if (context === undefined) {
       return this;
     }
+
+    const StratigraphicUnitInterpretationSet: string[] | undefined =
+      xml.StratigraphicUnits.length === 0 ? undefined : [];
+    for (const s of xml.StratigraphicUnits) {
+      StratigraphicUnitInterpretationSet?.push(
+        (await this.dorToSrn(ReservoirDMSUrl, s.Unit, client)) || ""
+      );
+    }
+
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
@@ -58,12 +67,7 @@ export class StratigraphicColumnRankInterpretationOSDU
         "Chronostratigraphic"
       ),
 
-      StratigraphicUnitInterpretationSet:
-        xml.StratigraphicUnits.length === 0
-          ? undefined
-          : xml.StratigraphicUnits.map(
-              u => this.dorToSrn(ReservoirDMSUrl, u.Unit) || ""
-            ),
+      StratigraphicUnitInterpretationSet,
 
       ExtensionProperties: undefined
     };

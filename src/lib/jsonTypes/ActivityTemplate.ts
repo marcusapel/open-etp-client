@@ -3,7 +3,7 @@ import { ResqmlClient } from "../client/ResqmlClient";
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 
 import { OSDUContext } from "./OsduContext";
-import { ResqmlWorkProductComponent } from "./WorkProductComponent";
+import { ResqmlResource } from "./WorkProductComponent";
 
 import {
   ActivityTemplate,
@@ -11,8 +11,16 @@ import {
   ParameterTemplate
 } from "./Generated/master-data/ActivityTemplate.1.0.0";
 
+/**
+ * Extract OSDU ActivityTemplate information from ActivityTemplate
+ *
+ * @export
+ * @class ActivityTemplateOSDU
+ * @extends {ResqmlResource<SimpleJson<resqml20.obj_ActivityTemplate>>}
+ * @implements {ActivityTemplate}
+ */
 export class ActivityTemplateOSDU
-  extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_ActivityTemplate>>
+  extends ResqmlResource<SimpleJson<resqml20.obj_ActivityTemplate>>
   implements ActivityTemplate
 {
   public data: Data = { Parameters: [] };
@@ -21,13 +29,11 @@ export class ActivityTemplateOSDU
     xml: SimpleJson<resqml20.obj_ActivityTemplate>,
     context: OSDUContext
   ) {
-    super(xml, context, "ActivityTemplate.1.1.0");
+    super(xml, context, "master-data", "ActivityTemplate.1.1.0");
   }
 
-  public async getParameters(
-    _ReservoirDMSUrl: string,
-    xml: SimpleJson<resqml20.ParameterTemplate>[],
-    _client: ResqmlClient
+  private async getParameters(
+    xml: SimpleJson<resqml20.ParameterTemplate>[]
   ): Promise<ParameterTemplate[]> {
     const context = this.__context;
     if (context === undefined) {
@@ -109,9 +115,7 @@ export class ActivityTemplateOSDU
   }
 
   public async initData(
-    ReservoirDMSUrl: string,
-    xml: SimpleJson<resqml20.obj_ActivityTemplate>,
-    client: ResqmlClient
+    xml: SimpleJson<resqml20.obj_ActivityTemplate>
   ): Promise<ActivityTemplateOSDU> {
     const context = this.__context;
     if (context === undefined) {
@@ -119,14 +123,8 @@ export class ActivityTemplateOSDU
     }
     this.data = {
       ...(await this.AbstractCommonResources(context)),
-      ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
-      ...(await this.AbstractWorkProductComponent(xml, context)),
 
-      Parameters: await this.getParameters(
-        ReservoirDMSUrl,
-        xml.Parameter,
-        client
-      )
+      Parameters: await this.getParameters(xml.Parameter)
     };
 
     xml.ExtraMetadata?.forEach(x => {
@@ -140,10 +138,19 @@ export class ActivityTemplateOSDU
   }
 }
 
+/**
+ * Convert RESQML ActivityTemplate to OSDU type
+ *
+ * @param {string} _uri
+ * @param {SimpleJson<resqml20.obj_ActivityTemplate>} xml
+ * @param {OSDUContext} context
+ * @param {ResqmlClient} _client
+ * @return {Promise<ActivityTemplateOSDU>}
+ */
 export const ActivityTemplateManifest = async (
-  uri: string,
+  _uri: string,
   xml: SimpleJson<resqml20.obj_ActivityTemplate>,
   context: OSDUContext,
-  client: ResqmlClient
+  _client: ResqmlClient
 ): Promise<ActivityTemplateOSDU> =>
-  new ActivityTemplateOSDU(xml, context).initData(uri, xml, client);
+  new ActivityTemplateOSDU(xml, context).initData(xml);

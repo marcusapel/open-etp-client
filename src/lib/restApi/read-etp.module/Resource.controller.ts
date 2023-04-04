@@ -510,6 +510,8 @@ export const depthQueryParam: ApiQueryOptions = {
   }
 };
 
+const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+
 /**
  * Api for resources access
  *
@@ -521,7 +523,7 @@ export const depthQueryParam: ApiQueryOptions = {
 @ApiHeader({
   name: "data-partition-id",
   description: "Data partition id (ex. 'osdu')",
-  example: "opendes"
+  example: partitionId
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")

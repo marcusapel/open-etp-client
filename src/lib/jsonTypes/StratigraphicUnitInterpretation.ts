@@ -87,18 +87,20 @@ export class StratigraphicUnitInterpretationOSDU
           index > 0 &&
           this.hasUUID(contact, rank.StratigraphicUnits[index - 1].Unit.UUID)
         ) {
-          ColumnStratigraphicHorizonTopID = this.dorToSrn(
+          ColumnStratigraphicHorizonTopID = await this.dorToSrn(
             ReservoirDMSUrl,
-            contact.PartOf
+            contact.PartOf,
+            client
           );
         }
         if (
           index < rank.StratigraphicUnits.length - 1 &&
           this.hasUUID(contact, rank.StratigraphicUnits[index + 1].Unit.UUID)
         ) {
-          ColumnStratigraphicHorizonBaseID = this.dorToSrn(
+          ColumnStratigraphicHorizonBaseID = await this.dorToSrn(
             ReservoirDMSUrl,
-            contact.PartOf
+            contact.PartOf,
+            client
           );
         }
       }

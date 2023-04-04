@@ -49,10 +49,11 @@ export class UnstructuredGridRepresentationOSDU
       if (stratiIndices) {
         return {
           StratigraphicColumnRankInterpretationID:
-            this.dorToSrn(
+            (await this.dorToSrn(
               ReservoirDMSUrl,
-              xml.CellStratigraphicUnits?.StratigraphicOrganization
-            ) || "",
+              xml.CellStratigraphicUnits?.StratigraphicOrganization,
+              client
+            )) || "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
       }
@@ -87,14 +88,16 @@ export class UnstructuredGridRepresentationOSDU
           )
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
-      LocalModelCompoundCrsID: this.dorToSrn(
+      LocalModelCompoundCrsID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.Geometry?.LocalCrs
+        xml.Geometry?.LocalCrs,
+        client
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -134,7 +137,7 @@ export class UnstructuredGridRepresentationOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }

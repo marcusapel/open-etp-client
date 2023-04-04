@@ -22,7 +22,8 @@ export class PersistedCollectionPropertySetOSDU
   }
   public async initData(
     ReservoirDMSUrl: string,
-    xml: SimpleJson<resqml20.obj_PropertySet>
+    xml: SimpleJson<resqml20.obj_PropertySet>,
+    client: ResqmlClient
   ): Promise<PersistedCollectionPropertySetOSDU> {
     const context = this.__context;
     if (context === undefined) {
@@ -38,20 +39,21 @@ export class PersistedCollectionPropertySetOSDU
       ? ResqmlOSDUMap.getInstance().get(rTypes[0])
       : undefined;
 
+    const MemberIDs: string[] | undefined =
+      xml.Properties.length === 0 ? undefined : [];
+    for (const r of xml.Properties) {
+      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) || "");
+    }
+
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      HomogeneousMemberKind: oType
-        ? `osdu:wks:work-product-component--${oType.osduType}`
-        : undefined,
-      MemberIDs:
-        xml.Properties.length === 0
-          ? undefined
-          : xml.Properties.map(p => this.dorToSrn(ReservoirDMSUrl, p) || ""),
+      HomogeneousMemberKind: oType?.osduKind(xml),
+      MemberIDs,
       ParentCollectionID:
         xml.ParentSet && xml.ParentSet.length > 0
-          ? this.dorToSrn(ReservoirDMSUrl, xml.ParentSet[0])
+          ? await this.dorToSrn(ReservoirDMSUrl, xml.ParentSet[0], client)
           : undefined,
       /**
        * Purpose of the Collection
@@ -76,6 +78,10 @@ export const PersistedCollectionPropertySetManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_PropertySet>,
   context: OSDUContext,
-  _client: ResqmlClient
+  client: ResqmlClient
 ): Promise<PersistedCollectionPropertySetOSDU> =>
-  new PersistedCollectionPropertySetOSDU(xml, context).initData(uri, xml);
+  new PersistedCollectionPropertySetOSDU(xml, context).initData(
+    uri,
+    xml,
+    client
+  );
