@@ -56,7 +56,7 @@ function requireDefaults(pattern: string) {
 }
 
 // requires all the controllers in the app
-let controllers = requireDefaults("*.module/*.controller.+(js|ts)");
+const controllers = requireDefaults("*.module/*.controller.+(js|ts)");
 
 // requires all the controllers in the app
 const providers = requireDefaults("*.module/*.provider.+(js|ts)");
@@ -64,10 +64,6 @@ const providers = requireDefaults("*.module/*.provider.+(js|ts)");
 // requires all the global middleware in the app
 const middleware = requireDefaults("*.module/*.middleware.+(js|ts)");
 
-// Remove getToken entry when used within OSDU
-if (process.env.RDMS_OSDU_URL) {
-  controllers = controllers.filter(c => c.name !== "Authentication");
-}
 @Module({
   controllers,
   providers: [
