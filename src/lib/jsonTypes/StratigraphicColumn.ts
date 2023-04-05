@@ -8,8 +8,16 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicColumn
-} from "./Generated/work-product-component/StratigraphicColumn.1.0.0";
+} from "./Generated/work-product-component/StratigraphicColumn.1.1.0";
 
+/**
+ * Create OSDU StratigraphicColumn from Resqml StratigraphicColumn
+ *
+ * @export
+ * @class StratigraphicColumnOSDU
+ * @extends {ResqmlWorkProductComponent<SimpleJson<resqml20.obj_StratigraphicColumn>>}
+ * @implements {StratigraphicColumn}
+ */
 export class StratigraphicColumnOSDU
   extends ResqmlWorkProductComponent<
     SimpleJson<resqml20.obj_StratigraphicColumn>
@@ -22,29 +30,32 @@ export class StratigraphicColumnOSDU
     xml: SimpleJson<resqml20.obj_StratigraphicColumn>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicColumn.1.0.0");
+    super(xml, context, "StratigraphicColumn.1.1.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
-    xml: SimpleJson<resqml20.obj_StratigraphicColumn>
+    xml: SimpleJson<resqml20.obj_StratigraphicColumn>,
+    client: ResqmlClient
   ): Promise<StratigraphicColumnOSDU> {
     const context = this.__context;
     if (context === undefined) {
       return this;
     }
+    const StratigraphicColumnRankInterpretationSet = [];
+    for (const r of xml.Ranks) {
+      StratigraphicColumnRankInterpretationSet.push(
+        (await this.dorToSrn(ReservoirDMSUrl, r, client)) || ""
+      );
+    }
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      StratigraphicColumnRankInterpretationSet: xml.Ranks.map(
-        r => this.dorToSrn(ReservoirDMSUrl, r) || ""
-      ),
+      StratigraphicColumnRankInterpretationSet,
       StratigraphicColumnValidityAreaType: undefined,
       ValidationDate: undefined,
       ValueChainStatusType: undefined,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {
@@ -58,10 +69,19 @@ export class StratigraphicColumnOSDU
   }
 }
 
+/**
+ * Convert RESQML stratigraphic column to OSDU type
+ *
+ * @param {string} uri
+ * @param {SimpleJson<resqml20.obj_StratigraphicColumn>} xml
+ * @param {OSDUContext} context
+ * @param {ResqmlClient} client
+ * @return {*}  {Promise<StratigraphicColumnOSDU>}
+ */
 export const StratigraphicColumnManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_StratigraphicColumn>,
   context: OSDUContext,
-  _: ResqmlClient
+  client: ResqmlClient
 ): Promise<StratigraphicColumnOSDU> =>
-  new StratigraphicColumnOSDU(xml, context).initData(uri, xml);
+  new StratigraphicColumnOSDU(xml, context).initData(uri, xml, client);

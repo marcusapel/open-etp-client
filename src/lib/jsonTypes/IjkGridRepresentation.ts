@@ -15,7 +15,7 @@ import {
   Abstract,
   IjkGridRepresentation,
   StratigraphicUnits
-} from "./Generated/work-product-component/IjkGridRepresentation.1.0.0";
+} from "./Generated/work-product-component/IjkGridRepresentation.1.1.0";
 
 enum ExpansionInDirection {
   I = "I",
@@ -23,6 +23,14 @@ enum ExpansionInDirection {
   K = "K"
 }
 
+/**
+ * Extract OSDU IjkGridRepresentation information from RESQML IjkGridRepresentation
+ *
+ * @export
+ * @class IjkGridRepresentationOSDU
+ * @extends {ResqmlWorkProductComponent<SimpleJson<resqml20.obj_IjkGridRepresentation>>}
+ * @implements {IjkGridRepresentation}
+ */
 export class IjkGridRepresentationOSDU
   extends ResqmlWorkProductComponent<
     SimpleJson<resqml20.obj_IjkGridRepresentation>
@@ -35,7 +43,7 @@ export class IjkGridRepresentationOSDU
     xml: SimpleJson<resqml20.obj_IjkGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "IjkGridRepresentation.1.0.0");
+    super(xml, context, "IjkGridRepresentation.1.1.0");
   }
 
   private async activeCellCount(
@@ -86,10 +94,11 @@ export class IjkGridRepresentationOSDU
       if (stratiIndices) {
         return {
           StratigraphicColumnRankInterpretationID:
-            this.dorToSrn(
+            (await this.dorToSrn(
               ReservoirDMSUrl,
-              xml.IntervalStratigraphicUnits?.StratigraphicOrganization
-            ) || "",
+              xml.IntervalStratigraphicUnits?.StratigraphicOrganization,
+              client
+            )) || "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
       }
@@ -131,14 +140,16 @@ export class IjkGridRepresentationOSDU
           )
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
-      LocalModelCompoundCrsID: this.dorToSrn(
+      LocalModelCompoundCrsID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.Geometry?.LocalCrs
+        xml.Geometry?.LocalCrs,
+        client
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -173,16 +184,14 @@ export class IjkGridRepresentationOSDU
       PillarShapeID: context.addReferenceData("PillarShapeType", "Curved"), //Straight, Linear, Curved
       IsRadial: xml.RadialGridIsComplete,
       IsRightHanded: xml.Geometry?.GridIsRighthanded,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }
@@ -210,6 +219,15 @@ export class IjkGridRepresentationOSDU
   }
 }
 
+/**
+ * Convert RESQML IjkGridRepresentation to OSDU type
+ *
+ * @param {string} uri
+ * @param {SimpleJson<resqml20.obj_IjkGridRepresentation>} xml
+ * @param {OSDUContext} context
+ * @param {ResqmlClient} client
+ * @return {Promise<IjkGridRepresentationOSDU>}
+ */
 export const IjkGridRepresentationManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_IjkGridRepresentation>,

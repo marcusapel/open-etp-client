@@ -480,6 +480,8 @@ export const formatQueryParam: ApiQueryOptions = {
   }
 };
 
+const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+
 /**
  * API to Discover and Read data arrays
  *
@@ -491,7 +493,7 @@ export const formatQueryParam: ApiQueryOptions = {
 @ApiHeader({
   name: "data-partition-id",
   description: "Data partition id (ex. 'osdu')",
-  example: "opendes"
+  example: partitionId
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")

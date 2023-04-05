@@ -12,7 +12,7 @@ import {
   AbstractGridRepresentation,
   StratigraphicUnits,
   UnstructuredGridRepresentation
-} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.0.0";
+} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.1.0";
 
 export class UnstructuredGridRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -26,7 +26,7 @@ export class UnstructuredGridRepresentationOSDU
     xml: SimpleJson<resqml20.obj_UnstructuredGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "UnstructuredGridRepresentation.1.0.0");
+    super(xml, context, "UnstructuredGridRepresentation.1.1.0");
   }
 
   private async stratigraphicUnits(
@@ -49,10 +49,11 @@ export class UnstructuredGridRepresentationOSDU
       if (stratiIndices) {
         return {
           StratigraphicColumnRankInterpretationID:
-            this.dorToSrn(
+            (await this.dorToSrn(
               ReservoirDMSUrl,
-              xml.CellStratigraphicUnits?.StratigraphicOrganization
-            ) || "",
+              xml.CellStratigraphicUnits?.StratigraphicOrganization,
+              client
+            )) || "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
       }
@@ -87,14 +88,16 @@ export class UnstructuredGridRepresentationOSDU
           )
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
-      LocalModelCompoundCrsID: this.dorToSrn(
+      LocalModelCompoundCrsID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.Geometry?.LocalCrs
+        xml.Geometry?.LocalCrs,
+        client
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -108,9 +111,7 @@ export class UnstructuredGridRepresentationOSDU
         client
       ),
       HasNoGeometry: xml.Geometry === undefined,
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     if (xml?.Geometry?.NodeCount !== undefined) {
@@ -136,7 +137,7 @@ export class UnstructuredGridRepresentationOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }

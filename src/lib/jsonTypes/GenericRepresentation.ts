@@ -3,12 +3,15 @@ import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
-import { ResqmlWorkProductComponent } from "./WorkProductComponent";
+import {
+  getGeometries,
+  ResqmlWorkProductComponent
+} from "./WorkProductComponent";
 
 import {
   Data,
   GenericRepresentation
-} from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+} from "./Generated/work-product-component/GenericRepresentation.1.1.0";
 
 export class GenericRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +25,7 @@ export class GenericRepresentationOSDU
     xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericRepresentation.1.0.0");
+    super(xml, context, "GenericRepresentation.1.1.0");
   }
 
   private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
@@ -78,30 +81,6 @@ export class GenericRepresentationOSDU
     return undefined;
   }
 
-  public getGeometries(
-    xml: SimpleJson<resqml20.AbstractRepresentation>
-  ): SimpleJson<resqml20.PointGeometry>[] {
-    if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
-      const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
-      return [grid2d.Grid2dPatch.Geometry];
-    } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
-      const trig =
-        xml as SimpleJson<resqml20.obj_TriangulatedSetRepresentation>;
-      return trig.TrianglePatch.map(p => p.Geometry);
-    } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
-      const polyLine =
-        xml as SimpleJson<resqml20.obj_PolylineSetRepresentation>;
-      return polyLine.LinePatch.map(p => p.Geometry);
-    } else if (xml.$type === "resqml20.obj_PointSetRepresentation") {
-      const points = xml as SimpleJson<resqml20.obj_PointSetRepresentation>;
-      return points.NodePatch.map(p => p.Geometry);
-    } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
-      const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
-      return [line.NodePatch.Geometry];
-    }
-    return [];
-  }
-
   public async initData(
     ReservoirDMSUrl: string,
     xml: SimpleJson<resqml20.AbstractRepresentation>,
@@ -117,20 +96,21 @@ export class GenericRepresentationOSDU
     } else if ("LineRole" in xml) {
       Role = (xml as any).LineRole;
     }
-    const geometries = this.getGeometries(xml);
+    const geometries = getGeometries(xml);
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
       IndexableElementCount: this.elementCount(xml),
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID:
         geometries.length > 0
-          ? this.dorToSrn(ReservoirDMSUrl, geometries[0].LocalCrs)
+          ? await this.dorToSrn(ReservoirDMSUrl, geometries[0].LocalCrs, client)
           : undefined,
       RealizationIndex: undefined,
       Role: context.addReferenceData(
@@ -143,18 +123,16 @@ export class GenericRepresentationOSDU
       ),
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
 
-      ExtensionProperties: {
-        ReservoirDMSUrl: ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
-          this.data.LineageAssertions.push();
+          this.data.LineageAssertions.push({ ID: l });
         }
       }
     }

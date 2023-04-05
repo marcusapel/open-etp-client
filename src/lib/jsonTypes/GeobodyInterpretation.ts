@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   GeobodyInterpretation
-} from "./Generated/work-product-component/GeobodyInterpretation.1.0.0";
+} from "./Generated/work-product-component/GeobodyInterpretation.1.1.0";
 
 export class GeobodyInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class GeobodyInterpretationOSDU
     xml: SimpleJson<resqml20.obj_GeobodyInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GeobodyInterpretation.1.0.0");
+    super(xml, context, "GeobodyInterpretation.1.1.0");
   }
 
   public async initData(
@@ -56,9 +56,7 @@ export class GeobodyInterpretationOSDU
         this.capitalize(xml.GeologicUnitComposition)
       ),
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

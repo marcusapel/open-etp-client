@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   ColumnBasedTable,
   Data
-} from "./Generated/work-product-component/ColumnBasedTable.1.0.0";
+} from "./Generated/work-product-component/ColumnBasedTable.1.1.0";
 
 export class ColumnBasedTableOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_StringTableLookup>>
@@ -20,7 +20,7 @@ export class ColumnBasedTableOSDU
     xml: SimpleJson<resqml20.obj_StringTableLookup>,
     context: OSDUContext
   ) {
-    super(xml, context, "ColumnBasedTable.1.0.0");
+    super(xml, context, "ColumnBasedTable.1.1.0");
   }
 
   public async initData(
@@ -57,9 +57,7 @@ export class ColumnBasedTableOSDU
         { IntegerColumn: xml.Value.map(e => e.Key) },
         { StringColumn: xml.Value.map(e => e.Value) }
       ],
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalModelCompoundCRS
-} from "./Generated/work-product-component/LocalModelCompoundCrs.1.0.0";
+} from "./Generated/work-product-component/LocalModelCompoundCrs.1.1.0";
 
 export class LocalModelCompoundCrsOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_LocalDepth3dCrs>>
@@ -20,7 +20,7 @@ export class LocalModelCompoundCrsOSDU
     xml: SimpleJson<resqml20.obj_LocalDepth3dCrs>,
     context: OSDUContext
   ) {
-    super(xml, context, "LocalModelCompoundCrs.1.0.0");
+    super(xml, context, "LocalModelCompoundCrs.1.1.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
@@ -34,9 +34,7 @@ export class LocalModelCompoundCrsOSDU
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

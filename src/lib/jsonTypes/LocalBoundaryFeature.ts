@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalBoundaryFeature
-} from "./Generated/work-product-component/LocalBoundaryFeature.1.0.0";
+} from "./Generated/work-product-component/LocalBoundaryFeature.1.1.0";
 
 export class LocalBoundaryFeatureOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_BoundaryFeature>>
@@ -20,7 +20,7 @@ export class LocalBoundaryFeatureOSDU
     xml: SimpleJson<resqml20.obj_BoundaryFeature>,
     context: OSDUContext
   ) {
-    super(xml, context, "LocalBoundaryFeature.1.0.0");
+    super(xml, context, "LocalBoundaryFeature.1.1.0");
   }
 
   public async initData(
@@ -42,9 +42,7 @@ export class LocalBoundaryFeatureOSDU
        */
       BoundaryFeatureID: undefined,
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

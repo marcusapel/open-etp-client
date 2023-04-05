@@ -55,18 +55,199 @@ import {
 import {
   emlUriPattern,
   dataspaceUriPattern,
-  versionQueryParam
+  versionQueryParam,
+  datePattern
 } from "./Resource.controller";
 
 import { decode } from "jsonwebtoken";
 import express from "express";
 
-import { OSDUContext } from "../../jsonTypes/OsduContext";
+import {
+  IAcceptableUsage,
+  IContact,
+  ITechnicalAssurance,
+  OSDUContext
+} from "../../jsonTypes/OsduContext";
 import { createManifest } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
 
 const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$/;
+
+const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+
+export class ContactDto implements IContact {
+  @ApiPropertyOptional({
+    name: "EmailAddress",
+    type: String,
+    maxLength: 2048,
+    description:
+      "Contact email address. Property may be left empty where it is inappropriate to provide personally identifiable information.",
+    example: "user@mycompany.com",
+    pattern: patternString(emailPattern)
+  })
+  EmailAddress?: string;
+
+  @ApiPropertyOptional({
+    name: "PhoneNumber",
+    type: String,
+    maxLength: 2048,
+    description:
+      "Contact phone number. Property may be left empty where it is inappropriate to provide personally identifiable information.",
+    example: "1-555-281-5555",
+    pattern: patternString(/[0-9-]+/)
+  })
+  PhoneNumber?: string;
+
+  @ApiPropertyOptional({
+    name: "RoleTypeID",
+    type: String,
+    maxLength: 2048,
+    description:
+      "The identifier of a reference value for the role of the contact within the associated organization, such as Account owner, Sales Representative, Technical Support, Project Manager, Party Chief, Client Representative, Senior Observer.",
+    example: `${partitionId}:reference-data--ContactRoleType:Geologist:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-ContactRoleType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  RoleTypeID?: string;
+
+  @ApiPropertyOptional({
+    name: "DataGovernanceRoleTypeID",
+    type: String,
+    maxLength: 2048,
+    description:
+      "The data governance role assigned to this contact if and only if the context has a data governance role (in context of TechnicalAssurance). The value is kept absent in all other cases.",
+    example: `${partitionId}:reference-data--DataGovernanceRoleType:Reviewer:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-DataGovernanceRoleType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  DataGovernanceRoleTypeID?: string;
+
+  @ApiPropertyOptional({
+    name: "WorkflowPersonaTypeID",
+    type: String,
+    maxLength: 2048,
+    description:
+      "The persona in context of workflows associated with this contact, as used in TechnicalAssurance.",
+    example: `${partitionId}:reference-data--WorkflowPersonaType:Reviewer:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-WorkflowPersonaType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  WorkflowPersonaTypeID?: string;
+
+  @ApiPropertyOptional({
+    name: "OrganisationID",
+    type: String,
+    maxLength: 2048,
+    description: "Reference to the company the contact is associated with.",
+    example: `${partitionId}:master-data--Organisation:MyCompany:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:master-data\\-\\-Organisation:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  OrganisationID?: string;
+
+  @ApiPropertyOptional({
+    name: "Name",
+    type: String,
+    maxLength: 2048,
+    description:
+      "Name of the individual contact. Property may be left empty where it is inappropriate to provide personally identifiable information.",
+    example: "Evergreen",
+    pattern: patternString(/^[a-zA-Z ]*$/)
+  })
+  Name?: string;
+}
+
+class AcceptableUsageDto implements IAcceptableUsage {
+  @ApiPropertyOptional({
+    name: "WorkflowUsage",
+    type: "String",
+    description:
+      "Name of the business activities, processes, and/or workflows that the record is technical assurance value is valid for.",
+    example: `${partitionId}:reference-data--WorkflowUsageType:SeismicProcessing:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-WorkflowUsageType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  WorkflowUsage?: string;
+
+  @ApiPropertyOptional({
+    name: "WorkflowPersona",
+    type: "String",
+    description:
+      "Name of the role or personas that the record is technical assurance value is valid for.",
+    example: `${partitionId}:reference-data--WorkflowPersonaType:SeismicProcessor:`,
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-WorkflowPersonaType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    )
+  })
+  WorkflowPersona?: string;
+}
+
+class TechnicalAssuranceDto implements ITechnicalAssurance {
+  @ApiPropertyOptional({
+    name: "AcceptableUsage",
+    type: [AcceptableUsageDto],
+    maxItems: 99999,
+    description:
+      'Describes the workflows and/or personas that the technical assurance value is valid for (e.g., This data has a technical assurance property of "trusted" and it is suitable for Seismic Interpretation).'
+  })
+  AcceptableUsage?: AcceptableUsageDto[];
+
+  @ApiPropertyOptional({
+    name: "Comment",
+    description:
+      "Any additional context to support the determination of technical assurance",
+    example: "This is free form text from reviewer, e.g. restrictions on use",
+    pattern: patternString(
+      /^[\\w\\-\\.]+:reference-data\\-\\-TechnicalAssuranceType:[\\w\\-\\.\\:\\%]+:[0-9]*$/
+    ),
+    maxLength: 2048
+  })
+  Comment?: string;
+
+  @ApiPropertyOptional({
+    name: "EffectiveDate",
+    pattern: patternString(datePattern),
+    example: `2022-01-12`,
+    maxLength: 2048,
+    description:
+      "Date when the technical assurance determination for this record has taken place"
+  })
+  EffectiveDate?: Date;
+
+  @ApiPropertyOptional({
+    name: "Reviewers",
+    description:
+      "The individuals, or roles, that reviewed and determined the technical assurance value",
+    type: [ContactDto],
+    maxItems: 99999
+  })
+  Reviewers?: ContactDto[];
+
+  @ApiProperty({
+    name: "TechnicalAssuranceTypeID",
+    description:
+      'Describes a master-data record\'s overall suitability for general business consumption based on data quality. Clarifications: Since Certified is the highest classification of suitable quality, any further change or versioning of a Certified record should be carefully considered and justified. If a Technical Assurance value is not populated then one can assume the data has not been evaluated or its quality is unknown (=Unevaluated). Technical Assurance values are not intended to be used for the identification of a single "preferred" or "definitive" record by comparison with other records.',
+    example: `${partitionId}:reference-data--TechnicalAssuranceType:Certified:`,
+    pattern: patternString(/^[0-9a-zA-Z /(),.]+$/),
+    maxLength: 2048
+  })
+  TechnicalAssuranceTypeID!: string;
+
+  @ApiPropertyOptional({
+    name: "UnacceptableUsage",
+    type: [AcceptableUsageDto],
+    maxItems: 99999,
+    description:
+      'Describes the workflows and/or personas that the technical assurance value is not valid for (e.g., This data has a technical assurance property of "trusted", but it is not suitable for Seismic Interpretation).'
+  })
+  UnacceptableUsage?: AcceptableUsageDto[];
+}
 
 export class ACLDto {
   @ApiProperty({
@@ -75,7 +256,7 @@ export class ACLDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of groups with viewer role for the dataspace",
-    example: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
+    example: [`data.default.viewers@${partitionId}.mycompany.com`],
     pattern: patternString(emailPattern)
   })
   viewers!: string[];
@@ -86,7 +267,7 @@ export class ACLDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of groups with owner role for the dataspace",
-    example: ["data.rdms-mygroup.owners@mypartition.mycompany.com"],
+    example: [`data.default.owners@${partitionId}.mycompany.com`],
     pattern: patternString(emailPattern)
   })
   owners!: string[];
@@ -99,7 +280,7 @@ export class LegaltagsDto {
     maxItems: 99999,
     maxLength: 2048,
     description: "List of legal tags",
-    example: ["my.legal.tags"]
+    example: [`${partitionId}-ReservoirDDMS-Legal-Tag`]
   })
   legaltags!: string[];
 
@@ -127,7 +308,7 @@ export class ManifestInputDto {
     type: [String],
     maxItems: 99999,
     maxLength: 2048,
-    description: `Uris of resources to generate a manifest for.`,
+    description: `Uris of resources or dataspaces to generate a manifest for.`,
     example: [
       "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
       "eml:///dataspace('demo/Volve')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)"
@@ -139,12 +320,23 @@ export class ManifestInputDto {
   uris!: string[];
 
   @ApiPropertyOptional({
+    name: "typePatterns",
+    type: [String],
+    maxItems: 99999,
+    maxLength: 2048,
+    description: `Energistics types to restrict search against when indexing entire dataspaces, accept * and . wildcard.`,
+    example: ["resqml20.obj_*Representation"],
+    pattern: `${patternString(/^[0-9a-zA-Z._*?]+$/)}`
+  })
+  typePatterns?: string[];
+
+  @ApiPropertyOptional({
     name: "acl",
     type: ACLDto,
     description: `OSDU access control list information to apply.`,
     example: {
-      viewers: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
-      owners: ["data.rdms-mygroup.owners@mypartition.mycompany.com"]
+      viewers: [`data.default.viewers@${partitionId}.mycompany.com`],
+      owners: [`data.default.owners@${partitionId}.mycompany.com`]
     }
   })
   acl?: ACLDto;
@@ -160,7 +352,7 @@ export class ManifestInputDto {
     name: "fileCollection",
     type: String,
     description: `When resources also included in file, provide file information to be added to manifest resources.`,
-    example: "mypartition:dataset--FileCollection.Generic:myepcfile:",
+    example: `${partitionId}:dataset--FileCollection.Generic:myepcfile:`,
     pattern: patternString(
       /^[\\w\\-\\.]+:dataset\\-\\-[\\w\\-\\.]+:[\\w\\-\\.\\:\\%]+$/
     )
@@ -173,6 +365,14 @@ export class ManifestInputDto {
     example: `{"quality":"good"}`
   })
   tags?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    name: "technicalAssurances",
+    type: [TechnicalAssuranceDto],
+    maxItems: 1028,
+    description: `Technical Assurance information.`
+  })
+  technicalAssurances?: TechnicalAssuranceDto[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",
@@ -260,13 +460,23 @@ export default class ObjectsManifestAPI {
         body.createMissingReferences
       );
 
+      if (context.fileCollection) {
+        if (
+          (await context.getOSDUResourceVersion(context.fileCollection)) ===
+          undefined
+        ) {
+          context.fileCollection = undefined;
+        }
+      }
+
       context.bearer = bearer;
+      context.technicalAssurances = body.technicalAssurances;
 
       // If connected to OSDU apis, check that the legal tags are part of the platform
       await context.checkLegalTags();
 
       c = await createSession(bearer, partition);
-      const b = await createManifest(c, body.uris, context);
+      const b = await createManifest(c, body.uris, context, body.typePatterns);
       await c.closeSession();
       c = undefined;
       res.send(b);

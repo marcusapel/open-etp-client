@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalModelFeature
-} from "./Generated/work-product-component/LocalModelFeature.1.0.0";
+} from "./Generated/work-product-component/LocalModelFeature.1.1.0";
 
 export class LocalModelFeatureOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class LocalModelFeatureOSDU
     xml: SimpleJson<resqml20.obj_OrganizationFeature>,
     context: OSDUContext
   ) {
-    super(xml, context, "LocalModelFeature.1.0.0");
+    super(xml, context, "LocalModelFeature.1.1.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
@@ -43,9 +43,7 @@ export class LocalModelFeatureOSDU
        */
       ModelFeatureID: undefined,
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

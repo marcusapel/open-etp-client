@@ -10,8 +10,16 @@ import {
   Activity,
   Data,
   ParameterKey
-} from "./Generated/work-product-component/Activity.1.0.0";
+} from "./Generated/work-product-component/Activity.1.2.0";
 
+/**
+ * Extract OSDU Activity information from Activity
+ *
+ * @export
+ * @class ActivityOSDU
+ * @extends {ResqmlWorkProductComponent<SimpleJson<resqml20.obj_Activity>>}
+ * @implements {Activity}
+ */
 export class ActivityOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_Activity>>
   implements Activity
@@ -21,7 +29,7 @@ export class ActivityOSDU
   };
 
   constructor(xml: SimpleJson<resqml20.obj_Activity>, context: OSDUContext) {
-    super(xml, context, "Activity.1.0.0");
+    super(xml, context, "Activity.1.2.0");
   }
 
   public async getKeys(
@@ -103,6 +111,20 @@ export class ActivityOSDU
         Keys = await this.getKeys(ReservoirDMSUrl, p.Key, client);
       }
 
+      let StringParameter = dsp?.Value;
+
+      let DataObjectParameter: string | undefined = undefined;
+      if (p.$type === "resqml20.DataObjectParameter") {
+        DataObjectParameter = await this.dorToSrn(
+          ReservoirDMSUrl,
+          dop?.DataObject,
+          client
+        );
+        if (DataObjectParameter === undefined) {
+          StringParameter = `${dop?.DataObject.ContentType}(${dop?.DataObject.UUID})`;
+        }
+      }
+
       Parameters.push({
         ParameterKindID:
           context.addReferenceData("ParameterKind", this.getKind(p)) || "",
@@ -110,7 +132,7 @@ export class ActivityOSDU
         /**
          * Parameter referencing to a top level object.
          */
-        DataObjectParameter: this.dorToSrn(ReservoirDMSUrl, dop?.DataObject),
+        DataObjectParameter,
         /**
          * Parameter containing a double value.
          */
@@ -149,7 +171,7 @@ export class ActivityOSDU
         /**
          * Parameter containing a string value.
          */
-        StringParameter: dsp?.Value,
+        StringParameter,
         /**
          * Parameter containing a time index value.  It is assumed that all TimeIndexParameters
          * within an Activity have the same date-time format, which is then described by the
@@ -180,9 +202,10 @@ export class ActivityOSDU
        * The relation to the ActivityTemplate carrying expected parameter definitions and default
        * values.
        */
-      ActivityTemplateID: this.dorToSrn(
+      ActivityTemplateID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.ActivityDescriptor
+        xml.ActivityDescriptor,
+        client
       ),
       /**
        * General parameter value used in one instance of activity.  Includes reference to data
@@ -196,7 +219,11 @@ export class ActivityOSDU
       /**
        * The relationship to a parent activity.
        */
-      ParentActivityID: this.dorToSrn(ReservoirDMSUrl, xml.Parent),
+      ParentActivityID: await this.dorToSrn(
+        ReservoirDMSUrl,
+        xml.Parent,
+        client
+      ),
       /**
        * The relationship to a parent project acting as a parent activity.
        */
@@ -222,6 +249,15 @@ export class ActivityOSDU
   }
 }
 
+/**
+ * Convert RESQML Activity to OSDU type
+ *
+ * @param {string} uri
+ * @param {SimpleJson<resqml20.obj_Activity>} xml
+ * @param {OSDUContext} context
+ * @param {ResqmlClient} client
+ * @return {Promise<ActivityOSDU>}
+ */
 export const ActivityManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_Activity>,

@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicColumnRankInterpretation
-} from "./Generated/work-product-component/StratigraphicColumnRankInterpretation.1.0.0";
+} from "./Generated/work-product-component/StratigraphicColumnRankInterpretation.1.2.0";
 
 export class StratigraphicColumnRankInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class StratigraphicColumnRankInterpretationOSDU
     xml: SimpleJson<resqml20.obj_StratigraphicColumnRankInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicColumnRankInterpretation.1.0.0");
+    super(xml, context, "StratigraphicColumnRankInterpretation.1.2.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
@@ -33,6 +33,15 @@ export class StratigraphicColumnRankInterpretationOSDU
     if (context === undefined) {
       return this;
     }
+
+    const StratigraphicUnitInterpretationSet: string[] | undefined =
+      xml.StratigraphicUnits.length === 0 ? undefined : [];
+    for (const s of xml.StratigraphicUnits) {
+      StratigraphicUnitInterpretationSet?.push(
+        (await this.dorToSrn(ReservoirDMSUrl, s.Unit, client)) || ""
+      );
+    }
+
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
@@ -58,16 +67,9 @@ export class StratigraphicColumnRankInterpretationOSDU
         "Chronostratigraphic"
       ),
 
-      StratigraphicUnitInterpretationSet:
-        xml.StratigraphicUnits.length === 0
-          ? undefined
-          : xml.StratigraphicUnits.map(
-              u => this.dorToSrn(ReservoirDMSUrl, u.Unit) || ""
-            ),
+      StratigraphicUnitInterpretationSet,
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

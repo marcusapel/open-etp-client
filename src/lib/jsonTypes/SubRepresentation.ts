@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SubRepresentation
-} from "./Generated/work-product-component/SubRepresentation.1.0.0";
+} from "./Generated/work-product-component/SubRepresentation.1.1.0";
 
 export class SubRepresentationOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_SubRepresentation>>
@@ -20,7 +20,7 @@ export class SubRepresentationOSDU
     xml: SimpleJson<resqml20.obj_SubRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SubRepresentation.1.0.0");
+    super(xml, context, "SubRepresentation.1.1.0");
   }
 
   public async initData(
@@ -54,9 +54,10 @@ export class SubRepresentationOSDU
           IndexableElementID
         }
       ],
-      InterpretationID: this.dorToSrn(
+      InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
-        xml.RepresentedInterpretation
+        xml.RepresentedInterpretation,
+        client
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID: undefined,
@@ -65,18 +66,20 @@ export class SubRepresentationOSDU
       ElementCount: Count,
       IndexableElementID,
       SupportingRepresentationIDs: [
-        this.dorToSrn(ReservoirDMSUrl, xml.SupportingRepresentation) || ""
+        (await this.dorToSrn(
+          ReservoirDMSUrl,
+          xml.SupportingRepresentation,
+          client
+        )) || ""
       ],
-      ExtensionProperties: {
-        ReservoirDMSUrl: ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = this.dorToSrn(ReservoirDMSUrl, d);
+        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
           this.data.LineageAssertions.push();
         }

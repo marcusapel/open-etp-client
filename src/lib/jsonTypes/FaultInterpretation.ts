@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   FaultInterpretation
-} from "./Generated/work-product-component/FaultInterpretation.1.0.0";
+} from "./Generated/work-product-component/FaultInterpretation.1.1.0";
 
 export class FaultInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class FaultInterpretationOSDU
     xml: SimpleJson<resqml20.obj_FaultInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "FaultInterpretation.1.0.0");
+    super(xml, context, "FaultInterpretation.1.1.0");
     this.data = {};
   }
   public async initData(
@@ -114,9 +114,7 @@ export class FaultInterpretationOSDU
           }
         : undefined,
 
-      ExtensionProperties: {
-        ReservoirDMSUrl
-      }
+      ExtensionProperties: undefined
     };
 
     xml.ExtraMetadata?.forEach(x => {

@@ -3,13 +3,44 @@ import { EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
-import ResqmlOSDU, {
-  EtpDataspaceManifest,
-  WorkProductManifest
-} from "./ResqmlOsdu";
+import ResqmlOSDU from "./ResqmlOsdu";
 
 import { Manifest } from "./Generated/manifest/Manifest.1.0.0";
 import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.controller";
+import { etpServerPath, osduUrl } from "../common/config";
+
+import serverSchema from "./server-schema.json";
+
+/**
+ * Register DMS if not already registered
+ *
+ * @param {OSDUContext} context
+ */
+const registerDMS = async (context: OSDUContext) => {
+  const dmsUrl = `${osduUrl}${etpServerPath}`;
+
+  let index = 1;
+  while (index > 0) {
+    context.rddmsId = `reservoir-ddms${index}`;
+    const dms = await context.fetchOSDU<{
+      interfaces: { schema: { servers: { url: string }[] } }[];
+    }>(`/api/register/v1/ddms/${context.rddmsId}`);
+    if (dms === undefined) {
+      break;
+    }
+    if (
+      dms.interfaces.some(i => i.schema.servers.some(s => s.url === dmsUrl))
+    ) {
+      return;
+    } else {
+      index++;
+    }
+  }
+  serverSchema.id = context.rddmsId;
+  serverSchema.interfaces[0].schema.servers[0].url = dmsUrl;
+
+  await context.pushOSDU("/api/register/v1/ddms", serverSchema);
+};
 
 /**
  * Create a manifest for a list of uris
@@ -22,11 +53,13 @@ import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.control
 export const createManifest = async (
   client: ResqmlClient,
   uris: URI[],
-  context: OSDUContext
+  context: OSDUContext,
+  typePatterns?: string[]
 ): Promise<Manifest> => {
   if (uris.length === 0) {
     return Promise.reject("No URI provided");
   }
+  await registerDMS(context);
   try {
     const manifests: Manifest = {
       // $schema:
@@ -40,10 +73,26 @@ export const createManifest = async (
 
     const allUris = new Set<string>();
 
+    const matchPatterns: RegExp[] | undefined = typePatterns?.map(
+      t => new RegExp(t.replaceAll("*", "\\w*").replaceAll("?", "\\w?"))
+    );
+
     for (const uri of uris) {
       if (uri.match(dataspaceUriPattern)) {
         // Add entire dataspace content
-        (await client.getDataspaceResources(uri)).map(r => allUris.add(r.uri));
+        let dataspaceUris = await client.getDataspaceResources(uri);
+        if (matchPatterns) {
+          dataspaceUris = dataspaceUris.filter(f => {
+            const u: EtpUri = new EtpUri(f.uri);
+            for (const p of matchPatterns) {
+              if (u.dataObjectType.match(p)) {
+                return true;
+              }
+            }
+            return false;
+          });
+        }
+        dataspaceUris.forEach(r => allUris.add(r.uri));
       } else {
         allUris.add(uri);
       }
@@ -71,22 +120,12 @@ export const createManifest = async (
           continue;
         }
 
-        const dataset = EtpDataspaceManifest(dataspaces[0], context);
-        if (dataset.id !== undefined) {
-          const osduVersion = await context.getOSDUResourceVersion(dataset.id);
-          if (osduVersion !== undefined) {
-            dataset.version = osduVersion + 1;
-          }
-          manifests.Data.Datasets = [dataset];
-          currentDataspaces.add(dataspaceId);
-        }
-
         //Create WorkProduct
-        manifests.Data.WorkProduct = WorkProductManifest(
-          dataspaces[0],
-          context
-        );
-        manifests.Data.WorkProduct.version = dataset.version;
+        // manifests.Data.WorkProduct = WorkProductManifest(
+        //   dataspaces[0],
+        //   context
+        // );
+        // manifests.Data.WorkProduct.version = dataset.version;
       }
 
       // Check that it is an object
@@ -138,10 +177,14 @@ export const createManifest = async (
       Array.from(context.created.keys())
     );
 
+    manifests.ReferenceData = [];
+
     for (const res of context.created) {
       const id: string = res[0];
       if (id.includes("master-data")) {
         manifests.MasterData.push(res[1]);
+      } else if (id.includes("reference-data")) {
+        manifests.ReferenceData.push(res[1]);
       } else {
         if (
           context.spatialPoint !== undefined &&
@@ -202,13 +245,21 @@ export const createManifest = async (
                 c === undefined
                   ? resolve()
                   : c.convert(objUri, obj, context, client).then((res: any) => {
-                      const srn = context.uriToSrn(objUri);
+                      const srn = obj
+                        ? context.uriToSrn(objUri, obj)
+                        : undefined;
                       if (srn === undefined) {
                         reject(
                           new Error(`cannot generate reference for: ${objUri}`)
                         );
                       } else {
-                        manifests.Data?.WorkProductComponents?.push(res);
+                        if (res.id.includes("master-data")) {
+                          manifests.MasterData?.push(res);
+                        } else if (res.id.includes("reference-data")) {
+                          manifests.ReferenceData?.push(res);
+                        } else {
+                          manifests.Data?.WorkProductComponents?.push(res);
+                        }
                         context.generatedSrn.set(`${srn}1`, res);
                         resolve();
                       }
@@ -248,7 +299,6 @@ export const createManifest = async (
     const missing = Array.from(context.srnToUri.keys()).filter(
       k => context.generatedSrn.get(k) === undefined
     );
-    manifests.ReferenceData = [];
     if (missing.length > 0 && context.createMissingReferences === false) {
       context.references.forEach(r => {
         missing.push(r);
