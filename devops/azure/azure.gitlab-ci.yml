@@ -89,10 +89,11 @@ azure_test:
 # It is a temporary change as azure_code_coverage not yet been implemented for CPP services.
 # Therefore the job has been disabled
 azure_code_coverage:
+  needs: ["rdms_rest_compile-and-unit-test"]
   extends:
     - .azure_variables
   variables:
-    AZURE_SKIP_COVERAGE: 'true'
+    AZURE_SKIP_COVERAGE: "true"
 
 azure_test_py:
   extends:
