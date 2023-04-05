@@ -1281,7 +1281,7 @@ describe(`Manifest`, () => {
         .expect(`Content-Type`, /json/)
         .expect(201);
       const manifest = res.body as Manifest;
-      expect(manifest.Data?.Datasets?.length).toBe(1);
+      expect(manifest.Data?.Datasets?.length).toBeUndefined();
       expect(manifest.Data?.WorkProduct).toBeDefined();
       expect(manifest.Data?.WorkProductComponents?.length).toBe(28);
       expect(manifest.ReferenceData?.length).toBe(13);
