@@ -48,6 +48,8 @@ export const dataPartitionId =
 export const restApiMainUrl = process.env.RDMS_REST_MAIN_URL as string;
 export const restApiRoutePath = process.env.RDMS_REST_ROOT_PATH as string;
 export const restApiPort = parseInt(process.env.RDMS_REST_PORT as string);
+export const openApiPort =
+  parseInt(process.env.OPEN_API_PORT as string) || restApiPort;
 
 export const osduUrl =
   (process.env.RDMS_OSDU_URL as string) ||

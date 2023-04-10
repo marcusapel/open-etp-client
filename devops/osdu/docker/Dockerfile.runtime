@@ -63,8 +63,8 @@ WORKDIR /usr/src/api/
 # Environment variables used by server
 # RDMS_REST_MAIN_URL : Base url for openAPI
 # RDMS_REST_ROOT_PATH : local path inside url
-# RDMS_REST_PORT : Port of openAPI
-#  --- OpenAPI url is `${RDMS_REST_MAIN_URL}:${RDMS_REST_PORT}${RDMS_REST_ROOT_PATH}` ---
+# RDMS_REST_PORT : Port of api in container
+#  --- OpenAPI url is `${RDMS_REST_MAIN_URL}:${OPEN_API_PORT}${RDMS_REST_ROOT_PATH}` ---
 
 
 # RDMS_ETP_PROTOCOL websocket protocol "ws" or "wss"

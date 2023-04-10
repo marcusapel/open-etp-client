@@ -88,6 +88,7 @@ services:
       - RDMS_OSDU_URL=${RDMS_OSDU_URL}
       - RDMS_REST_ROOT_PATH=${RDMS_REST_ROOT_PATH}
       - RDMS_REST_PORT=${RDMS_REST_PORT}
+      - OPEN_API_PORT=${OPEN_API_PORT}
       - RDMS_DATA_PARTITION_MODE=${RDMS_DATA_PARTITION_MODE}
     labels:
       OpenETPServer.service: runtime

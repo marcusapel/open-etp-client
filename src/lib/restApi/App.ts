@@ -41,7 +41,7 @@ import Logging from "../common/Logging";
 
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
-import { restApiRoutePath, swaggerUIUrl } from "./ControllerUtils";
+import { restApiRoutePath, serverUIUrl, swaggerUIUrl } from "./ControllerUtils";
 
 import ExceptionCounterFilter from "../restApi/monitoring.module/ExceptionCounter.filter";
 
@@ -120,7 +120,7 @@ export default async function app(): Promise<NestExpressApplication> {
       { type: "http", scheme: "bearer", bearerFormat: "JWT" },
       "access-token"
     )
-    .addServer(`${swaggerUIUrl}`)
+    .addServer(`${serverUIUrl}`)
     .build();
 
   const document = SwaggerModule.createDocument(nestApp, config);
