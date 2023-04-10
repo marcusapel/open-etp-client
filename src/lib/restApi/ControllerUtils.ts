@@ -49,15 +49,16 @@ import {
   etpServerUrl,
   restApiMainUrl,
   restApiPort,
-  restApiRoutePath
+  restApiRoutePath,
+  openApiPort
 } from "../common/config";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
 
-export const swaggerServers = [
-  { url: swaggerUIUrl, description: "API server" }
-];
+export const serverUIUrl = `${restApiMainUrl}:${openApiPort}${restApiRoutePath}`;
+
+export const swaggerServers = [{ url: serverUIUrl, description: "API server" }];
 
 const getSHA256 = (input: string) => {
   return crypto.createHash("sha256").update(input).digest("hex");

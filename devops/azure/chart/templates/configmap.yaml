@@ -18,7 +18,8 @@ data:
   {{- end }}
 
   RDMS_REST_MAIN_URL: https://{{ .Values.ingress.hosts.host | default "localhost" }}
-  RDMS_REST_PORT: "443"
+  RDMS_REST_PORT: "8003"
+  OPEN_API_PORT: "443"
   
   RDMS_AUTHENTICATION_KEY_BASE: 0000000-0000-0000-0000-000000000000
   RDMS_OSDU_URL: https://{{ .Values.ingress.hosts.host | default "localhost" }}
