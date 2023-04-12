@@ -16,27 +16,30 @@
 // ============================================================================
 
 export abstract class CloudContainer {
+  protected static providers: { [key: string]: any } = {};
 
-    protected static providers: { [key: string]: any } = {};
+  public static register(provider: string) {
+    return (target: any) => {
+      if (CloudContainer.providers[provider]) {
+        CloudContainer.providers[provider].push(target);
+      } else {
+        CloudContainer.providers[provider] = [target];
+      }
+      return target;
+    };
+  }
 
-    public static register(provider: string) {
-        return (target: any) => {
-            if (CloudContainer.providers[provider]) {
-                CloudContainer.providers[provider].push(target);
-            } else {
-                CloudContainer.providers[provider] = [target];
-            }
-            return target;
-        };
+  public static resolve(
+    provider: string,
+    clsInstance: any,
+    args: { [key: string]: any } = {}
+  ): any {
+    for (const obj of CloudContainer.providers[provider]) {
+      if (obj.prototype instanceof clsInstance) {
+        return new obj(args);
+      }
     }
 
-    public static resolve(provider: string, clsInstance: any, args: { [key: string]: any; } = {}): any {
-        for (const obj of CloudContainer.providers[provider]) {
-            if (obj.prototype instanceof clsInstance) {
-                return new obj(args);
-            }
-        }
-
-        throw Error("Logger has been improperly configured");
-    }
+    throw Error("Logger has been improperly configured");
+  }
 }

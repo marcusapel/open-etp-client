@@ -18,25 +18,29 @@
 import { CloudContainer } from "./Container";
 
 export interface IConfig {
-    init(): Promise<void>;
+  init(): Promise<void>;
 }
 
 export abstract class Config implements IConfig {
-    public static CLOUD_PROVIDER: string;
+  public static CLOUD_PROVIDER: string;
 
-    public abstract init(): Promise<void>;
+  public abstract init(): Promise<void>;
 
-    public static setCloudProvider(cloudProvider: string) {
-        Config.CLOUD_PROVIDER = cloudProvider;
-        if (!Config.CLOUD_PROVIDER) {
-            throw (new Error(
-                'The \"CLOUD_PROVIDER\" environment variable has not been set'));
-        }
+  public static setCloudProvider(cloudProvider: string) {
+    Config.CLOUD_PROVIDER = cloudProvider;
+    if (!Config.CLOUD_PROVIDER) {
+      throw new Error(
+        'The "CLOUD_PROVIDER" environment variable has not been set'
+      );
     }
+  }
 }
 
 export class ConfigFactory extends CloudContainer {
-    public static build(itemKey: string, args: { [key: string]: any; } = {}): IConfig {
-        return CloudContainer.resolve(itemKey, Config, args) as IConfig;
-    }
+  public static build(
+    itemKey: string,
+    args: { [key: string]: any } = {}
+  ): IConfig {
+    return CloudContainer.resolve(itemKey, Config, args) as IConfig;
+  }
 }
