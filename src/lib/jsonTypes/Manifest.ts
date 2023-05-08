@@ -161,23 +161,57 @@ export const createManifest = async (
       if (c === undefined) {
         continue;
       }
-      const res = await c.convert(
+      let res = await c.convert(
         objectUris[i],
         resolvedObjects[i],
         context,
         client
       );
       if (res !== undefined) {
+        // Check if it is an explicit osdu resource
+        const al = resolvedObjects[i]?.Aliases?.find(
+          a => a.Authority === "osdu"
+        );
+        if (al && al.Identifier) {
+          //Check that a version exists
+          const d = res.id.split(":");
+          const version = await context.getOSDUResourceVersion(res.id);
+          if (version) {
+            const stored = await context.fetchOSDU<any>(
+              `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
+            );
+            if (stored) {
+              // If version exists, just update the DDMSDatasets field in the exiting record
+              if (res.data?.DDMSDatasets?.length > 0) {
+                if (!stored.data) {
+                  stored.data = {};
+                }
+                if (!stored.data.DDMSDatasets) {
+                  stored.data.DDMSDatasets = [];
+                } else if (
+                  // If the DDMSDatasets already contain the current grid, skip it
+                  stored.data.DDMSDatasets.findIndex(
+                    (e: string) => e === res.data?.DDMSDatasets[0]
+                  ) !== -1
+                ) {
+                  continue;
+                }
+                stored.data.DDMSDatasets = [
+                  ...stored.data.DDMSDatasets,
+                  ...res.data.DDMSDatasets
+                ];
+              }
+              res = stored;
+            }
+          }
+        }
         context.created.set(res.id, res);
       }
     }
 
-    // Get existing versions of created objects
-    const versions = await context.getVersions(
-      Array.from(context.created.keys())
-    );
-
     manifests.ReferenceData = [];
+
+    const generatedSrn = new Map<string, any>();
 
     for (const res of context.created) {
       const id: string = res[0];
@@ -195,17 +229,7 @@ export const createManifest = async (
         manifests.Data.WorkProductComponents.push(res[1]);
         manifests.Data.WorkProduct?.data?.Components?.push(`${res[0]}:`);
       }
-
-      const osduVersion = versions.get(res[0]);
-      if (osduVersion !== undefined) {
-        res[1].version = osduVersion + 1;
-      } else {
-        res[1].version = 1;
-      }
-      const srn = `${res[0]}:${res[1].version}`;
-      if (srn) {
-        context.generatedSrn.set(srn, res);
-      }
+      generatedSrn.set(res[0], res[1]);
     }
 
     if (urisNotFound.length > 0) {
@@ -216,7 +240,7 @@ export const createManifest = async (
 
     // Find referenced objects not currently part of the manifest and not already in OSDU
     let missingSrn: string[] = Array.from(context.srnToUri.keys()).filter(
-      k => context.generatedSrn.get(`${k}1`) === undefined
+      k => generatedSrn.get(k) === undefined
     );
     missingSrn = await context.filterOSDUResources(missingSrn);
     if (context.createMissingReferences) {
@@ -260,7 +284,7 @@ export const createManifest = async (
                         } else {
                           manifests.Data?.WorkProductComponents?.push(res);
                         }
-                        context.generatedSrn.set(`${srn}1`, res);
+                        generatedSrn.set(`${srn}`, res);
                         resolve();
                       }
                     })
@@ -270,7 +294,7 @@ export const createManifest = async (
         }
         await Promise.all(missingPromises);
         missingSrn = Array.from(context.srnToUri.keys()).filter(
-          k => context.generatedSrn.get(`${k}1`) === undefined
+          k => generatedSrn.get(k) === undefined
         );
         missingSrn = await context.filterOSDUResources(missingSrn);
       }
@@ -286,7 +310,7 @@ export const createManifest = async (
     }
 
     await Promise.all(
-      Array.from(context.generatedSrn.entries()).map(async e =>
+      Array.from(generatedSrn.entries()).map(async e =>
         context.getOSDUResourceVersion(e[0]).then(res => {
           if (res !== undefined) {
             e[1].version = res + 1;
@@ -297,7 +321,7 @@ export const createManifest = async (
 
     // Process missing reference data
     const missing = Array.from(context.srnToUri.keys()).filter(
-      k => context.generatedSrn.get(k) === undefined
+      k => generatedSrn.get(k) === undefined
     );
     if (missing.length > 0 && context.createMissingReferences === false) {
       context.references.forEach(r => {
@@ -314,7 +338,7 @@ export const createManifest = async (
         const rd = ResqmlOSDU.buildReference(r, context);
         if (rd !== undefined) {
           manifests.ReferenceData?.push(rd);
-          context.generatedSrn.set(r, rd);
+          generatedSrn.set(r, rd);
         }
       });
     }

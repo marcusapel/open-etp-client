@@ -131,7 +131,7 @@ export class SeismicBinGridOSDU
     C = [ox + nv * vx, oy + nv * vy];
     D = [B[0] + nv * vx, B[1] + nv * vy];
 
-    const crsObj = await ResqmlWorkProductComponent.getObject(
+    const crsObj = await this.getObjectFromDor(
       client,
       dataspaceUri.uri,
       xml.Grid2dPatch.Geometry.LocalCrs
@@ -199,7 +199,7 @@ export class SeismicBinGridOSDU
       for (const d of dors) {
         const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
-          this.data.LineageAssertions.push();
+          this.data.LineageAssertions.push({ ID: l });
         }
       }
     }

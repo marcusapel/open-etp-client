@@ -20,6 +20,7 @@ import Logging from "../lib/common/Logging";
 
 import { execSync } from "child_process";
 import http from "http";
+import https from "https";
 import request from "supertest";
 
 import {
@@ -77,10 +78,13 @@ describe("Valid data partition", () => {
 });
 
 export const checkServerAvailability: () => Promise<boolean> = async () => {
-  const url = `http://${etpServerHost}:${etpServerPort}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
+  const prot = etpServerProtocol === "wss" ? https : http;
+  const url = `${
+    etpServerProtocol === "wss" ? "https" : "http"
+  }://${etpServerHost}:${etpServerPort}${etpServerPath}/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org`;
   return new Promise(resolve => {
     try {
-      const req = http.get(url, response => {
+      const req = prot.get(url, response => {
         if (response.statusCode === 200 || response.statusCode === 301) {
           resolve(true);
         } else {
@@ -162,7 +166,7 @@ type TServer = Record<string, request.SuperTest<request.Test>>;
 const testServers: TServer = {};
 
 // declare servers we want to test
-const serverData = [
+const serverData: string[] = [
   "http", // http server: e.g. docker container image,
   "app" // NestJS app
 ];
@@ -176,24 +180,30 @@ try {
     jest.setTimeout(maxTime);
     await startServer();
 
+    if (serverData.includes("http")) {
+      // http server: e.g. docker container image
+      const httpServerTest = request(`${restApiMainUrl}:${restApiPort}`);
+      httpServerTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      testServers["http"] = httpServerTest;
+    }
+
     // NestJS app
-    nestApp = await restApp();
-    const nestAppServer = (await nestApp.init()).getHttpServer();
-    const nestAppTest = request(nestAppServer);
-    nestAppTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
-    testServers["app"] = nestAppTest;
+    if (serverData.includes("app")) {
+      nestApp = await restApp();
+      const nestAppServer = (await nestApp.init()).getHttpServer();
+      const nestAppTest = request(nestAppServer);
+      nestAppTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      testServers["app"] = nestAppTest;
 
-    // http server: e.g. docker container image
-    const httpServerTest = request(`${restApiMainUrl}:${restApiPort}`);
-    httpServerTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
-    testServers["http"] = httpServerTest;
-
-    // initialize token for
-    const res = await nestAppTest
-      .get(`${restApiRoutePath}/auth/token`)
-      .expect("Content-Type", /json/)
-      .expect(200);
-    token = res.body.token;
+      // initialize token for
+      const res = await nestAppTest
+        .get(`${restApiRoutePath}/auth/token`)
+        .expect("Content-Type", /json/)
+        .expect(200);
+      token = res.body.token;
+    } else {
+      token = jwt;
+    }
     return expect(token).not.toBeNull();
   }, maxTime);
 } catch (e) {
@@ -203,7 +213,7 @@ try {
 
 afterAll(done => {
   stopServer();
-  nestApp.close();
+  nestApp && nestApp.close();
   done();
 });
 

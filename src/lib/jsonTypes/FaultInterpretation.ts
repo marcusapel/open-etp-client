@@ -38,36 +38,24 @@ export class FaultInterpretationOSDU
 
     if (xml.ThrowInterpretation) {
       for (const t of xml.ThrowInterpretation) {
-        const strAge = await ResqmlWorkProductComponent.age(
-          client,
-          ReservoirDMSUrl,
-          xml
-        );
+        const strAge = await this.age(client, ReservoirDMSUrl, xml);
         let MaximumAge = strAge;
         let MinimumAge = strAge;
         if (xml.HasOccuredDuring?.ChronoBottom !== undefined) {
-          const bot = (await ResqmlWorkProductComponent.getObject(
+          const bot = (await this.getObjectFromDor(
             client,
             ReservoirDMSUrl,
             xml.HasOccuredDuring?.ChronoBottom
           )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
-          MaximumAge = await ResqmlWorkProductComponent.age(
-            client,
-            ReservoirDMSUrl,
-            bot
-          );
+          MaximumAge = await this.age(client, ReservoirDMSUrl, bot);
         }
         if (xml.HasOccuredDuring?.ChronoTop !== undefined) {
-          const top = (await ResqmlWorkProductComponent.getObject(
+          const top = (await this.getObjectFromDor(
             client,
             ReservoirDMSUrl,
             xml.HasOccuredDuring?.ChronoTop
           )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
-          MinimumAge = await ResqmlWorkProductComponent.age(
-            client,
-            ReservoirDMSUrl,
-            top
-          );
+          MinimumAge = await this.age(client, ReservoirDMSUrl, top);
         }
 
         FaultThrowDescriptions.push({

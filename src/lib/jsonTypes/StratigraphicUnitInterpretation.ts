@@ -40,7 +40,7 @@ export class StratigraphicUnitInterpretationOSDU
     if (colRank.length === 0) {
       return undefined;
     }
-    const rank = await client.getObjects([colRank[0].uri]);
+    const rank = await this.getObjects(client, [colRank[0].uri]);
 
     if (rank.length !== 1) {
       return undefined;
