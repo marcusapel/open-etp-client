@@ -52,7 +52,7 @@ export class ActivityOSDU
         } else {
           const timeIndex = (k as SimpleJson<resqml20.TimeIndexParameterKey>)
             .TimeIndex;
-          const time = (await ResqmlWorkProductComponent.getObject(
+          const time = (await this.getObjectFromDor(
             client,
             ReservoirDMSUrl,
             timeIndex.TimeSeries

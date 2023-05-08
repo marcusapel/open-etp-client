@@ -1,7 +1,8 @@
 import {
   EtpUri,
   IResqmlDataObject,
-  ResqmlClient
+  ResqmlClient,
+  SimpleJson
 } from "../client/ResqmlClient";
 
 import {
@@ -18,6 +19,7 @@ import {
 
 import { osduUrl } from "../common/config";
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
+import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 
 type Converter = (
   uri: string,
@@ -134,10 +136,10 @@ export class OSDUContext {
   public fileCollection?: string;
   public references: Set<string> = new Set();
   public srnToUri: Map<string, string> = new Map();
+  public uriToObject: Map<string, IResqmlDataObject> = new Map();
   public createMissingReferences?: boolean = true;
   public bearer?: string;
 
-  public generatedSrn: Map<string, any> = new Map();
   public created: Map<string, any> = new Map();
 
   public projectedCRS: Map<string, CoordinateReferenceSystem> = new Map();
@@ -368,11 +370,41 @@ export class OSDUContext {
   }
 
   /**
+   * Get the osdu id using the uuid and the alias information
+   *
+   * @static
+   * @param {string} id
+   * @param {string} dataObjectType
+   * @param {IResqmlDataObject} dataObject
+   * @return {string} id
+   * @memberof OSDUContext
+   */
+  public static osduId(
+    id: string,
+    dataObjectType: string,
+    dataObject: IResqmlDataObject
+  ): string {
+    if (
+      dataObjectType.startsWith("eml20") ||
+      dataObjectType.startsWith("resqml20")
+    ) {
+      const o = dataObject as SimpleJson<AbstractResqmlDataObject>;
+      const al = o.Aliases?.find(a => a.Authority === "osdu");
+
+      if (al && al.Identifier) {
+        return al.Identifier;
+      }
+    }
+    return id;
+  }
+
+  /**
    * Convert an ETP URI to an OSDU SRN
    *
    * @param {string} uri
+   * @param {IResqmlDataObject} obj
    * @return {(string | undefined)}
-   * @memberof WorkProductComponent
+   * @memberof OSDUContext
    */
   public uriToSrn(uri: string, obj: IResqmlDataObject): string | undefined {
     if (uri === undefined) {
@@ -381,8 +413,11 @@ export class OSDUContext {
     const etp = new EtpUri(uri);
     const r: OSDUEntry | undefined = ResqmlOSDU.get(etp.dataObjectType);
     const kind = r?.osduKind(obj);
+
+    const id = OSDUContext.osduId(etp.uuid, etp.dataObjectType, obj);
+
     const srn = r
-      ? `${this.partition}:${kind?.split(":")[2]}:${etp.uuid}:${etp.version}`
+      ? `${this.partition}:${kind?.split(":")[2]}:${id}`
       : undefined;
     if (!srn) {
       return undefined;
@@ -550,21 +585,19 @@ export class OSDUContext {
    * @return {Promise<string[]>}
    * @memberof OSDUContext
    */
-  public async getVersions(
-    ids: string[]
-  ): Promise<Map<string, number | undefined>> {
+  public async getVersions(ids: string[]): Promise<Map<string, number>> {
     const chunks = this.divideIntoChunks(ids, 20);
-    const m = new Map<string, number | undefined>();
+    const versions: Map<string, number> = new Map();
     await Promise.all(
       chunks.map(async chunk => {
         const queryString = chunk.map(c => `id: "${c}"`).join(" OR ");
         const query = {
-          kind: "*:*:reference-data--*:*",
+          kind: "*:*:*--*:*",
           offset: 0,
           limit: 20,
           aggregateBy: "kind",
           query: queryString,
-          returnedFields: ["id"]
+          returnedFields: ["id", "version"]
         };
         try {
           const bodyString = JSON.stringify(query);
@@ -578,22 +611,13 @@ export class OSDUContext {
             },
             body: bodyString
           });
-          if (found !== undefined) {
-            for (const r of found.results) {
-              m.set(r.id, r.version);
-            }
-            for (const s of chunk) {
-              if (!m.has(s)) {
-                m.set(s, undefined);
-              }
-            }
-          }
+          found?.results.forEach(r => versions.set(r.id, r.version));
         } catch (e) {
           // Do nothing
         }
       })
     );
-    return m;
+    return versions;
   }
 
   /**

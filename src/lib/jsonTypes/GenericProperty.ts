@@ -205,7 +205,7 @@ export class GenericPropertyOSDU
     };
 
     if (xml.TimeIndex) {
-      const time = (await ResqmlWorkProductComponent.getObject(
+      const time = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
         xml.TimeIndex.TimeSeries
@@ -219,17 +219,6 @@ export class GenericPropertyOSDU
       this.data.TimeValues = [
         time.Time[xml.TimeIndex.Index].DateTime.toISOString()
       ];
-    }
-
-    const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
-    if (dors.length > 0) {
-      this.data.LineageAssertions = [];
-      for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
-        if (l !== undefined) {
-          this.data.LineageAssertions.push();
-        }
-      }
     }
 
     xml.ExtraMetadata?.forEach(x => {
@@ -259,19 +248,17 @@ export class GenericPropertyOSDU
     // Get the geometry form supporting representation
     const osduRep = context.created.get(PropertyTopologyID.slice(0, -1));
     if (osduRep === undefined) {
-      const rep = (await ResqmlWorkProductComponent.getObject(
+      const rep = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
         xml.SupportingRepresentation
       )) as Record<string, unknown>;
 
-      type RepresentationKey = keyof typeof rep;
-
       let geometry = rep["Geometry"] as SimpleJson<resqml20.PointGeometry>;
       if (geometry === undefined) {
         for (const p of Object.keys(rep)) {
-          if (Array.isArray(rep[p as RepresentationKey])) {
-            (rep[p as RepresentationKey] as Array<unknown>).forEach(patch => {
+          if (Array.isArray(rep[p])) {
+            (rep[p] as Array<unknown>).forEach(patch => {
               if (patch !== undefined && typeof patch === "object") {
                 const oPatch = patch as Record<string, unknown>;
                 if ("Geometry" in oPatch) {
@@ -283,10 +270,7 @@ export class GenericPropertyOSDU
               }
             });
           } else {
-            const patch = rep[p as RepresentationKey] as Record<
-              string,
-              unknown
-            >;
+            const patch = rep[p] as Record<string, unknown>;
             if (patch !== undefined && typeof patch === "object") {
               if ("Geometry" in patch) {
                 const g = patch["Geometry"];

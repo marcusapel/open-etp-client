@@ -170,7 +170,10 @@ export const stringToBigInt = (
  * @param {Record<string, any} obj
  * @returns {Record<string, any}
  */
-const processXsiType = (obj: Record<string, any>): Record<string, any> => {
+const processXsiType = (
+  obj: Record<string, any>,
+  _schemaVersion: string
+): Record<string, any> => {
   if (!("xsi:type" in obj)) {
     return obj;
   }
@@ -205,9 +208,13 @@ export const toPascalCase = (input: string): string => {
  * Process the keys of an object, creating a simpler JS Object without XML related extras
  *
  * @param {unknown} obj
+ * @param {string} schemaVersion
  * @returns unknown
  */
-export const simpleJson = (resqmlObj: unknown): unknown => {
+export const simpleJson = (
+  resqmlObj: unknown,
+  schemaVersion: string
+): unknown => {
   if (resqmlObj === null) {
     return null;
   }
@@ -215,14 +222,18 @@ export const simpleJson = (resqmlObj: unknown): unknown => {
     return resqmlObj;
   }
   if (Array.isArray(resqmlObj)) {
-    return resqmlObj.map(simpleJson);
+    return resqmlObj.map(o => simpleJson(o, schemaVersion));
   }
   if (typeof resqmlObj !== "object") {
     return resqmlObj;
   }
+  if (!schemaVersion && (resqmlObj as any)["schemaVersion"]) {
+    schemaVersion = (resqmlObj as any)["schemaVersion"];
+  }
 
   const obj: Record<string, any> = processXsiType(
-    resqmlObj as Record<string, any>
+    resqmlObj as Record<string, any>,
+    schemaVersion
   );
 
   const newObj: Record<string, any> = {};
@@ -243,7 +254,7 @@ export const simpleJson = (resqmlObj: unknown): unknown => {
     .filter(key => !keys.includes(key)) // Remove optional elements
     .forEach(key => {
       const pascalKey = toPascalCase(key);
-      newObj[pascalKey] = simpleJson(obj[key]);
+      newObj[pascalKey] = simpleJson(obj[key], schemaVersion);
     });
   return newObj;
 };
@@ -286,7 +297,7 @@ export const xml2typescript = async (
     if (keys.length === 0) {
       return Promise.reject("Empty object");
     }
-    const k = simpleJson((res as Record<string, any>)[keys[0]]);
+    const k = simpleJson((res as Record<string, any>)[keys[0]], "");
     return k as SimpleJson<eml20.AbstractCitedDataObject>;
   } catch (err) {
     return Promise.reject(err);

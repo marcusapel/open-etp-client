@@ -14,42 +14,40 @@
 // limitations under the License.
 // ============================================================================
 
-import { EtpQualifiedType } from "./EtpQualifiedType";
-
 /**
- * Parse a standard content type for an energistics data object.
+ * Parse a standard qualified type for an energistics data object.
  *
  * @export
- * @class EtpContentType
+ * @class EtpQualifiedType
  */
-export class EtpContentType {
+export class EtpQualifiedType {
   private readonly _m: RegExpMatchArray | null;
 
   /**
-   * Create a new content type from individual elements
+   * Create a new qualified type from individual elements
    *
    * @static
    * @param {string} domainFamily
    * @param {string} domainVersion
    * @param {string} objectType
    * @returns
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
-  public static createContentType(
+  public static createQualifiedType(
     domainFamily: string,
     domainVersion: string,
     objectType: string
   ): string {
-    if (!domainVersion.includes(".") && domainVersion.length > 1) {
-      domainVersion = domainVersion.split("").join(".");
+    if (domainVersion.includes(".")) {
+      domainVersion = domainVersion.split(".").join("");
     }
-    return `application/x-${domainFamily}+xml;version=${domainVersion};type=${objectType}`;
+    return `${domainFamily}${domainVersion}.${objectType}`;
   }
 
-  constructor(contentType: string) {
-    this._m = contentType
-      ? contentType.match(
-          /^application\/x-(?<domainFamily>resqml|eml|witsml|prodml)\+xml;version=(?<domainVersion>[.\d]+);type=(?<dataType>[\w]+)$/i
+  constructor(qualifiedType: string) {
+    this._m = qualifiedType
+      ? qualifiedType.match(
+          /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+)\.(?<dataType>[\w]+)$/i
         )
       : null;
   }
@@ -59,7 +57,7 @@ export class EtpContentType {
    *
    * @readonly
    * @type {boolean}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get hasPlural(): boolean {
     return this.domainVersion
@@ -72,7 +70,7 @@ export class EtpContentType {
    *
    * @readonly
    * @type {string} values: "resqml","eml","witsml","prodml"
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get domainFamily(): string {
     return this._m?.groups?.domainFamily || "";
@@ -83,10 +81,10 @@ export class EtpContentType {
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get domainVersion(): string {
-    return this._m?.groups?.domainVersion || "";
+    return this._m?.groups?.domainVersion.split("").join(".") || "";
   }
 
   /**
@@ -94,7 +92,7 @@ export class EtpContentType {
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get dataType(): string {
     return this._m?.groups?.dataType || "";
@@ -105,7 +103,7 @@ export class EtpContentType {
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get pluralName(): string {
     return this.dataType ? `${this.dataType.substr(4)}s` : "";
@@ -116,7 +114,7 @@ export class EtpContentType {
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get singularName(): string {
     return this.dataType ? this.dataType.substr(4) : "";
@@ -127,46 +125,31 @@ export class EtpContentType {
    *
    * @readonly
    * @type {boolean}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
   get valid(): boolean {
     return this._m != null;
   }
 
   /**
-   * Get the input content type
+   * Get the input type
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
-  get contentType(): string {
+  get qualifiedType(): string {
     return this._m?.input || "";
   }
 
   /**
-   * Build the Etp Type corresponding to this contentType
+   * Build the content Type corresponding to this qualifiedType
    *
    * @readonly
    * @type {string}
-   * @memberof EtpContentType
+   * @memberof EtpQualifiedType
    */
-  get etpType(): string {
-    return this.valid
-      ? `${this.domainFamily}${this.domainVersion.replace(".", "")}.${
-          this.dataType
-        }`
-      : "";
-  }
-
-  /**
-   * Build the Etp QualifiedType corresponding to this contentType
-   *
-   * @readonly
-   * @type {EtpQualifiedType}
-   * @memberof EtpContentType
-   */
-  get qualifiedType(): EtpQualifiedType {
-    return new EtpQualifiedType(this.etpType);
+  get contentType(): string {
+    return `application/x-${this.domainFamily}+xml;version=${this.domainVersion};type=${this.dataType}`;
   }
 }

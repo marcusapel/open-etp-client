@@ -52,11 +52,11 @@ c.setCallsTraceability(false);
 // Open connection with server, with credentials in JWT
 c.openSession(serverUrl, XmlUtils.createDefaultJWT())
   // Get all projects
-  .then(() => c.getProjects())
+  .then(() => c.getDataspaces())
   .then(d =>
     // Get all ContinuousProperty
     d
-      ? c.getProjectResources(d[0].uri, ["resqml20.obj_ContinuousProperty"])
+      ? c.getDataspaceResources(d[0].uri, ["resqml20.obj_ContinuousProperty"])
       : []
   )
   .then(async (objects: Resource[]) => {
@@ -92,7 +92,8 @@ c.openSession(serverUrl, XmlUtils.createDefaultJWT())
           );
           if (isProperty) {
             const absProperty = XmlUtils.simpleJson(
-              obj
+              obj,
+              "2.0"
             ) as SimpleJson<AbstractValuesProperty>;
             // Get type
             log(`Type: ${absProperty.$type}`);

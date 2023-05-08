@@ -466,9 +466,7 @@ export const getMinMaxPoints = async (
  * @class WorkProductComponent
  * @template RES_TYPE
  */
-export class ResqmlResource<
-  RES_TYPE extends SimpleJson<resqml20.AbstractResqmlDataObject>
-> {
+export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   public acl: AccessControlList = { owners: [], viewers: [] };
   public kind = "";
   public legal: LegalMetaData = {
@@ -506,7 +504,8 @@ export class ResqmlResource<
       .split(".")
       .slice(1)
       .join(".")}`;
-    this.id = `${this.__context.partition}:${resourceType}--${kind}:${xml.Uuid}`;
+    const id = OSDUContext.osduId(xml.Uuid, xml.$type || "eml20", xml);
+    this.id = `${this.__context.partition}:${resourceType}--${kind}:${id}`;
     this.version = 1;
 
     this.acl = context.acl;
@@ -550,9 +549,7 @@ export class ResqmlResource<
     dor: SimpleJson<eml20.DataObjectReference> | undefined,
     client: ResqmlClient
   ): Promise<string | undefined> {
-    const xml = dor
-      ? await ResqmlWorkProductComponent.getObject(client, uri, dor)
-      : undefined;
+    const xml = dor ? await this.getObjectFromDor(client, uri, dor) : undefined;
     return dor === undefined ||
       this.__context === undefined ||
       xml === undefined
@@ -599,6 +596,28 @@ export class ResqmlResource<
   }
 
   /**
+   * Get resqml objects based on ETP URIs using the context cache
+   *
+   * @param {ResqmlClient} client
+   * @param {string[]} uris
+   * @return {(Promise<(IResqmlDataObject | undefined)[]>)}
+   * @memberof ResqmlResource
+   */
+  public async getObjects(
+    client: ResqmlClient,
+    uris: string[]
+  ): Promise<(IResqmlDataObject | undefined)[]> {
+    const toFind = uris.filter(
+      s => this.__context?.uriToObject.get(s) === undefined
+    );
+    const objects = await client.getObjects(toFind);
+    objects.forEach(
+      (o, i) => o && this.__context?.uriToObject.set(toFind[i], o)
+    );
+    return uris.map(u => this.__context?.uriToObject.get(u));
+  }
+
+  /**
    * Get a resqml object based on container ETP URI (dataspace or object) and a Data Object Reference inside the container
    *
    * @static
@@ -608,7 +627,7 @@ export class ResqmlResource<
    * @return {(Promise<IResqmlDataObject | undefined>)}
    * @memberof ResqmlResource
    */
-  public static async getObject(
+  public async getObjectFromDor(
     client: ResqmlClient,
     uri: string,
     dor: SimpleJson<eml20.DataObjectReference>
@@ -617,7 +636,7 @@ export class ResqmlResource<
       return dor._data;
     }
     const dorUri = ResqmlWorkProductComponent.dorToUri(uri, dor);
-    const objects = await client.getObjects([dorUri]);
+    const objects = await this.getObjects(client, [dorUri]);
     return objects.length === 1 && objects[0] !== null ? objects[0] : undefined;
   }
 
@@ -668,7 +687,7 @@ export class ResqmlWorkProductComponent<
    * @return {(Promise<number | undefined>)}
    * @memberof ResqmlWorkProductComponent
    */
-  public static async age(
+  public async age(
     client: ResqmlClient,
     uri: string,
     interpretation:
@@ -678,7 +697,7 @@ export class ResqmlWorkProductComponent<
     if (interpretation === undefined) {
       return undefined;
     }
-    const feat = (await ResqmlWorkProductComponent.getObject(
+    const feat = (await this.getObjectFromDor(
       client,
       uri,
       interpretation.InterpretedFeature
@@ -924,12 +943,15 @@ export class ResqmlWorkProductComponent<
       return Promise.reject("No geometry provided");
     }
 
-    const crsObj = await ResqmlWorkProductComponent.getObject(
+    const crsObj = await this.getObjectFromDor(
       client,
       dataspaceUri,
       geometries[0].LocalCrs
     );
     const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
+    if (!crs) {
+      return Promise.reject("Invalid CRS");
+    }
 
     let aMinX: number = Number.POSITIVE_INFINITY;
     let aMaxX: number = Number.NEGATIVE_INFINITY;
@@ -987,16 +1009,23 @@ export class ResqmlWorkProductComponent<
       RESQML20_ACTIVITY_TYPE
     ]);
 
+    const matchingDors: SimpleJson<eml20.DataObjectReference>[] = [];
+
     // Find all activities for which the the object is an output
     const etpUri = new EtpUri(objectUri);
     const activities: SimpleJson<resqml20.obj_Activity>[] = [];
-    (await client.getObjects(sources.map(r => r.uri))).forEach(s => {
+    (
+      await this.getObjects(
+        client,
+        sources.map(r => r.uri)
+      )
+    ).forEach(s => {
       s && activities.push(s as SimpleJson<resqml20.obj_Activity>);
     });
 
     const dors: SimpleJson<eml20.DataObjectReference>[] = [];
     for (const a of activities) {
-      const temp = await ResqmlWorkProductComponent.getObject(
+      const temp = await this.getObjectFromDor(
         client,
         objectUri,
         a.ActivityDescriptor
@@ -1034,45 +1063,32 @@ export class ResqmlWorkProductComponent<
     // From objects that are input of the activity, identify the one
     // pointing to the same target (Typically interpretation) that is not a crs or
     // hdf
-    const matchingDors: SimpleJson<eml20.DataObjectReference>[] = [];
     if (dors.length === 0) {
       return dors;
     }
     const tgUris = new Set<URI>();
-    const xml = await client.getObjects([objectUri]);
-    if (xml.length === 0 || xml[0] === null) {
+    const xml = await this.getObjects(client, [objectUri]);
+    if (xml.length !== 1 || xml[0] === undefined) {
       return dors;
     }
-    await client.getObjectTargets(
-      new EtpUri(objectUri).dataSpace,
-      xml[0],
-      tgUris
-    );
+    client.getObjectTargets(new EtpUri(objectUri).dataSpace, xml[0], tgUris);
     for (const d of dors) {
-      const tg = await ResqmlWorkProductComponent.getObject(
-        client,
-        objectUri,
-        d
-      );
+      const tg = await this.getObjectFromDor(client, objectUri, d);
       const oUris = new Set<URI>();
       if (tg) {
-        await client.getObjectTargets(
-          new EtpUri(objectUri).dataSpace,
-          tg,
-          oUris
-        );
+        client.getObjectTargets(new EtpUri(objectUri).dataSpace, tg, oUris);
         if (
-          [...oUris].filter(o => {
-            if (tgUris.has(o)) {
+          [...oUris].some(o => {
+            if (!tgUris.has(o)) {
               return false;
             }
             const ou = new EtpUri(o).dataObjectType;
             return (
               ou.indexOf("Crs") === -1 && ou.indexOf("ExternalPart") === -1
             );
-          }).length > 0
+          })
         ) {
-          if (matchingDors.indexOf(d) === -1) {
+          if (!matchingDors.some(m => d.UUID === m.UUID)) {
             matchingDors.push(d);
           }
         }
@@ -1148,42 +1164,30 @@ export class ResqmlWorkProductComponent<
     client: ResqmlClient,
     context: OSDUContext
   ): Promise<AbstractInterpretation> {
-    const feat = (await ResqmlWorkProductComponent.getObject(
+    const feat = (await this.getObjectFromDor(
       client,
       ReservoirDMSUrl,
       xml.InterpretedFeature
     )) as SimpleJson<resqml20.AbstractFeature>;
 
-    const strAge = await ResqmlWorkProductComponent.age(
-      client,
-      ReservoirDMSUrl,
-      xml
-    );
+    const strAge = await this.age(client, ReservoirDMSUrl, xml);
     let OlderPossibleAge = strAge;
     let YoungerPossibleAge = strAge;
     if (xml.HasOccuredDuring?.ChronoBottom !== undefined) {
-      const bot = (await ResqmlWorkProductComponent.getObject(
+      const bot = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
         xml.HasOccuredDuring?.ChronoBottom
       )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
-      OlderPossibleAge = await ResqmlWorkProductComponent.age(
-        client,
-        ReservoirDMSUrl,
-        bot
-      );
+      OlderPossibleAge = await this.age(client, ReservoirDMSUrl, bot);
     }
     if (xml.HasOccuredDuring?.ChronoTop !== undefined) {
-      const top = (await ResqmlWorkProductComponent.getObject(
+      const top = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
         xml.HasOccuredDuring?.ChronoTop
       )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
-      YoungerPossibleAge = await ResqmlWorkProductComponent.age(
-        client,
-        ReservoirDMSUrl,
-        top
-      );
+      YoungerPossibleAge = await this.age(client, ReservoirDMSUrl, top);
     }
 
     return {

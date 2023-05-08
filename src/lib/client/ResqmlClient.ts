@@ -37,6 +37,7 @@ import logging from "../common/Logging";
 import * as ETPClient from "./ETPClient";
 
 import * as EtpContentType from "../common/EtpContentType";
+import { EtpQualifiedType } from "../common/EtpQualifiedType";
 import { ArrayByteUuid, EtpUri } from "../common/EtpUri";
 
 import { AvroString, Energistics, Integer64 } from "../common/Etp12";
@@ -54,7 +55,7 @@ import { StoreNotificationCustomer } from "../protocols/StoreNotificationCustome
 import { SupportedTypesCustomer } from "../protocols/SupportedTypesCustomer";
 import { TransactionCustomer } from "../protocols/TransactionCustomer";
 
-import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
@@ -93,6 +94,7 @@ export type {
 export type ContextInfo = Energistics.Etp.v12.Datatypes.Object.ContextInfo;
 export type URI = string;
 export { EtpContentType } from "../common/EtpContentType";
+export { EtpQualifiedType } from "../common/EtpQualifiedType";
 export { EtpUri } from "../common/EtpUri";
 export type { ArrayByteUuid } from "../common/EtpUri";
 export { AnyTypedArray, IHDF5ArrayInput } from "../protocols/ArrayCustomer";
@@ -102,7 +104,6 @@ export * as ODataUtils from "../oDataParser/oDataUtils";
 export * as XmlUtils from "../mlTypes/XmlJsonUtil";
 export { SimpleJson } from "../mlTypes/XmlJsonUtil";
 export * as Resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
-export * as Eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
 
 if (!process.env.RDMS_AUTHENTICATION_KEY_BASE) {
   throw new Error(
@@ -111,7 +112,7 @@ if (!process.env.RDMS_AUTHENTICATION_KEY_BASE) {
 }
 const authenticationKeyBase = process.env.RDMS_AUTHENTICATION_KEY_BASE;
 
-export type IResqmlDataObject = SimpleJson<AbstractResqmlDataObject>;
+export type IResqmlDataObject = SimpleJson<resqml20.AbstractResqmlDataObject>;
 
 export { Convert } from "../mlTypes/ResqmlTypes";
 
@@ -293,6 +294,7 @@ export class ResqmlClient {
       try {
         this.client.on("connect", resolve);
         this.client.on("error", reject);
+        this.client.on("exception", reject);
         this.client.connect(config, socket);
       } catch (err) {
         reject(err);
@@ -983,27 +985,27 @@ export class ResqmlClient {
   ): void {
     const obj = resqmlObj as Record<string, any>;
     Object.keys(obj).forEach(async key => {
+      const qualifiedType = new EtpQualifiedType(obj[key]?.$type);
       if (!obj[key] || typeof obj[key] !== "object") {
         return;
       } else if (Array.isArray(obj[key])) {
         obj[key].map((o: IResqmlDataObject) =>
           this.getObjectTargets(dataSpace, o, uris)
         );
-      } else if (
-        obj[key] &&
-        obj[key].$type &&
-        obj[key].$type.lastIndexOf("DataObjectReference") !== -1
-      ) {
+      } else if (qualifiedType.dataType.endsWith("DataObjectReference")) {
+        const is20 = qualifiedType.domainVersion === "2.0";
         // Resolve the object reference
-        const dataObjectType: EtpContentType.EtpContentType =
-          new EtpContentType.EtpContentType(obj[key].ContentType);
+        const dataObjectType: EtpQualifiedType = is20
+          ? new EtpContentType.EtpContentType(obj[key].ContentType)
+              .qualifiedType
+          : new EtpQualifiedType(obj[key].QualifiedType);
         const nURI = EtpUri.createObjectUri(
           dataSpace,
           dataObjectType.domainFamily,
           dataObjectType.domainVersion,
           dataObjectType.dataType,
-          obj[key].UUID,
-          obj[key].Version
+          is20 ? obj[key].UUID : obj[key].Uuid,
+          is20 ? obj[key].Version : obj[key].objectVersion
         );
         uris.add(nURI.uri);
       } else {
@@ -2256,6 +2258,9 @@ export class ResqmlClient {
     return new Promise((resolve, reject) => {
       try {
         this.client.on("open", resolve);
+        this.client.on("exception", (h, m) => {
+          reject(m.message);
+        });
         this.client.requestSession("open-etp-client", "0.0.1");
       } catch (err) {
         reject(err);
@@ -2270,7 +2275,7 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   private onSocketDisconnect() {
-    this.logger.debug("Disconnected");
+    this.client.logTrace("Disconnected");
     this.connected = false;
   }
 
@@ -2372,8 +2377,8 @@ export class ResqmlClient {
           this.resolveReferences(uri, o, objects, dataArrays, resolved)
         );
       } else if (
-        obj[key].$type &&
-        obj[key].$type.lastIndexOf("Hdf5Dataset") !== -1
+        // EML2.0 Array
+        obj[key].$type === "eml20.Hdf5Dataset"
       ) {
         // Resolve the data arrays
         let contentType = "obj_EpcExternalPartReference";
@@ -2397,34 +2402,34 @@ export class ResqmlClient {
         if (arr?.data) {
           const arrayData = this.formatArrayData(arr.data.data, "base64");
           const o = { ...arr, data: { ...arr.data, data: arrayData } };
-          obj[key] = { ...obj[key], _data: simpleJson(o) };
+          obj[key] = { ...obj[key], _data: simpleJson(o, "2.0") };
         } else if (arr) {
-          obj[key] = { ...obj[key], _data: simpleJson(arr) };
+          obj[key] = { ...obj[key], _data: simpleJson(arr, "2.0") };
         }
-      } else if (
-        obj[key].$type &&
-        obj[key].$type.lastIndexOf("DataObjectReference") !== -1
-      ) {
+      } else if (obj[key].$type === "eml20.DataObjectReference") {
+        let nURI = obj[key].EnergisticsUri;
+        if (obj[key].$type === "eml20.DataObjectReference") {
+          const dataObjectType: EtpContentType.EtpContentType =
+            new EtpContentType.EtpContentType(obj[key].ContentType);
+          nURI = EtpUri.createObjectUri(
+            etpUri.dataSpace,
+            dataObjectType.domainFamily,
+            dataObjectType.domainVersion,
+            dataObjectType.dataType,
+            obj[key].UUID,
+            obj[key].VersionString
+          );
+        }
         // Resolve the object reference
-        const dataObjectType: EtpContentType.EtpContentType =
-          new EtpContentType.EtpContentType(obj[key].ContentType);
-        const nURI = EtpUri.createObjectUri(
-          etpUri.dataSpace,
-          dataObjectType.domainFamily,
-          dataObjectType.domainVersion,
-          dataObjectType.dataType,
-          obj[key].UUID,
-          obj[key].VersionString
-        );
         let o = objects.get(nURI.uri);
         if (!o) {
           o = objects.get(
             EtpUri.createObjectUri(
-              etpUri.dataSpace,
-              dataObjectType.domainFamily,
-              dataObjectType.domainVersion,
-              dataObjectType.dataType,
-              obj[key].UUID
+              nURI.dataSpace,
+              nURI.domainFamily,
+              nURI.domainVersion,
+              nURI.dataObjectType,
+              nURI.uuid
             ).uri
           );
         }

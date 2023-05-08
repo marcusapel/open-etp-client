@@ -236,7 +236,7 @@ export class SeismicHorizonOSDU
       for (const d of dors) {
         const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
         if (l !== undefined) {
-          this.data.LineageAssertions.push();
+          this.data.LineageAssertions.push({ ID: l });
         }
       }
     }

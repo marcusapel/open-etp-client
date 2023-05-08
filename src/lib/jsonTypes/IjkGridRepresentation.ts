@@ -187,17 +187,6 @@ export class IjkGridRepresentationOSDU
       ExtensionProperties: undefined
     };
 
-    const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);
-    if (dors.length > 0) {
-      this.data.LineageAssertions = [];
-      for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
-        if (l !== undefined) {
-          this.data.LineageAssertions.push();
-        }
-      }
-    }
-
     xml.ExtraMetadata?.forEach(x => {
       if (this.data.ExtensionProperties) {
         this.data.ExtensionProperties[x.Name] = x.Value;
