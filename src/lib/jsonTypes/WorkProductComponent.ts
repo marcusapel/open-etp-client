@@ -557,7 +557,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
       : this.__context.uriToSrn(
           ResqmlWorkProductComponent.dorToUri(uri, dor),
           xml
-        );
+        ) + ":";
   }
 
   /**
@@ -877,10 +877,12 @@ export class ResqmlWorkProductComponent<
             type: FluffyType.AnyCRSFeature,
             geometry: {
               type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
-              coordinates: pointCoordinates.map(p => [
-                p[0] + crs.XOffset,
-                p[1] + crs.YOffset
-              ])
+              coordinates: [
+                pointCoordinates.map(p => [
+                  p[0] + crs.XOffset,
+                  p[1] + crs.YOffset
+                ])
+              ]
             },
             properties: {}
           }

@@ -64,7 +64,7 @@ export class GenericPropertyOSDU
         }
         ValueCount++;
         MinValue = Math.min(n, MinValue);
-        MaxValue = Math.min(n, MaxValue);
+        MaxValue = Math.max(n, MaxValue);
         MeanValue += n;
         SqrValue += n * n;
       }
