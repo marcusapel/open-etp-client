@@ -703,7 +703,10 @@ export class ReferenceData {
   legal: LegalMetaData;
   tags?: { [key: string]: string };
   version: number;
-  data: ExistenceKindData;
+  data: ExistenceKindData & {
+    ParentPropertyTypeID?: string;
+    UnitQuantityID?: string;
+  };
 
   constructor(context: OSDUContext, id: string) {
     //${context.namespace}:reference-data--${osduType}:${value}:
@@ -731,5 +734,10 @@ export class ReferenceData {
       CommitDate: this.createTime,
       ID: id
     };
+    if (idSplit[1] === "reference-data--PropertyType") {
+      // Workaround if Energistics PropertyType are not available
+      this.data.ParentPropertyTypeID = `${context.partition}:reference-data--PropertyType:property:`;
+      this.data.UnitQuantityID = "osdu:reference-data--UnitQuantity:Euc:";
+    }
   }
 }

@@ -62,7 +62,7 @@ export class PropertyTypeOSDU
        * The relationship to a UnitQuantity, which connects to frame of reference conversion.
        */
       UnitQuantityID:
-        context.addReferenceData("UnitOfMeasure", xml.RepresentativeUom) || "",
+        context.addReferenceData("UnitQuantity", xml.RepresentativeUom) || "",
 
       ExtensionProperties: undefined
     };
