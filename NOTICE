@@ -31,8 +31,6 @@ BSD-2-Clause
 The following software have components provided under the terms of this license:
 
 - dtrace-provider (from https://www.npmjs.com/package/dtrace-provider)
-- qs (from https://www.npmjs.com/package/qs)
-- tslib (from https://www.npmjs.com/package/tslib)
 - webidl-conversions (from https://www.npmjs.com/package/webidl-conversions)
 
 ========================================================================
@@ -163,7 +161,6 @@ The following software have components provided under the terms of this license:
 - fs.realpath (from https://www.npmjs.com/package/fs.realpath)
 - function-bind (from https://www.npmjs.com/package/function-bind)
 - get-intrinsic (from https://www.npmjs.com/package/get-intrinsic)
-- glob-parent (from https://www.npmjs.com/package/glob-parent)
 - has (from https://www.npmjs.com/package/has)
 - has-flag (from https://www.npmjs.com/package/has-flag)
 - has-symbols (from https://www.npmjs.com/package/has-symbols)
@@ -277,17 +274,11 @@ The following software have components provided under the terms of this license:
 - argparse (from https://www.npmjs.com/package/argparse)
 
 ========================================================================
-X11
-========================================================================
-The following software have components provided under the terms of this license:
-
-- mkdirp (from https://www.npmjs.com/package/mkdirp)
-
-========================================================================
 unknown
 ========================================================================
 The following software have components provided under the terms of this license:
 
 - streamsearch (from https://www.npmjs.com/package/streamsearch)
+
 
 

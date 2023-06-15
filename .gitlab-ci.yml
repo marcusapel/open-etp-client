@@ -35,10 +35,12 @@ include:
   # aws
   # - local: "devops/osdu/cloud-providers/aws.yml"
 
-  # gcp
-  # - local: "devops/osdu/cloud-providers/gcp.yml"
+  # gc
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/gc-global.yml"
+
+  - local: "devops/gc/pipeline/override-stages.yml"
 
   # ibm
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/ibm-open-etp-client.yml"
-
