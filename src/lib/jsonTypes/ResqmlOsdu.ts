@@ -164,7 +164,7 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicUnitFeature",
-  () => "osdu:wks:work-product-component--StratigraphicUnitFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalRockVolumeFeature:1.1.0",
   LocalRockVolumeFeatureManifest
 );
 ResqmlOSDU.add(
