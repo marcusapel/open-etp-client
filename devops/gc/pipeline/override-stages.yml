@@ -1,0 +1,52 @@
+variables:
+  GC_SERVICE: "oetp-client"
+
+gc-containerize-gitlab:
+  tags: ["osdu-medium"]
+  needs: ["rdms_rest_compile-and-unit-test"]
+  variables:
+    BUILD_PATH: "devops/osdu/docker/Dockerfile.runtime"
+    BUILD_ARGS: "--build-arg DIST=dist.tgz"
+
+gc-containerize-gcr:
+  tags: ["osdu-medium"]
+  needs: ["rdms_rest_compile-and-unit-test"]
+  variables:
+    BUILD_PATH: "devops/osdu/docker/Dockerfile.runtime"
+    BUILD_ARGS: "--build-arg DIST=dist.tgz"
+
+gc-containerize-bootstrap-gitlab:
+  needs: []
+
+gc-containerize-bootstrap-gcr:
+  needs: []
+
+gc-baremetal-deploy:
+  script:
+    - echo "This is a stub. oetp-client is not ready for deploying on GC baremetal"
+    - exit 1
+  allow_failure: true
+
+gc-test:
+  extends:
+    - .gc-variables
+  script:
+    - echo "This is a stub. Integration tests are not implemented for oetp-client"
+    - exit 1
+  allow_failure: true
+
+gc-baremetal-test:
+  extends:
+    - .gc-baremetal-variables
+  script:
+    - echo "This is a stub. Integration tests are not implemented for oetp-client"
+    - exit 1
+  allow_failure: true
+
+gc-dev2-test:
+  extends:
+    - .gc-dev2-variables
+  script:
+    - echo "This is a stub. Integration tests are not implemented for oetp-client"
+    - exit 1
+  allow_failure: true
