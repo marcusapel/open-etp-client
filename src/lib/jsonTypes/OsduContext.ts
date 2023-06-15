@@ -450,9 +450,9 @@ export class OSDUContext {
   public datasets(objectUri: string): string[] | undefined {
     // TODO the current manifest ingestion does not ingest WPC id datasets info is present, so temporary removing it
     const d = [
-      //   `${this.partition}:dataset--ETPDataspace:${this.datasetId(
-      //     new EtpUri(objectUri)
-      //   )}:`
+      `${this.partition}:dataset--ETPDataspace:${this.datasetId(
+        new EtpUri(objectUri)
+      )}:`
     ];
 
     if (this.fileCollection) {
