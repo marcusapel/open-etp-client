@@ -1,5 +1,6 @@
 variables:
   GC_SERVICE: "oetp-client"
+  COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.0.postman_collection_NotRun.json"
 
 gc-containerize-gitlab:
   tags: ["osdu-medium"]
@@ -21,32 +22,54 @@ gc-containerize-bootstrap-gitlab:
 gc-containerize-bootstrap-gcr:
   needs: []
 
-gc-baremetal-deploy:
+.gc_postman_tests:
   script:
-    - echo "This is a stub. oetp-client is not ready for deploying on GC baremetal"
-    - exit 1
-  allow_failure: true
+    - export GET_COLLECTION_URL="${GC_COLLECTION_HOST}/${GC_COLLECTION_BRANCH}/${COLLECTION_PATH}?inline=false"
+    - echo "Get a collection from ${GET_COLLECTION_URL}"
+    - >
+      if [[ -v TEST_SOURCE_FILES_DIR ]]; then
+        wget -q -O tmp.zip "${GC_COLLECTION_ARCHIVE_HOST}/${GC_COLLECTION_BRANCH}/testing-master.zip?path=${TEST_SOURCE_FILES_DIR}" \
+        && unzip -j tmp.zip \
+        && rm tmp.zip
+      fi
+    - >
+      echo "[{ \"CLIENT_ID\": \"${GC_CLIENT_ID}\", \"CLIENT_SECRET\": \"${GC_CLIENT_SECRET}\", \"refresh_token\": \"${GC_REFRESH_TOKEN}\"}]" > test_config_file.json
+    - curl "${GET_COLLECTION_URL}" > collection.json && COLLECTION=collection.json
+    - curl "${GC_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
+    - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d  test_config_file.json --delay-request 3000 || exit $?
 
 gc-test:
+  tags: ["osdu-small"]
+  stage: integration
+  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  allow_failure: false
+  retry: 1
   extends:
     - .gc-variables
   script:
-    - echo "This is a stub. Integration tests are not implemented for oetp-client"
-    - exit 1
+    - !reference [.gc_postman_tests, script]
+
+gc-dev2-test:
+  tags: ["osdu-small"]
+  stage: integration
+  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  allow_failure: false
+  retry: 1
+  extends:
+    - .gc-dev2-variables
+  script:
+    - !reference [.gc_postman_tests, script]
+
+gc-baremetal-deploy:
   allow_failure: true
+  script:
+    - echo "This is a stub. oetp-client is not ready for deploying on GC baremetal"
+    - exit 1
 
 gc-baremetal-test:
+  allow_failure: true
   extends:
     - .gc-baremetal-variables
   script:
     - echo "This is a stub. Integration tests are not implemented for oetp-client"
     - exit 1
-  allow_failure: true
-
-gc-dev2-test:
-  extends:
-    - .gc-dev2-variables
-  script:
-    - echo "This is a stub. Integration tests are not implemented for oetp-client"
-    - exit 1
-  allow_failure: true
