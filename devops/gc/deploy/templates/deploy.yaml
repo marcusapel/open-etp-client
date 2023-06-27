@@ -31,9 +31,11 @@ spec:
           requests:
             cpu: {{ .Values.data.requestsCpu | quote }}
             memory: {{ .Values.data.requestsMemory | quote }}
+          {{- if .Values.global.limitsEnabled }}
           limits:
             cpu: {{ .Values.data.limitsCpu | quote }}
             memory: {{ .Values.data.limitsMemory | quote }}
+          {{- end }}
         ports:
         - containerPort: 8003
       serviceAccountName: {{ .Values.data.serviceAccountName | quote }}
