@@ -27,7 +27,7 @@ ENV NODE_ENV=production
 RUN apk add --update python3 make g++
 
 # add first the package in a dedicated layer
-COPY --chown=node:node package.json package-lock.json ./
+COPY package.json package-lock.json ./
 # clean install of production modules and clean private registry access
 RUN npm set-script prepare '' && npm ci --quiet --production
 
@@ -36,7 +36,6 @@ RUN npm set-script prepare '' && npm ci --quiet --production
 
 FROM node:${docker_node_image_version} as release
 
-
 ARG VERSION=0.1
 ARG DIST=dist.tgz
 
@@ -44,39 +43,22 @@ LABEL version="${VERSION}"
 LABEL vendor="OSDU Reservoir DMS"
 LABEL description="Open ETP Client Runtime Image"
 
-USER node
+# Create new non-root user and use it
+RUN addgroup -g 10001 -S nonroot && \
+    adduser -S -u 10001 -G nonroot nonroot
+
+USER 10001:10001
 
 # env
 ENV NODE_ENV=production
 
 # add first the package in a dedicated layer
-COPY --chown=node:node package.json package-lock.json /usr/src/api/
-COPY --chown=node:node --from=runtime_builder node_modules /usr/src/api/
+COPY --chown=nonroot:nonroot package.json package-lock.json /usr/src/api/
+COPY --chown=nonroot:nonroot --from=runtime_builder node_modules /usr/src/api/
 
-ADD ${DIST} /usr/src/api/
-USER root
-RUN chown -R node:node /usr/src/api/
-USER node
+ADD --chown=nonroot:nonroot ${DIST} /usr/src/api/
 
 WORKDIR /usr/src/api/
-
-# Environment variables used by server
-# RDMS_REST_MAIN_URL : Base url for openAPI
-# RDMS_REST_ROOT_PATH : local path inside url
-# RDMS_REST_PORT : Port of api in container
-#  --- OpenAPI url is `${RDMS_REST_MAIN_URL}:${OPEN_API_PORT}${RDMS_REST_ROOT_PATH}` ---
-
-
-# RDMS_ETP_PROTOCOL websocket protocol "ws" or "wss"
-# RDMS_ETP_HOST domain of etp server
-# RDMS_ETP_PORT port of ETP server
-# RDMS_ETP_PATH local path in ETP server url
-#  --- ETP server url is `${RDMS_ETP_PROTOCOL}://${RDMS_ETP_HOST}:${RDMS_ETP_PORT}${RDMS_ETP_PATH}/` ---
-
-# Secret for client-sever authentication
-# RDMS_AUTHENTICATION_KEY_BASE
-# Secret for ETP connection JWT
-# RDMS_JWT_SECRET
 
 EXPOSE 80
 CMD [ "node", "dist/src/lib/restApi/RestServer.js" ]
