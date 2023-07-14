@@ -1,0 +1,4 @@
+{{- template "common.destinationrule" (list . "os-open-etp-client.destinationrule") -}}
+{{- define "os-open-etp-client.destinationrule" -}}
+## Define overrides for the service destination rule resource here
+{{- end -}}

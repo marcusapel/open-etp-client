@@ -1,0 +1,4 @@
+{{- template "common.service" (list . "os-open-etp-client.service") -}}
+{{- define "os-open-etp-client.service" -}}
+## Define overrides for the service resource here
+{{- end -}}
