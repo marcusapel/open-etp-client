@@ -20,6 +20,7 @@ import {
 import { osduUrl } from "../common/config";
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
 import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 type Converter = (
   uri: string,
@@ -187,7 +188,7 @@ export class OSDUContext {
    * @param {string} referenceType reference-data type
    * @param {(string | undefined)} value reference-data value
    * @return {(string | undefined)} reference-data SRN
-   * @memberof WorkProductComponent
+   * @memberof OSDUContext
    */
   public addReferenceData(
     referenceType: string,
@@ -539,7 +540,18 @@ export class OSDUContext {
    * @memberof OSDUContext
    */
   public async filterOSDUReferenceData(srn: string[]): Promise<string[]> {
-    srn = srn.filter(s => this.created.get(s.slice(0, -1)) === undefined);
+    srn = srn
+      .map(s => {
+        const token = s.split(":");
+        if (token.length > 2 && token[1] === "reference-data--PropertyType") {
+          const uid = getPropertyTypeIDFromResqmlAlias(token[2]);
+          if (uid !== undefined) {
+            return `${token[0]}:reference-data--PropertyType:${uid}:`;
+          }
+        }
+        return s;
+      })
+      .filter(s => this.created.get(s.slice(0, -1)) === undefined);
     const chunks = this.divideIntoChunks(srn, 20);
     return Promise.all(
       chunks.map(async chunk => {
@@ -736,8 +748,13 @@ export class ReferenceData {
     };
     if (idSplit[1] === "reference-data--PropertyType") {
       // Workaround if Energistics PropertyType are not available
-      this.data.ParentPropertyTypeID = `${context.partition}:reference-data--PropertyType:property:`;
-      this.data.UnitQuantityID = "osdu:reference-data--UnitQuantity:Euc:";
+      this.data.ParentPropertyTypeID = `${
+        context.partition
+      }:reference-data--PropertyType:${getPropertyTypeIDFromResqmlAlias(
+        "quantity"
+      )}:`;
+      // none UnitQuantity
+      this.data.UnitQuantityID = `${context.partition}:reference-data--UnitQuantity:none:`;
     }
   }
 }
