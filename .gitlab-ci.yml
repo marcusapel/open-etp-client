@@ -2,6 +2,10 @@ variables:
   #azure
   AZURE_SWAGGER_PATH: api/oetp-client/v2/
 
+compile-and-unit-test:
+  script:
+    - echo "Fake compile-and-unit-test"
+
 include:
   # pipeline logic
   - project: "osdu/platform/ci-cd-pipelines"
@@ -14,7 +18,11 @@ include:
   - local: "devops/osdu/build/open-etp-client.yml"
 
   # scan
-  # fossa
+  ## security scanners
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "scanners/gitlab-ultimate.yml"
+
+  ## fossa
   - local: "devops/osdu/scanners/fossa-node.yml"
 
   # lint
