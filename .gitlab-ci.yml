@@ -2,10 +2,6 @@ variables:
   #azure
   AZURE_SWAGGER_PATH: api/oetp-client/v2/
 
-compile-and-unit-test:
-  script:
-    - echo "Fake compile-and-unit-test"
-
 include:
   # pipeline logic
   - project: "osdu/platform/ci-cd-pipelines"

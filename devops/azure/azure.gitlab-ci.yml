@@ -3,7 +3,7 @@ include:
     file: "cloud-providers/azure.yml"
 
 azure_containerize:
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   script:
     - |
       docker build \
@@ -24,7 +24,7 @@ azure_containerize:
       echo "DST_REGISTRY_TOKEN=$(az acr login -n msosdu --expose-token --query 'accessToken' -otsv)" >> acr_tokens.env
 
 azure_containerize_helm:
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   stage: containerize
   variables:
     AZURE_HELM_SUBDIR: osdu-ddms/standard-ddms
@@ -89,7 +89,7 @@ azure_test:
 # It is a temporary change as azure_code_coverage not yet been implemented for CPP services.
 # Therefore the job has been disabled
 azure_code_coverage:
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   extends:
     - .azure_variables
   variables:
