@@ -31,7 +31,7 @@ export interface IClientConfig extends WebSocket.IConfig {
   dataPartitionId?: string;
   clientId?: string;
   encoding: "binary" | "json";
-  authentication: string;
+  authentication?: string;
   noHeaders: boolean;
 }
 
@@ -69,12 +69,10 @@ export class ETPClient extends ETPCore {
 
     const headers: { [key: string]: string } = config.clientId
       ? {
-          Authorization: config.authentication,
           "client-id": config.clientId,
           "etp-encoding": encoding
         }
       : {
-          Authorization: config.authentication,
           "etp-encoding": encoding
         };
 
@@ -90,6 +88,9 @@ export class ETPClient extends ETPCore {
         this.host = `${this.host}&data-partition-id=${config.dataPartitionId}`;
       }
     } else {
+      if (config.authentication) {
+        headers.Authorization = config.authentication;
+      }
       if (config.dataPartitionId) {
         headers["data-partition-id"] = config.dataPartitionId;
       }
@@ -131,6 +132,7 @@ export class ETPClient extends ETPCore {
     messageBody:
       | Energistics.Etp.v12.Protocol.Core.OpenSession
       | Energistics.Etp.v12.Protocol.Core.CloseSession
+      | Energistics.Etp.v12.Protocol.Core.AuthorizeResponse
       | Energistics.Etp.v12.Protocol.Core.Ping
       | Energistics.Etp.v12.Protocol.Core.Pong
       | Energistics.Etp.v12.Protocol.Core.ProtocolException
@@ -148,6 +150,12 @@ export class ETPClient extends ETPCore {
           this.onCloseSession(
             messageHeader,
             messageBody as Energistics.Etp.v12.Protocol.Core.CloseSession
+          );
+          break;
+        case Core.MsgAuthorizeResponse:
+          this.onAuthorizeResponse(
+            messageHeader,
+            messageBody as Energistics.Etp.v12.Protocol.Core.AuthorizeResponse
           );
           break;
         case Core.MsgPing:
@@ -242,6 +250,16 @@ export class ETPClient extends ETPCore {
       }
     );
     this.emit("open");
+  }
+
+  public onAuthorizeResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Core.AuthorizeResponse
+  ): void {
+    this.logTrace(
+      `Received Authorize message for ${header.correlationId}: Authorization ${message.success}.`
+    );
+    this.emit("authorize", header, message);
   }
 
   public onSocketClose(event: WebSocket.ICloseEvent): void {
@@ -341,6 +359,22 @@ export class ETPClient extends ETPCore {
       );
       this.buffer = Buffer.alloc(this.negotiatedSize);
     }
+    this.send(header, message);
+  }
+
+  public requestAuthorize(authentication?: string): void {
+    const header: Energistics.Etp.v12.Datatypes.MessageHeader =
+      this.createFinalMessageHeader(
+        PROTOCOL.Core,
+        Core.MsgAuthorize,
+        BigInt(0)
+      );
+
+    const authorization = authentication ? `${authentication}` : "";
+    const message: Energistics.Etp.v12.Protocol.Core.Authorize = {
+      authorization,
+      supplementalAuthorization: new Map<string, string>()
+    };
     this.send(header, message);
   }
 
