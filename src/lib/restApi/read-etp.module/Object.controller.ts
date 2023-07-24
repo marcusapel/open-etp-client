@@ -348,7 +348,6 @@ export default class ObjectsReadAPI {
     @Req() request: express.Request,
     @Res() res: express.Response,
     @Query("$format") format: "xml" | "json" = "json",
-    @Query("version") version?: string,
     @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
     @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
@@ -363,7 +362,7 @@ export default class ObjectsReadAPI {
         m?.groups?.domainVersion || "",
         m?.groups?.dataType || "",
         params.guid,
-        version
+        params.version
       ).uri
     ];
     if (!format || format === "xml") {

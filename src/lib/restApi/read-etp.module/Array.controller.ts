@@ -52,7 +52,8 @@ import {
   Energistics,
   IArrayId,
   IDataArray,
-  IDataArrayMetadata
+  IDataArrayMetadata,
+  ResqmlClient
 } from "../../client/ResqmlClient";
 
 import { Integer32 } from "../../common/Etp12";
@@ -522,7 +523,6 @@ export default class DataArrayReadAPI {
   })
   public async GetObjectArrays(
     @Param() params: FindInObjectParams,
-    @Query("version") version?: string,
     @Req() request?: express.Request
   ): Promise<GetObjectDataArraysOutput> {
     const m = params.dataObjectType.match(
@@ -534,7 +534,7 @@ export default class DataArrayReadAPI {
       m?.groups?.domainVersion || "",
       m?.groups?.dataType || "",
       params.guid,
-      version
+      params.version
     ).uri;
 
     return getObjectDataArrays(
@@ -573,7 +573,7 @@ export default class DataArrayReadAPI {
       params.guid,
       version
     ).uri;
-    let c = undefined;
+    let c: ResqmlClient | undefined = undefined;
     try {
       c = await createSession(
         extractToken(request),

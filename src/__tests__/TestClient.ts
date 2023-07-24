@@ -51,6 +51,7 @@ import {
   restApiRoutePath
 } from "../lib/common/config";
 import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
+import { ResourceGraph } from "src/lib/common/ResponseHandlers";
 
 const jwt = XmlUtils.createDefaultJWT();
 
@@ -219,6 +220,7 @@ afterAll(done => {
 
 const dataspaceName = "demo/Volve";
 
+const crsType = "resqml20.obj_LocalDepth3dCrs";
 const grid2dType = "resqml20.obj_Grid2dRepresentation";
 
 const tSurfType = "resqml20.obj_TriangulatedSetRepresentation";
@@ -605,14 +607,27 @@ describe("Objects", () => {
       );
       // Objects
       expect(objects.length).toBe(89);
+
+      const fullGraph: ResourceGraph = await client.getDataspaceGraph(
+        testDataspaceUri
+      );
+      // Graph
+      expect(fullGraph.size).toBe(89);
+      expect(fullGraph.edges.length).toBe(113);
+
       // Property
       const uri = `${testDataspaceUri}/resqml20.${propertyType}(${propertyUid})`;
       const sources = await client.getSources(uri);
-
       expect(sources.length).toBe(0);
+
+      const grapSources = fullGraph.sources(uri);
+      expect(grapSources.length).toBe(0);
 
       const targets = await client.getTargets(uri);
       expect(targets.length).toBe(2);
+
+      const graphTargets = fullGraph.targets(uri);
+      expect(graphTargets.length).toBe(2);
 
       const tSurf = targets.find(r =>
         r.uri.endsWith(`${tSurfType}(${tSurfUid})`)
@@ -663,10 +678,25 @@ describe("Objects", () => {
       )[0];
       expect(interp).toBeDefined();
       const featuredSources = await client.getSources(interp.uri, false, [
+        crsType,
         tSurfType,
         grid2dType
       ]);
       expect(featuredSources).toHaveLength(2);
+      const featuredSourcesWithSecondary = await client.getSources(
+        {
+          uri: interp.uri,
+          depth: 10,
+          dataObjectTypes: [crsType, tSurfType, grid2dType],
+          includeSecondaryTargets: true,
+          includeSecondarySources: false,
+          navigableEdges:
+            Energistics.Etp.v12.Datatypes.Object.RelationshipKind.Both
+        },
+        false,
+        [crsType, tSurfType, grid2dType]
+      );
+      expect(featuredSourcesWithSecondary.length).toBe(3);
     } catch (err: any) {
       failOnUnexpectedError(err);
     } finally {
