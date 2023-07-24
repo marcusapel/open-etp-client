@@ -18,7 +18,6 @@ import {
 } from "./Generated/manifest/Manifest.1.0.0";
 
 import { osduUrl } from "../common/config";
-import fetch, { HeadersInit, RequestInit } from "node-fetch";
 import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
