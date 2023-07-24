@@ -163,6 +163,14 @@ function formattedTypedArray<T extends NumberArray>(
   return values;
 }
 
+export class AuthorizationError extends Error {
+  challenges?: string[];
+  constructor(message: string, challenges?: string[]) {
+    super(message);
+    this.challenges = challenges;
+  }
+}
+
 /**
  * ETP client allowing to get RESQML information from an ETP server.
  * Represents a single ETP session, if several sessions are requested in parallel, several clients
@@ -301,6 +309,93 @@ export class ResqmlClient {
       }
     });
     return this.requestSession();
+  }
+
+  /**
+
+   * Connect to a server using its URL bit does not establish a session.
+   *
+   * @param {string} url URL of the server including port. Example 'ws://localhost:9004'
+   * @param {string} [authentication] Authentication header to use when connecting to the server, when undefined authentication should be done later if required
+   * @param {string} [dataPartitionId] Data partition to use when connecting to the server, when undefined the server will use the default data partition
+   * @param {string} [clientId] Client id to use when connecting to the server, when undefined the server will generate a client id
+   * @param {number} [maxMessagePayloadSize=10000000] Maximum size of a message payload in bytes
+   * @returns {Promise<void>}
+   * @memberof ResqmlClient
+   */
+  public async connect(
+    url: string,
+    authentication?: string,
+    dataPartitionId?: string,
+    clientId?: string,
+    maxMessagePayloadSize = 10000000
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const config: ETPClient.IClientConfig = {
+        authentication,
+        clientId,
+        dataPartitionId,
+        encoding: "binary",
+        maxReceivedMessageSize: maxMessagePayloadSize,
+        noHeaders: false,
+        url
+      };
+      try {
+        this.client.on("connect", resolve);
+        this.client.on("error", reject);
+        this.client.on("exception", reject);
+        this.client.connect(config, socket);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
+   * Request a new Authorize with given authentication token
+   *
+   * @public
+   * @param {string} [jwToken] [jwtToken] JWT token used by authentication,
+   *                            When undefined <code>authenticationKey</code> and <code>userInfo</code> are used for authentication
+   * @param {{ username: string; password: string } | string} [userInfo] Information used to create authentication when no <code>jwToken</code>.
+   *                             If a string is given it will be passed as-is else user/password will be encoded,
+   *                             If <code>authenticationKey</code> is present, JWT authentication is generated, else basic non-encrypted is used
+   * @returns {Promise<void>} void promise
+   * @memberof ResqmlClient
+   */
+  public async requestAuthorize(
+    jwToken?: string,
+    userInfo?: { username: string; password: string } | string
+  ): Promise<void> {
+    let authentication = jwToken ? `Bearer ${jwToken}` : "";
+    if (!jwToken) {
+      if (typeof userInfo === "string") {
+        authentication = userInfo;
+      } else {
+        const { username, password } = userInfo || {
+          username: "",
+          password: ""
+        };
+        const buffer = Buffer.from(`${username}:${password}`);
+        authentication = `Basic ${buffer.toString("base64")}`;
+      }
+    }
+    return new Promise((resolve, reject) => {
+      this.client.on("authorize", (h, m) => {
+        if (m.success) {
+          resolve();
+        } else {
+          reject(new AuthorizationError("Authorization Error", m.challenges));
+        }
+      });
+      this.client.on("error", err => {
+        reject(new AuthorizationError(`Authorization Error: ${err.message}`));
+      });
+      this.client.on("exception", err => {
+        reject(new AuthorizationError(`Authorization Error: ${err.message}`));
+      });
+      this.client.requestAuthorize(authentication);
+    });
   }
 
   /**
@@ -2247,13 +2342,13 @@ export class ResqmlClient {
   }
 
   /**
-   * Request a new session as part of the connection
+   * Request a new session, can be separate from the connection
    *
-   * @private
+   * @public
    * @returns {Promise<void>} void promise
    * @memberof ResqmlClient
    */
-  private requestSession(): Promise<void> {
+  public requestSession(): Promise<void> {
     this.connected = true;
     return new Promise((resolve, reject) => {
       try {
