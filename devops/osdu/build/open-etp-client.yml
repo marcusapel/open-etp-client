@@ -1,4 +1,4 @@
-rdms_rest_compile-and-unit-test:
+compile-and-unit-test:
   image: docker/compose:1.29.2
   tags: ["osdu-medium"]
   stage: build

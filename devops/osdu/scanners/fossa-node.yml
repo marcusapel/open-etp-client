@@ -6,8 +6,8 @@ include:
 rdms_rest_fossa-analyze:
   image: $CI_REGISTRY/divido/fossa-cli-utilities/fossa-cli-utilities:v5.1
   stage: scan
-  needs: ['rdms_rest_compile-and-unit-test']
-  tags: ['osdu-medium']
+  needs: ["compile-and-unit-test"]
+  tags: ["osdu-medium"]
   script:
     # fossa-check-for-licensing-issues needs a CI_COMMIT_BRANCH defined to know how to parse the FOSSA API results
     # When building tags, this isn't defined by GitLab. In that case, we use the tag name instead. If that's not defined

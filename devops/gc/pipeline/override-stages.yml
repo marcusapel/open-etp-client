@@ -4,14 +4,14 @@ variables:
 
 gc-containerize-gitlab:
   tags: ["osdu-medium"]
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   variables:
     BUILD_PATH: "devops/gc/deploy/Dockerfile"
     BUILD_ARGS: "--build-arg DIST=dist.tgz"
 
 gc-containerize-gcr:
   tags: ["osdu-medium"]
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   variables:
     BUILD_PATH: "devops/gc/deploy/Dockerfile"
     BUILD_ARGS: "--build-arg DIST=dist.tgz"
