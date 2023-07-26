@@ -21,6 +21,8 @@ import { osduUrl } from "../common/config";
 import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
+import fetch, { HeadersInit, RequestInit } from "node-fetch";
+
 type Converter = (
   uri: string,
   xml: any,
