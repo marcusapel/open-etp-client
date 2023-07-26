@@ -26,7 +26,7 @@ spec:
             name: {{ .Values.conf.oetpClientSecret | quote }}
         securityContext:
           allowPrivilegeEscalation: false
-          runAsUser: 0
+          runAsNonRoot: true
         resources:
           requests:
             cpu: {{ .Values.data.requestsCpu | quote }}

@@ -6,14 +6,14 @@ gc-containerize-gitlab:
   tags: ["osdu-medium"]
   needs: ["rdms_rest_compile-and-unit-test"]
   variables:
-    BUILD_PATH: "devops/osdu/docker/Dockerfile.runtime"
+    BUILD_PATH: "devops/gc/deploy/Dockerfile"
     BUILD_ARGS: "--build-arg DIST=dist.tgz"
 
 gc-containerize-gcr:
   tags: ["osdu-medium"]
   needs: ["rdms_rest_compile-and-unit-test"]
   variables:
-    BUILD_PATH: "devops/osdu/docker/Dockerfile.runtime"
+    BUILD_PATH: "devops/gc/deploy/Dockerfile"
     BUILD_ARGS: "--build-arg DIST=dist.tgz"
 
 gc-containerize-bootstrap-gitlab:
@@ -33,7 +33,7 @@ gc-containerize-bootstrap-gcr:
         && rm tmp.zip
       fi
     - >
-      echo "[{ \"CLIENT_ID\": \"${GC_CLIENT_ID}\", \"CLIENT_SECRET\": \"${GC_CLIENT_SECRET}\", \"refresh_token\": \"${GC_REFRESH_TOKEN}\"}]" > test_config_file.json
+      echo "[{ \"CLIENT_ID\": \"${GC_CLIENT_ID}\", \"CLIENT_SECRET\": \"${GC_CLIENT_SECRET}\", \"grant_type\": \"${GC_GRANT_TYPE}\", \"refresh_token\": \"${GC_REFRESH_TOKEN}\"}]" > test_config_file.json
     - curl "${GET_COLLECTION_URL}" > collection.json && COLLECTION=collection.json
     - curl "${GC_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
     - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d  test_config_file.json --delay-request 3000 || exit $?

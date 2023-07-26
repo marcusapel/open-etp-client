@@ -238,6 +238,58 @@ const wrongDataspaceEncoded = encodeURIComponent(wrongDataspace);
 //*****************************************************/
 // ResqmlClient
 
+describe("Authorization", () => {
+  it("Check valid Authentication token", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(false);
+    await c2.connect(etpServerUrl, undefined, testDataPartitionId);
+    let thrown = false;
+    try {
+      await c2.requestAuthorize(jwt);
+      await c2.requestSession();
+    } catch (err) {
+      thrown = true;
+    }
+    expect(thrown).toBeFalsy();
+    await c2.closeSession();
+  });
+  it("Check invalid Authentication token", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(false);
+    expect.assertions(2);
+    await c2.connect(etpServerUrl, undefined, testDataPartitionId);
+    try {
+      await c2.requestAuthorize(`Bearer badToken`);
+    } catch (err) {
+      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+    }
+    try {
+      await c2.requestSession();
+      await c2.closeSession();
+    } catch (err) {
+      expect(err).toEqual(undefined);
+    }
+  });
+  it("Check Authorization without token", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(false);
+    expect.assertions(2);
+    await c2.connect(etpServerUrl, undefined, testDataPartitionId);
+    try {
+      await c2.requestAuthorize();
+      await c2.requestSession();
+    } catch (err) {
+      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+    }
+    try {
+      await c2.requestSession();
+      await c2.closeSession();
+    } catch (err) {
+      expect(err).toEqual(undefined);
+    }
+  });
+});
+
 describe("Ping", () => {
   it("Ping", async () => {
     const c2 = new ResqmlClient();
