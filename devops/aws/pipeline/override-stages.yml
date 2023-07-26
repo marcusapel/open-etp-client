@@ -1,0 +1,23 @@
+include:
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/aws-global-variables.yml"
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/aws-global.yml"
+
+aws-containerize:
+  extends:
+    - .aws
+    - .aws_common_variables
+    - .aws_variables
+  needs: ["rdms_rest_compile-and-unit-test"]
+  stage: containerize
+  script:
+    - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t $LOCAL_IMAGE_TAG .
+    - $(aws ecr get-login --no-include-email --region $AWS_ECR_REGION)
+    - docker tag $LOCAL_IMAGE_TAG $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA
+    - docker tag $LOCAL_IMAGE_TAG $AWS_IMAGE_TAG_BASE:latest
+    - docker push $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA
+    - docker push $AWS_IMAGE_TAG_BASE:latest
+  only:
+    variables:
+      - $AWS == '1'

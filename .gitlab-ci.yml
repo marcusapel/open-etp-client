@@ -1,6 +1,10 @@
 variables:
   #azure
   AZURE_SWAGGER_PATH: api/oetp-client/v2/
+  AWS_SERVICE: open-etp-client
+  AWS_DEPLOY_TARGET: TF
+  AWS_SERVICE_NAMESPACE_SUFFIX: reservoir-ddms
+  AWS_EKS_DEPLOYMENT_NAME: os-open-etp-client
 
 include:
   # pipeline logic
@@ -33,7 +37,7 @@ include:
   - local: "devops/azure/azure.gitlab-ci.yml"
 
   # aws
-  # - local: "devops/osdu/cloud-providers/aws.yml"
+  - local: "devops/aws/pipeline/override-stages.yml"
 
   # gcp
   # - local: "devops/osdu/cloud-providers/gcp.yml"
@@ -41,4 +45,3 @@ include:
   # ibm
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/ibm-open-etp-client.yml"
-
