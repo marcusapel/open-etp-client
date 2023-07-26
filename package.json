@@ -200,7 +200,7 @@
     "testEnvironment": "node"
   },
   "engines": {
-    "node": ">=16 <18",
-    "npm": ">=6.13 <9"
+    "node": ">=16 <19",
+    "npm": ">=6.13 <10"
   }
 }

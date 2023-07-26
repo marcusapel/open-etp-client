@@ -5,7 +5,7 @@ push_runtime_image:
     - docker:19.03.12-dind
   tags: ["osdu-medium"]
   stage: containerize
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   variables:
     SHA_IMAGE: ${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}:${CI_COMMIT_SHA}
     LATEST_IMAGE: ${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}:latest
