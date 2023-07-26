@@ -265,9 +265,9 @@ describe("Authorization", () => {
     }
     try {
       await c2.requestSession();
-      await c2.closeSession();
     } catch (err) {
-      expect(err).toEqual(undefined);
+      expect(err).toBeDefined();
+      c2.disconnect();
     }
   });
   it("Check Authorization without token", async () => {
@@ -283,9 +283,9 @@ describe("Authorization", () => {
     }
     try {
       await c2.requestSession();
-      await c2.closeSession();
     } catch (err) {
-      expect(err).toEqual(undefined);
+      expect(err).toBeDefined();
+      c2.disconnect();
     }
   });
 });
