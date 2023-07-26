@@ -382,7 +382,7 @@ export class ResqmlClient {
       }
     }
     return new Promise((resolve, reject) => {
-      this.client.on("authorize", (h, m) => {
+      this.client.on("authorize", (_, m) => {
         if (m.success) {
           resolve();
         } else {
@@ -392,8 +392,12 @@ export class ResqmlClient {
       this.client.on("error", err => {
         reject(new AuthorizationError(`Authorization Error: ${err.message}`));
       });
-      this.client.on("exception", err => {
-        reject(new AuthorizationError(`Authorization Error: ${err.message}`));
+      this.client.on("exception", (_, err) => {
+        let message = err?.error?.message || "Unknown";
+        if (err.error?.code === ErrorCode.EAUTHORIZATION_EXPIRED) {
+          message = "Authorization expired";
+        }
+        reject(new AuthorizationError(`Authorization Error: ${message}`));
       });
       this.client.requestAuthorize(authentication);
     });
