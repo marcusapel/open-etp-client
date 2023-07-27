@@ -9,7 +9,7 @@ aws-containerize:
     - .aws
     - .aws_common_variables
     - .aws_variables
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   stage: containerize
   script:
     - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t $LOCAL_IMAGE_TAG .
