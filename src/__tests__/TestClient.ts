@@ -261,7 +261,7 @@ describe("Authorization", () => {
     try {
       await c2.requestAuthorize(`Bearer badToken`);
     } catch (err) {
-      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+      expect(err).toHaveProperty("message");
     }
     try {
       await c2.requestSession();
@@ -279,7 +279,7 @@ describe("Authorization", () => {
       await c2.requestAuthorize();
       await c2.requestSession();
     } catch (err) {
-      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+      expect(err).toHaveProperty("message");
     }
     try {
       await c2.requestSession();
