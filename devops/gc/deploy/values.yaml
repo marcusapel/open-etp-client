@@ -1,0 +1,27 @@
+global:
+  domain: ""
+  onPremEnabled: false
+  limitsEnabled: true
+
+data:
+  # Configmaps
+  cloudProvider: "google"
+  rdmsRestRootPath: "/api/oetp-client/v2"
+  rdmsRestPort: "8003"
+  rdmsEtpHost: "oetp-server"
+  rdmsEtpPort: "9002"
+  rdmsEtpProtocol: "ws"
+  logLevel: "error"
+  # Deployments
+  requestsCpu: "5m"
+  requestsMemory: "250Mi"
+  limitsCpu: "1"
+  limitsMemory: "1G"
+  serviceAccountName: "oetp-client"
+  image: ""
+  imagePullPolicy: "IfNotPresent"
+
+conf:
+  appName: "oetp-client"
+  configmap: "oetp-client-config"
+  oetpClientSecret: "oetp-client-secret"

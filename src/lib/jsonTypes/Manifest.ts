@@ -3,7 +3,10 @@ import { EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
-import ResqmlOSDU from "./ResqmlOsdu";
+import ResqmlOSDU, {
+  EtpDataspaceManifest,
+  WorkProductManifest
+} from "./ResqmlOsdu";
 
 import { Manifest } from "./Generated/manifest/Manifest.1.0.0";
 import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.controller";
@@ -120,12 +123,18 @@ export const createManifest = async (
           continue;
         }
 
-        //Create WorkProduct
+        // Create WorkProduct
         // manifests.Data.WorkProduct = WorkProductManifest(
         //   dataspaces[0],
         //   context
         // );
-        // manifests.Data.WorkProduct.version = dataset.version;
+        // manifests.Data.WorkProduct.version = 1;
+        currentDataspaces.add(dataspaceId);
+
+        manifests.Data.Datasets = manifests.Data.Datasets || [];
+        manifests.Data.Datasets.push(
+          EtpDataspaceManifest(dataspaces[0], context)
+        );
       }
 
       // Check that it is an object

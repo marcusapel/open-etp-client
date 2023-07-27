@@ -2,7 +2,7 @@ rdms_rest_lint:
   image: node:17.9
   tags: ["osdu-small"]
   stage: scan
-  needs: ["rdms_rest_compile-and-unit-test"]
+  needs: ["compile-and-unit-test"]
   script:
     - npm install
     - npm run lint

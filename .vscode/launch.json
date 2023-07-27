@@ -23,6 +23,22 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "RESQML Example2",
+      "args": [
+        "${workspaceRoot}/src/examples/Example2.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "RESQML Get statistics",
       "args": [
         "${workspaceRoot}/src/examples/ExampleStatistics.ts"
@@ -145,7 +161,10 @@
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": "npm",
       "restart": true,
-      "args": ["run", "start:dev"],
+      "args": [
+        "run",
+        "start:dev"
+      ],
       "protocol": "inspector",
       "disableOptimisticBPs": true,
       "outputCapture": "std"
@@ -157,7 +176,10 @@
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": "npm",
       "restart": true,
-      "args": ["run", "start"],
+      "args": [
+        "run",
+        "start"
+      ],
       "protocol": "inspector",
       "disableOptimisticBPs": true,
       "outputCapture": "std"

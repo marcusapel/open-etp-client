@@ -18,7 +18,11 @@ include:
   - local: "devops/osdu/build/open-etp-client.yml"
 
   # scan
-  # fossa
+  ## security scanners
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "scanners/gitlab-ultimate.yml"
+
+  ## fossa
   - local: "devops/osdu/scanners/fossa-node.yml"
 
   # lint
@@ -39,9 +43,12 @@ include:
   # aws
   - local: "devops/aws/pipeline/override-stages.yml"
 
-  # gcp
-  # - local: "devops/osdu/cloud-providers/gcp.yml"
+  # gc
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/gc-global.yml"
+  - local: "devops/gc/pipeline/override-stages.yml"
 
   # ibm
+  - local: "devops/ibm/pipeline/override-stages.yml"
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/ibm-open-etp-client.yml"
