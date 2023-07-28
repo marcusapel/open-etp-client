@@ -48,7 +48,8 @@ import {
   NotFoundException,
   NotImplementedException,
   PipeTransform,
-  Type
+  Type,
+  UnauthorizedException
 } from "@nestjs/common";
 
 import {
@@ -638,15 +639,15 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
       error.code == ErrorCode.EAUTHORIZATION_REQUIRED ||
       error.code == ErrorCode.EREQUEST_DENIED
     ) {
-      return new ForbiddenException({ description: error.message });
-    }
-    if (error.code == ErrorCode.EINVALID_URI) {
+      return new UnauthorizedException({ description: error.message });
+    } else if (error.code == ErrorCode.ENOT_FOUND) {
       return new NotFoundException({ description: error.message });
-    }
-    if (error.code == ErrorCode.EINVALID_ARGUMENT) {
+    } else if (
+      error.code == ErrorCode.EINVALID_URI ||
+      error.code == ErrorCode.EINVALID_ARGUMENT
+    ) {
       return new BadRequestException({ description: error.message });
-    }
-    if (
+    } else if (
       error.code == ErrorCode.ENOSUPPORTEDPROTOCOLS ||
       error.code == ErrorCode.EINVALID_MESSAGETYPE ||
       error.code == ErrorCode.ENOTSUPPORTED ||

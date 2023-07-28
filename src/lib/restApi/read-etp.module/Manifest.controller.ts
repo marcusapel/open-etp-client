@@ -29,7 +29,8 @@ import {
   ApiPropertyOptional,
   ApiQuery,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -402,6 +403,7 @@ export class ManifestDto {
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Manifest")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))

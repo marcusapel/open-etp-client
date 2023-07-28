@@ -43,7 +43,8 @@ import {
   ApiQuery,
   ApiQueryOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -499,6 +500,7 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
