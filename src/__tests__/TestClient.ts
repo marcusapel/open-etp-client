@@ -397,8 +397,9 @@ describe("Resource Graph", () => {
         </eml:EpcExternalPartReference>
         `;
     const p = projects[0];
+    const data = Array.from(xmlContent).map(c => c.charCodeAt(0));
     const object: Energistics.Etp.v12.Datatypes.Object.DataObject = {
-      data: [...Buffer.from(xmlContent)],
+      data,
       format: "xml",
       resource: {
         uri: `${p.uri}/eml.EpcExternalPartReference(53395ada-6f93-4bac-b506-d45997ded2a2)`,
@@ -1088,7 +1089,7 @@ describe(`Auth`, () => {
       await testServers[type]
         .get(u)
         .set(`Authorization`, `Bearer ${token}`)
-        .expect(500);
+        .expect(404);
     }
   });
 });
@@ -1128,7 +1129,7 @@ describe(`Resources`, () => {
       .get(`${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
-      .expect(500);
+      .expect(404);
   });
 
   it.each(serverData)(`Resource by Types %s`, async type => {
