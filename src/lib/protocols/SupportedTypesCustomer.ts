@@ -18,6 +18,7 @@ import { ArrayResponseHandler } from "../common/ResponseHandlers";
 import { BaseHandler } from "../common/BaseHandler";
 import { Energistics } from "../common/Etp12";
 import { ETPCore } from "../common/ETPCore";
+import { errorFromProtocolException } from "../common/EtpTypes";
 
 const SupportedTypes = Energistics.Etp.v12.Protocol.SupportedTypes;
 const Core = Energistics.Etp.v12.Protocol.Core;
@@ -160,20 +161,10 @@ export class SupportedTypesCustomer extends BaseHandler {
     }
     const results = this.typeResults.get(header.correlationId);
     if (results) {
-      if (message.error) {
-        results.reject(
-          `Server error ${message.error.code}: ${message.error.message}`
-        );
-      } else {
-        results.reject(
-          Array.from(message.errors.entries())
-            .map(e => `${e[0]}: Server error ${e[1].code}: ${e[1].message}`)
-            .join("\n")
-        );
-      }
       if (BaseHandler.isFinalMessage(header)) {
         this.typeResults.delete(header.correlationId);
       }
+      results.reject(errorFromProtocolException(message));
     } else {
       throw new Error(
         `Error returned on unknown supportedTypes message ${header.correlationId}`

@@ -17,7 +17,11 @@
 import { v5 as uuidNameSpace, v4 as uuidRandom } from "uuid";
 
 import * as websocket from "websocket";
-import { ErrorCode } from "../common/EtpTypes";
+import {
+  ErrorCode,
+  EtpError,
+  errorFromProtocolException
+} from "../common/EtpTypes";
 
 import type {
   DataObject,
@@ -164,10 +168,10 @@ function formattedTypedArray<T extends NumberArray>(
   return values;
 }
 
-export class AuthorizationError extends Error {
+export class AuthorizationError extends EtpError {
   challenges?: string[];
   constructor(message: string, challenges?: string[]) {
-    super(message);
+    super(message, ErrorCode.EAUTHORIZATION_REQUIRED);
     this.challenges = challenges;
   }
 }
@@ -303,7 +307,11 @@ export class ResqmlClient {
       try {
         this.client.on("connect", resolve);
         this.client.on("error", reject);
-        this.client.on("exception", reject);
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) =>
+            reject(errorFromProtocolException(m))
+        );
         this.client.connect(config, socket);
       } catch (err) {
         reject(err);
@@ -344,7 +352,11 @@ export class ResqmlClient {
       try {
         this.client.on("connect", resolve);
         this.client.on("error", reject);
-        this.client.on("exception", reject);
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) =>
+            reject(errorFromProtocolException(m))
+        );
         this.client.connect(config, socket);
       } catch (err) {
         reject(err);
@@ -392,13 +404,20 @@ export class ResqmlClient {
       this.client.on("error", err => {
         reject(new AuthorizationError(`Authorization Error: ${err.message}`));
       });
-      this.client.on("exception", (_, err) => {
-        let message = err?.error?.message || "Unknown";
-        if (err.error?.code === ErrorCode.EAUTHORIZATION_EXPIRED) {
-          message = "Authorization expired";
+      this.client.on(
+        "exception",
+        (_, err: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+          const message = err?.error?.message || "Unknown";
+          const auth = new AuthorizationError(
+            `Authorization Error: ${message}`
+          );
+          if (err.error?.code === ErrorCode.EAUTHORIZATION_EXPIRED) {
+            auth.message = "Authorization Error: Authorization expired";
+            auth.code = ErrorCode.EAUTHORIZATION_EXPIRED;
+          }
+          reject(auth);
         }
-        reject(new AuthorizationError(`Authorization Error: ${message}`));
-      });
+      );
       this.client.requestAuthorize(authentication);
     });
   }
@@ -417,10 +436,15 @@ export class ResqmlClient {
         timer.cancel(false);
         resolve();
       });
-      this.client.on("exception", () => {
-        timer.cancel(false);
-        reject("Cannot close session");
-      });
+      this.client.on(
+        "exception",
+        (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+          timer.cancel(false);
+          const err = errorFromProtocolException(m);
+          err.message = `Cannot close session: ${err.message}`;
+          reject(err);
+        }
+      );
       this.client.on("error", () => {
         timer.cancel(false);
         reject("Cannot close session");
@@ -1051,7 +1075,12 @@ export class ResqmlClient {
   ): Promise<DeletedResource[]> {
     const uri: EtpUri = new EtpUri(dataspace);
     if (!uri.isValid) {
-      return Promise.reject(new Error(`Invalid dataspace URI ${dataspace}`));
+      return Promise.reject(
+        new EtpError(
+          `Invalid dataspace URI ${dataspace}`,
+          ErrorCode.EINVALID_URI
+        )
+      );
     }
     return this.discovery.getDeletedResources(
       dataspace,
@@ -1754,7 +1783,9 @@ export class ResqmlClient {
         .then(e => e.length > 0 && e[0].code === 0);
     }
     if (!transportType) {
-      return Promise.reject(`Invalid array type`);
+      return Promise.reject(
+        new EtpError(`Invalid array type`, ErrorCode.EINVALID_ARGUMENT)
+      );
     }
 
     const { nbParts, nbSliceInPart, nbSliceExtraPart } =
@@ -1982,11 +2013,23 @@ export class ResqmlClient {
         const e = await this.dataArray.put([array]);
         return e.length > 0 && e[0].code === 0;
       } catch (err) {
-        return Promise.reject(err);
+        if (err instanceof Error) {
+          return Promise.reject(
+            new EtpError(err.message, ErrorCode.EINVALID_STATE)
+          );
+        } else if (typeof err === "string") {
+          return Promise.reject(new EtpError(err, ErrorCode.EINVALID_STATE));
+        } else {
+          return Promise.reject(
+            new EtpError("Unknown error", ErrorCode.EINVALID_STATE)
+          );
+        }
       }
     }
     if (!logicalArrayType || !transportArrayType) {
-      return Promise.reject("Invalid array type");
+      return Promise.reject(
+        new EtpError("Invalid array type", ErrorCode.EINVALID_ARGUMENT)
+      );
     }
 
     const { nbParts, nbSliceInPart, nbSliceExtraPart } =
@@ -2461,7 +2504,12 @@ export class ResqmlClient {
                     >()
                   });
                 } else {
-                  return Promise.reject(`Cannot send array : ${v.uid}`);
+                  return Promise.reject(
+                    new EtpError(
+                      `Cannot send array : ${v.uid}`,
+                      ErrorCode.EINVALID_STATE
+                    )
+                  );
                 }
               })
           )
@@ -2490,9 +2538,12 @@ export class ResqmlClient {
         this.client.on("error", (h, m) => {
           reject(m);
         });
-        this.client.on("exception", (h, m) => {
-          reject(m);
-        });
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+            reject(errorFromProtocolException(m));
+          }
+        );
         this.client.requestSession("open-etp-client", "0.0.1");
       } catch (err) {
         reject(err);

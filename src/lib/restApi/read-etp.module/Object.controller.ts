@@ -17,7 +17,6 @@
 import {
   Controller,
   Get,
-  InternalServerErrorException,
   Param,
   Query,
   Req,
@@ -62,6 +61,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   sliceArray,
   swaggerServers
@@ -390,9 +390,7 @@ export default class ObjectsReadAPI {
       res.send(b);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 }

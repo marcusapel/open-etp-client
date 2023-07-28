@@ -13,15 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ============================================================================
-import {
-  Body,
-  Controller,
-  InternalServerErrorException,
-  Post,
-  Req,
-  Res,
-  UseGuards
-} from "@nestjs/common";
+import { Body, Controller, Post, Req, Res, UseGuards } from "@nestjs/common";
 
 import {
   ApiBearerAuth,
@@ -48,6 +40,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
@@ -482,14 +475,7 @@ export default class ObjectsManifestAPI {
       res.send(b);
     } catch (err) {
       c?.closeSession();
-      throw new InternalServerErrorException({
-        description:
-          err instanceof Error
-            ? err.message
-            : typeof err === "string"
-            ? err
-            : `Unknown Error`
-      });
+      throw httpErrorFromEtpError(err);
     }
   }
 }

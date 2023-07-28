@@ -72,6 +72,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   swaggerServers,
   toJSonCustomData
@@ -542,7 +543,7 @@ export default class DataArrayReadAPI {
       extractToken(request),
       extractDataPartitionId(request)
     ).catch((err: Error) => {
-      throw new InternalServerErrorException({ description: err.message });
+      throw httpErrorFromEtpError(err);
     });
   }
 
@@ -590,7 +591,7 @@ export default class DataArrayReadAPI {
         : null;
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(err);
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -718,11 +719,7 @@ export default class DataArrayReadAPI {
       return res;
     } catch (err) {
       await c?.closeSession();
-      if (err instanceof Error) {
-        throw err;
-      } else {
-        throw new InternalServerErrorException(err);
-      }
+      throw httpErrorFromEtpError(err);
     }
   }
 }

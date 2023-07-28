@@ -159,7 +159,10 @@ export class ETPCore extends EventEmitter {
         this.onAcknowledge(messageHeader, messageBody);
         break;
       case Core.MsgProtocolException:
-        this.onException(messageHeader, messageBody);
+        this.onException(
+          messageHeader,
+          messageBody as Energistics.Etp.v12.Protocol.Core.ProtocolException
+        );
         break;
       case Core.MsgPing:
         this.onPing(
@@ -294,7 +297,7 @@ export class ETPCore extends EventEmitter {
   /// Handle an exception message.
   public onException(
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
-    message: unknown
+    message: Energistics.Etp.v12.Protocol.Core.ProtocolException
   ): void {
     this.logTrace(
       `Received Exception message for ${header.correlationId}: ${message}.`

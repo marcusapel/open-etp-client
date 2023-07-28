@@ -211,6 +211,43 @@ export enum ErrorCode {
   ENOTGROWINGOBJECT = 6001
 }
 
+/**
+ * Represents an ETP error, including the error code and message
+ *
+ * @export
+ * @class EtpError
+ * @extends {Error}
+ */
+export class EtpError extends Error {
+  code: ErrorCode;
+  constructor(message: string, code: ErrorCode) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Convert a ProtocolException to an EtpError
+ * @param ex ProtocolException
+ * @returns EtpError with the error code and message
+ */
+export const errorFromProtocolException = (
+  ex: Energistics.Etp.v12.Protocol.Core.ProtocolException
+): EtpError => {
+  if (ex.error) {
+    return new EtpError(ex.error.message, ex.error.code);
+  }
+  if (ex.errors && ex.errors.size > 0) {
+    const message = Array.from(ex.errors.values()).reduce(
+      (p, c) => p + (p.length > 0 ? ", " : "") + c.message,
+      ""
+    );
+    const code = Array.from(ex.errors.values())[0].code;
+    return new EtpError(message, code);
+  }
+  return new EtpError("Unknwon Error", ErrorCode.EINVALID_STATE);
+};
+
 export enum MessageFlags {
   FINALPART = 2
 }

@@ -16,7 +16,12 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 import { BaseHandler } from "./BaseHandler";
-import { ErrorCode, Resource } from "./EtpTypes";
+import {
+  ErrorCode,
+  EtpError,
+  Resource,
+  errorFromProtocolException
+} from "./EtpTypes";
 import { Energistics, Integer64 } from "../common/Etp12";
 
 /**
@@ -281,7 +286,7 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
  */
 export class ArrayResponseHandler<T> extends ResponseHandler<{
   resolve: (value: T[] | PromiseLike<T[]>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: T[];
 }> {
   constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
@@ -324,24 +329,13 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
     if (!request) {
       return false;
     }
-    if (message.error) {
-      request.reject(
-        `Server error ${message.error.code}: ${message.error.message}`
-      );
-    } else if (
-      message.errors &&
-      message.errors.values().next().done === false
-    ) {
-      const it = message.errors.values().next().value;
-      request.reject(`Server error ${it.code}: ${it.message}`);
-    } else {
-      request.reject(`Server error`);
-    }
+
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);
     } else {
       this.onIntermediateMessage(header.correlationId);
     }
+    request.reject(errorFromProtocolException(message));
     return true;
   }
 }
@@ -450,7 +444,7 @@ export class ResourceGraph extends Map<string, Resource> {
  */
 export class GraphResponseHandler extends ResponseHandler<{
   resolve: (value: ResourceGraph | PromiseLike<ResourceGraph>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   graph: ResourceGraph;
 }> {
   /**
@@ -554,19 +548,7 @@ export class GraphResponseHandler extends ResponseHandler<{
     if (!request) {
       return false;
     }
-    if (message.error) {
-      request.reject(
-        `Server error ${message.error.code}: ${message.error.message}`
-      );
-    } else if (
-      message.errors &&
-      message.errors.values().next().done === false
-    ) {
-      const it = message.errors.values().next().value;
-      request.reject(`Server error ${it.code}: ${it.message}`);
-    } else {
-      request.reject(`Server error`);
-    }
+    request.reject(errorFromProtocolException(message));
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);
     } else {
@@ -737,7 +719,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
       | Energistics.Etp.v12.Datatypes.ErrorInfo[]
       | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
   ) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
 }> {
@@ -772,9 +754,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
     });
     if (BaseHandler.isFinalMessage(header)) {
       if (message.error) {
-        request.reject(
-          `Server error ${message.error.code}: ${message.error.message}`
-        );
+        request.reject(errorFromProtocolException(message));
         return true;
       }
       const results: Energistics.Etp.v12.Datatypes.ErrorInfo[] =

@@ -39,8 +39,14 @@ import { SchemaObjectFactory } from "@nestjs/swagger/dist/services/schema-object
 import { SwaggerTypesMapper } from "@nestjs/swagger/dist/services/swagger-types-mapper";
 
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
+  HttpException,
+  InternalServerErrorException,
+  NotFoundException,
+  NotImplementedException,
   PipeTransform,
   Type
 } from "@nestjs/common";
@@ -53,6 +59,7 @@ import {
   openApiPort
 } from "../common/config";
 import { ResourceGraph } from "../common/ResponseHandlers";
+import { ErrorCode, EtpError } from "../common/EtpTypes";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
@@ -606,4 +613,48 @@ export const graphResources = async (
       : null,
     objects
   );
+};
+
+/**
+ * Check if an error is an ETPError
+ *
+ * @param err
+ * @returns
+ */
+export function isEtpError(err: any): err is EtpError {
+  return err && typeof err.code === "number";
+}
+
+/**
+ * Create a HttpException from an ETPError
+ *
+ * @param {unknown} error EtpError
+ * @returns {HttpException}
+ */
+export const httpErrorFromEtpError = (error: unknown): HttpException => {
+  //add a typeguard to check if err is an EtpError
+  if (isEtpError(error)) {
+    if (
+      error.code == ErrorCode.EAUTHORIZATION_REQUIRED ||
+      error.code == ErrorCode.EREQUEST_DENIED
+    ) {
+      return new ForbiddenException({ description: error.message });
+    }
+    if (error.code == ErrorCode.EINVALID_URI) {
+      return new NotFoundException({ description: error.message });
+    }
+    if (error.code == ErrorCode.EINVALID_ARGUMENT) {
+      return new BadRequestException({ description: error.message });
+    }
+    if (
+      error.code == ErrorCode.ENOSUPPORTEDPROTOCOLS ||
+      error.code == ErrorCode.EINVALID_MESSAGETYPE ||
+      error.code == ErrorCode.ENOTSUPPORTED ||
+      error.code == ErrorCode.ENOSUPPORTEDFORMATS ||
+      error.code == ErrorCode.ENOSUPPORTEDDATAOBJECTTYPES
+    ) {
+      return new NotImplementedException({ description: error.message });
+    }
+  }
+  return new InternalServerErrorException({ description: `Unknown Error` });
 };

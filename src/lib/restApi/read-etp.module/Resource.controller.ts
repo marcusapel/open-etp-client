@@ -15,15 +15,7 @@
 // limitations under the License.
 // ============================================================================
 
-import {
-  Controller,
-  Get,
-  InternalServerErrorException,
-  Param,
-  Query,
-  Req,
-  UseGuards
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, Req, UseGuards } from "@nestjs/common";
 
 import { Type } from "@nestjs/class-transformer";
 
@@ -58,6 +50,7 @@ import type { SupportedType } from "../../client/ResqmlClient";
 import {
   HasBearerGuard,
   HasDataPartitionGuard,
+  OptionalParseBoolPipe,
   OptionalParseDatePipe,
   OptionalParseIntPipe,
   alphaSpaceSchema,
@@ -68,6 +61,7 @@ import {
   findResources,
   getSchemasForType,
   graphResources,
+  httpErrorFromEtpError,
   patternString,
   sliceArray,
   swaggerServers,
@@ -710,9 +704,7 @@ export default class ResourcesReadAPI {
       return pros;
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -763,9 +755,7 @@ export default class ResourcesReadAPI {
       });
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -796,7 +786,7 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
-    @Query("countObjects") countObjects = false,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -828,9 +818,7 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -869,7 +857,7 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
-    @Query("countObjects") countObjects?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects?: boolean,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -901,9 +889,7 @@ export default class ResourcesReadAPI {
       return sendGraph(skip, top, graph);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -932,7 +918,7 @@ export default class ResourcesReadAPI {
     @Query("$filter") filter?: string,
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
-    @Query("countObjects") countObjects = false,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -964,9 +950,7 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -1001,8 +985,9 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
-    @Query("includeSecondarySources") includeSecondarySources?: boolean,
-    @Query("countObjects") countObjects = false,
+    @Query("includeSecondarySources", OptionalParseBoolPipe)
+    includeSecondarySources?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -1046,9 +1031,7 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -1096,8 +1079,9 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
-    @Query("includeSecondarySources") includeSecondarySources?: boolean,
-    @Query("countObjects") countObjects = false,
+    @Query("includeSecondarySources", OptionalParseBoolPipe)
+    includeSecondarySources?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -1141,9 +1125,7 @@ export default class ResourcesReadAPI {
       return sendGraph(skip, top, graph);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -1178,8 +1160,9 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
-    @Query("includeSecondaryTargets") includeSecondaryTargets?: boolean,
-    @Query("countObjects") countObjects = false,
+    @Query("includeSecondaryTargets", OptionalParseBoolPipe)
+    includeSecondaryTargets?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -1223,9 +1206,7 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -1271,8 +1252,9 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
-    @Query("includeSecondaryTargets") includeSecondaryTargets?: boolean,
-    @Query("countObjects") countObjects = false,
+    @Query("includeSecondaryTargets", OptionalParseBoolPipe)
+    includeSecondaryTargets?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -1316,9 +1298,7 @@ export default class ResourcesReadAPI {
       return sendGraph(skip, top, graph);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 }
