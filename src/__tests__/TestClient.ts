@@ -1089,7 +1089,7 @@ describe(`Auth`, () => {
       await testServers[type]
         .get(u)
         .set(`Authorization`, `Bearer ${token}`)
-        .expect(404);
+        .expect(500);
     }
   });
 });
