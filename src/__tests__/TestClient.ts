@@ -1086,14 +1086,10 @@ describe(`Auth`, () => {
       `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
     ];
     for (const u of uris) {
-      logger.info(`Testing ${u}`);
       await testServers[type]
         .get(u)
         .set(`Authorization`, `Bearer ${token}`)
-        .expect(404)
-        .catch(e => {
-          logger.info(`Testing ${u}: ${e}`);
-        });
+        .expect(404);
     }
   });
 });

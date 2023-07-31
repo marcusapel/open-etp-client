@@ -212,13 +212,13 @@ class ResponseHandler<V> extends Map<Integer64, V> {
  * @class SingleResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: T | PromiseLike<T>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  * }>)}
  * @template T
  */
 export class SingleResponseHandler<T> extends ResponseHandler<{
   resolve: (value: T | PromiseLike<T>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
 }> {
   constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
     super(firstMessageTimeout, subsequentMessageTimeout);
@@ -257,8 +257,10 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
       return false;
     }
     error
-      ? request.reject(`Server error ${error.code}: ${error.message}`)
-      : request.reject(`Server error`);
+      ? request.reject(
+          new EtpError(`Server error: ${error.message}`, error.code)
+        )
+      : request.reject(new EtpError(`Server error`, ErrorCode.EINVALID_STATE));
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);
     } else {
@@ -279,7 +281,7 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
  * @class ArrayResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: T[] | PromiseLike<T[]>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: T[];
  * }>)}
  * @template T
@@ -437,7 +439,7 @@ export class ResourceGraph extends Map<string, Resource> {
  * @class GraphResponseHandler
  * @extends {ResponseHandler<{
  *   resolve: (value: Resource[] | PromiseLike<Resource[]>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   graph: ResourceGraph;
  * }>}
  * @template T
@@ -573,7 +575,7 @@ export class GraphResponseHandler extends ResponseHandler<{
  * @class MapResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: Map<string, T>;
  *   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
  *   keys: string[];
@@ -582,7 +584,7 @@ export class GraphResponseHandler extends ResponseHandler<{
  */
 export class MapResponseHandler<T> extends ResponseHandler<{
   resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: Map<string, T>;
   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
@@ -675,7 +677,11 @@ export class MapResponseHandler<T> extends ResponseHandler<{
     if (request.errors.size === request.keys.length) {
       const errorMessages: string[] = [];
       request.errors.forEach(v => errorMessages.push(v.message));
-      request.reject(errorMessages.join(","));
+      const code =
+        request.errors.size > 0
+          ? Array.from(request.errors.values())[0].code
+          : ErrorCode.EINVALID_STATE;
+      request.reject(new EtpError(errorMessages.join(","), code));
     } else {
       const values: Array<T | null> = request.keys.map(key => {
         const item: T | undefined = request.results.get(key);
@@ -708,7 +714,7 @@ export class MapResponseHandler<T> extends ResponseHandler<{
  *       | Energistics.Etp.v12.Datatypes.ErrorInfo[]
  *       | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
  *   ) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
  *   keys: string[];
  * }>)}

@@ -91,6 +91,7 @@ import {
 import { EtpUri } from "../../common/EtpUri";
 
 import express from "express";
+import { ErrorCode, EtpError } from "../../common/EtpTypes";
 
 /**
  * @description Component of an URI
@@ -373,7 +374,7 @@ const getObjectDataArrays = async (
         .catch(concatMessage);
     }
     if (message !== "") {
-      throw new Error(message);
+      throw new EtpError(message, ErrorCode.EINVALID_STATE);
     }
     const filteredArrays = arrays.filter(m => m != null);
     return filteredArrays.map(a =>
@@ -389,6 +390,8 @@ const getObjectDataArrays = async (
           }
         : null
     );
+  } catch (err) {
+    throw httpErrorFromEtpError(err);
   } finally {
     c.closeSession();
   }
@@ -544,9 +547,7 @@ export default class DataArrayReadAPI {
       uri,
       extractToken(request),
       extractDataPartitionId(request)
-    ).catch((err: Error) => {
-      throw httpErrorFromEtpError(err);
-    });
+    );
   }
 
   @Get("arrays/:pathInResource/metadata")
