@@ -13,15 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ============================================================================
-import {
-  Body,
-  Controller,
-  InternalServerErrorException,
-  Post,
-  Req,
-  Res,
-  UseGuards
-} from "@nestjs/common";
+import { Body, Controller, Post, Req, Res, UseGuards } from "@nestjs/common";
 
 import {
   ApiBearerAuth,
@@ -37,7 +29,8 @@ import {
   ApiPropertyOptional,
   ApiQuery,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -48,6 +41,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
@@ -409,6 +403,7 @@ export class ManifestDto {
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Manifest")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
@@ -482,14 +477,7 @@ export default class ObjectsManifestAPI {
       res.send(b);
     } catch (err) {
       c?.closeSession();
-      throw new InternalServerErrorException({
-        description:
-          err instanceof Error
-            ? err.message
-            : typeof err === "string"
-            ? err
-            : `Unknown Error`
-      });
+      throw httpErrorFromEtpError(err);
     }
   }
 }

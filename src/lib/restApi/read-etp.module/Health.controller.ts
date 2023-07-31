@@ -23,11 +23,16 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiProperty,
   ApiTags,
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { errorMessageSchema, swaggerServers } from "../ControllerUtils";
+import {
+  errorMessageSchema,
+  patternString,
+  swaggerServers
+} from "../ControllerUtils";
 
 import {
   etpServerHost,
@@ -38,6 +43,63 @@ import {
 
 import http from "http";
 import https from "https";
+
+import fs from "fs";
+import * as child_process from "child_process";
+
+interface ClientInfo {
+  groupId: string;
+  artifactId: string;
+  version: string;
+  commitId: string;
+  commitTime: string;
+  buildTime?: string;
+}
+
+export class ClientInfoDto {
+  @ApiProperty({
+    name: "groupId",
+    example: "org.opengroup.osdu",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9a-zA-Z.]+$/)
+  })
+  groupId!: string;
+  @ApiProperty({
+    name: "artifactId",
+    example: "@osdu/open-etp-client",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9a-zA-Z@\-/]+$/)
+  })
+  artifactId!: string;
+  @ApiProperty({
+    name: "version",
+    example: "1.0.1",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9.]+$/)
+  })
+  version!: string;
+  @ApiProperty({
+    name: "commitId",
+    example: "1.0.1",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9a-fA-F]+$/)
+  })
+  commitId!: string;
+  @ApiProperty({
+    name: "commitTime",
+    example: "2023-07-24 20:53:33 -0500",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9a-zA-Z \-:]+$/)
+  })
+  commitTime!: string;
+  @ApiProperty({
+    name: "buildTime",
+    example: "2023-07-24 20:53:33 -0500",
+    maxLength: 2048,
+    pattern: patternString(/^[0-9a-zA-Z \-:]+$/)
+  })
+  buildTime?: string;
+}
 
 /**
  * Class for checking service health
@@ -113,6 +175,58 @@ export default class HealthAPI {
     return new Promise(resolve => {
       try {
         resolve(true);
+      } catch (e) {
+        throw new InternalServerErrorException({
+          description: "Unknown Server Error"
+        });
+      }
+    });
+  }
+
+  /**
+   * Checking service liveness
+   *
+   * @memberof HealthAPI
+   */
+  @Get("info")
+  @ApiOkResponse({ description: "Success", type: ClientInfoDto })
+  @ApiInternalServerErrorResponse(errorMessageSchema("Unknown Error"))
+  @ApiOperation({
+    summary: "Check liveness of the server.",
+    description: `Used by to check server availability. Can be used by orchestrator for services availability`,
+    security: [],
+    servers: swaggerServers
+  })
+  public Info(): Promise<ClientInfo> {
+    return new Promise<ClientInfo>(resolve => {
+      try {
+        const groupId = "org.opengroup.osdu";
+
+        // get info from package.json
+        const packageJson = JSON.parse(
+          fs.readFileSync("./package.json", "utf8")
+        );
+        const version = packageJson.version;
+        const artifactId = packageJson.name;
+
+        //Get commitId, commitTime and buildTime from env variables
+        // get commit info from Git
+        const commitId = child_process
+          .execSync("git rev-parse HEAD")
+          .toString()
+          .trim();
+        const commitTime = child_process
+          .execSync("git log -1 --format=%ci")
+          .toString()
+          .trim();
+
+        resolve({
+          groupId,
+          artifactId,
+          version,
+          commitId,
+          commitTime
+        });
       } catch (e) {
         throw new InternalServerErrorException({
           description: "Unknown Server Error"

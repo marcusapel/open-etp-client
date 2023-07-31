@@ -9,6 +9,7 @@ import {
   Data,
   PropertyType
 } from "./Generated/reference-data/PropertyType.1.0.0";
+import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 /**
  * Create OSDU PropertyType from Resqml PropertyKind
@@ -47,8 +48,11 @@ export class PropertyTypeOSDU
       xml.ParentPropertyKind.$type === "resqml20.LocalPropertyKind"
         ? (xml.ParentPropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
             .LocalPropertyKind.UUID
-        : (xml.ParentPropertyKind as SimpleJson<resqml20.StandardPropertyKind>)
-            .Kind;
+        : getPropertyTypeIDFromResqmlAlias(
+            (
+              xml.ParentPropertyKind as SimpleJson<resqml20.StandardPropertyKind>
+            ).Kind
+          );
     this.data = {
       ...(await this.AbstractCommonResources(context)),
 
@@ -85,7 +89,7 @@ export class PropertyTypeOSDU
  * @param {SimpleJson<resqml20.obj_PropertyKind>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} _client
- * @return {*}  {Promise<PropertyTypeOSDU>}
+ * @return {Promise<PropertyTypeOSDU>}
  */
 export const PropertyTypeManifest = async (
   uri: string,

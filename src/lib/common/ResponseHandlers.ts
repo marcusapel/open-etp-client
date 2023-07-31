@@ -16,7 +16,12 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 import { BaseHandler } from "./BaseHandler";
-import { ErrorCode } from "./EtpTypes";
+import {
+  ErrorCode,
+  EtpError,
+  Resource,
+  errorFromProtocolException
+} from "./EtpTypes";
 import { Energistics, Integer64 } from "../common/Etp12";
 
 /**
@@ -207,13 +212,13 @@ class ResponseHandler<V> extends Map<Integer64, V> {
  * @class SingleResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: T | PromiseLike<T>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  * }>)}
  * @template T
  */
 export class SingleResponseHandler<T> extends ResponseHandler<{
   resolve: (value: T | PromiseLike<T>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
 }> {
   constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
     super(firstMessageTimeout, subsequentMessageTimeout);
@@ -252,8 +257,10 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
       return false;
     }
     error
-      ? request.reject(`Server error ${error.code}: ${error.message}`)
-      : request.reject(`Server error`);
+      ? request.reject(
+          new EtpError(`Server error: ${error.message}`, error.code)
+        )
+      : request.reject(new EtpError(`Server error`, ErrorCode.EINVALID_STATE));
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);
     } else {
@@ -274,14 +281,14 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
  * @class ArrayResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: T[] | PromiseLike<T[]>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: T[];
  * }>)}
  * @template T
  */
 export class ArrayResponseHandler<T> extends ResponseHandler<{
   resolve: (value: T[] | PromiseLike<T[]>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: T[];
 }> {
   constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
@@ -324,19 +331,226 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
     if (!request) {
       return false;
     }
-    if (message.error) {
-      request.reject(
-        `Server error ${message.error.code}: ${message.error.message}`
-      );
-    } else if (
-      message.errors &&
-      message.errors.values().next().done === false
-    ) {
-      const it = message.errors.values().next().value;
-      request.reject(`Server error ${it.code}: ${it.message}`);
+
+    if (BaseHandler.isFinalMessage(header)) {
+      this.onFinalMessage(header.correlationId);
     } else {
-      request.reject(`Server error`);
+      this.onIntermediateMessage(header.correlationId);
     }
+    request.reject(errorFromProtocolException(message));
+    return true;
+  }
+}
+
+/**
+ * Represents an edge connecting two resources in a graph.
+ *
+ * @export
+ * @type Edge
+ */
+export type Edge = {
+  targetUri: string;
+  sourceUri: string;
+};
+
+/**
+ * Represents a graph of resources with edges connecting them.
+ *
+ * @export
+ * @class ResourceGraph
+ * @extends {Map<string, Resource>}
+ */
+export class ResourceGraph extends Map<string, Resource> {
+  edges: Edge[];
+
+  /**
+   * Creates an instance of ResourceGraph.
+   * @param {Resource[]} nodes - The nodes of the graph.
+   * @param {Edge[]} edges - The edges of the graph.
+   * @memberof ResourceGraph
+   */
+  constructor(nodes: Resource[], edges: Edge[]) {
+    super(nodes.map(n => [n.uri, n]));
+    this.edges = edges;
+  }
+
+  /**
+   * Returns the resource with the specified URI.
+   *
+   * @param {string} uri - The URI of the resource to retrieve.
+   * @returns {(Resource | undefined)} - The resource with the specified URI, or undefined if it does not exist.
+   * @memberof ResourceGraph
+   */
+  resource(uri: string): Resource | undefined {
+    return this.get(uri);
+  }
+
+  /**
+   * Returns an array of target URIs whose source is the specified URI.
+   *
+   * @param {string} uri - The URI of the source resource.
+   * @returns {string[]} - An array of target URIs whose source is the specified URI.
+   * @memberof ResourceGraph
+   */
+  targets(uri: string): string[] {
+    return this.edges.filter(s => s.sourceUri === uri).map(t => t.targetUri);
+  }
+
+  /**
+   * Returns an array of source URIs whose target is the specified URI.
+   * @param {string} uri - The URI of the target resource.
+   * @returns {string[]} - An array of source URIs whose target is the specified URI.
+   * @memberof ResourceGraph
+   * @example const graph = new ResourceGraph(...);
+   * const sources = graph.sources(uri);
+   */
+  sources(uri: string): string[] {
+    return this.edges.filter(s => s.targetUri === uri).map(t => t.sourceUri);
+  }
+
+  /**
+   * Creates a new graph by filtering the current graph.
+   * Only the resources matching the filter are kept,
+   * and the edges that connect them.
+   * @param {(resource: Resource) => boolean} filter - The filter function.
+   * @returns {ResourceGraph} - The new graph.
+   * @memberof ResourceGraph
+   * @example const graph = new ResourceGraph(...);
+   * const newGraph = graph.filter(r => typeArray.includes(r.type));
+   */
+  filter(filter: (resource: Resource) => boolean): ResourceGraph {
+    const nodes = Array.from(this.values()).filter(filter);
+    const graph = new ResourceGraph(nodes, []);
+    graph.edges = this.edges.filter(
+      e => graph.has(e.sourceUri) && graph.has(e.targetUri)
+    );
+    return graph;
+  }
+}
+
+/**
+ * Timeout-aware handler that wait for an answer returning a graph.
+ * @example const handler = new GraphResponseHandler(1000); //Create
+ * handler.waitForRequest(0).then(value => {}); // wait
+ * handler.onResponse(finalHeader, [true,false]); // provide a valid answer
+ * handler.onException(finalHeader, message); // stop with an error
+ *
+ * @export
+ * @class GraphResponseHandler
+ * @extends {ResponseHandler<{
+ *   resolve: (value: Resource[] | PromiseLike<Resource[]>) => void;
+ *   reject: (reason: EtpError | undefined) => void;
+ *   graph: ResourceGraph;
+ * }>}
+ * @template T
+ */
+export class GraphResponseHandler extends ResponseHandler<{
+  resolve: (value: ResourceGraph | PromiseLike<ResourceGraph>) => void;
+  reject: (reason: EtpError | undefined) => void;
+  graph: ResourceGraph;
+}> {
+  /**
+   * Creates an instance of GraphResponseHandler.
+   * @param {number} firstMessageTimeout - The timeout for the first message.
+   * @param {number} [subsequentMessageTimeout] - The timeout for subsequent messages.
+   * @memberof GraphResponseHandler
+   */
+  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
+    super(firstMessageTimeout, subsequentMessageTimeout);
+  }
+
+  /**
+   * Send a request for a graph of discovery to the server and wait for the responses.
+   * When successull, the answer messages must be either GetResourcesResponse or GetResourceEdgesResponse.
+   * @param {Integer64} requestId Id of the request
+   * @returns Promise of the graph
+   * @memberof GraphResponseHandler
+   */
+  waitForRequest(requestId: Integer64): Promise<ResourceGraph> {
+    return new Promise<ResourceGraph>((resolve, reject) =>
+      this.setRequest(
+        requestId,
+        { resolve, reject, graph: new ResourceGraph([], []) },
+        reject
+      )
+    );
+  }
+
+  /**
+   * Handle a successful GetResourcesResponse message
+   * @param header Message header
+   * @param value Graph of discovery
+   * @returns true if the message is handled
+   * @memberof GraphResponseHandler
+   */
+  onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    value: Resource[]
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    value.forEach(v => {
+      request.graph.set(v.uri, v);
+    });
+    if (BaseHandler.isFinalMessage(header)) {
+      request.resolve(request.graph);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+
+  /**
+   * Handle a successful GetResourceEdgesResponse message
+   * @param header Message header
+   * @param value Graph edges
+   * @returns true if the message is handled
+   * @memberof GraphResponseHandler
+   */
+  onEdgesResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    value: Energistics.Etp.v12.Datatypes.Object.Edge[]
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    if (request.graph.edges !== undefined) {
+      //Cannot use request.results.push(...value) with large arrays
+      value.forEach(v => {
+        request.graph.edges[request.graph.edges.length] = v;
+      });
+    }
+    if (BaseHandler.isFinalMessage(header)) {
+      request.resolve(request.graph);
+      // Remove request information
+      this.onFinalMessage(header.correlationId);
+    } else {
+      this.onIntermediateMessage(header.correlationId);
+    }
+    return true;
+  }
+
+  /**
+   * Handle an error response message
+   * @param header Message header
+   * @param message Error message
+   * @returns true if the message is handled
+   * @memberof GraphResponseHandler
+   */
+  onException(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): boolean {
+    const request = this.get(header.correlationId);
+    if (!request) {
+      return false;
+    }
+    request.reject(errorFromProtocolException(message));
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);
     } else {
@@ -361,7 +575,7 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
  * @class MapResponseHandler
  * @extends {(ResponseHandler<{
  *   resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: Map<string, T>;
  *   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
  *   keys: string[];
@@ -370,7 +584,7 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
  */
 export class MapResponseHandler<T> extends ResponseHandler<{
   resolve: (value: Array<T | null> | PromiseLike<Array<T | null>>) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: Map<string, T>;
   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
@@ -463,7 +677,11 @@ export class MapResponseHandler<T> extends ResponseHandler<{
     if (request.errors.size === request.keys.length) {
       const errorMessages: string[] = [];
       request.errors.forEach(v => errorMessages.push(v.message));
-      request.reject(errorMessages.join(","));
+      const code =
+        request.errors.size > 0
+          ? Array.from(request.errors.values())[0].code
+          : ErrorCode.EINVALID_STATE;
+      request.reject(new EtpError(errorMessages.join(","), code));
     } else {
       const values: Array<T | null> = request.keys.map(key => {
         const item: T | undefined = request.results.get(key);
@@ -496,7 +714,7 @@ export class MapResponseHandler<T> extends ResponseHandler<{
  *       | Energistics.Etp.v12.Datatypes.ErrorInfo[]
  *       | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
  *   ) => void;
- *   reject: (reason: string | undefined) => void;
+ *   reject: (reason: EtpError | undefined) => void;
  *   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
  *   keys: string[];
  * }>)}
@@ -507,7 +725,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
       | Energistics.Etp.v12.Datatypes.ErrorInfo[]
       | PromiseLike<Energistics.Etp.v12.Datatypes.ErrorInfo[]>
   ) => void;
-  reject: (reason: string | undefined) => void;
+  reject: (reason: EtpError | undefined) => void;
   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
 }> {
@@ -542,9 +760,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
     });
     if (BaseHandler.isFinalMessage(header)) {
       if (message.error) {
-        request.reject(
-          `Server error ${message.error.code}: ${message.error.message}`
-        );
+        request.reject(errorFromProtocolException(message));
         return true;
       }
       const results: Energistics.Etp.v12.Datatypes.ErrorInfo[] =

@@ -17,7 +17,6 @@
 import {
   Controller,
   Get,
-  InternalServerErrorException,
   Param,
   Query,
   Req,
@@ -39,7 +38,8 @@ import {
   ApiQuery,
   ApiQueryOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -62,6 +62,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   sliceArray,
   swaggerServers
@@ -305,6 +306,7 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
@@ -348,7 +350,6 @@ export default class ObjectsReadAPI {
     @Req() request: express.Request,
     @Res() res: express.Response,
     @Query("$format") format: "xml" | "json" = "json",
-    @Query("version") version?: string,
     @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
     @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
@@ -363,7 +364,7 @@ export default class ObjectsReadAPI {
         m?.groups?.domainVersion || "",
         m?.groups?.dataType || "",
         params.guid,
-        version
+        params.version
       ).uri
     ];
     if (!format || format === "xml") {
@@ -391,9 +392,7 @@ export default class ObjectsReadAPI {
       res.send(b);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 }

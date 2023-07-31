@@ -43,7 +43,8 @@ import {
   ApiQuery,
   ApiQueryOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -52,7 +53,8 @@ import {
   Energistics,
   IArrayId,
   IDataArray,
-  IDataArrayMetadata
+  IDataArrayMetadata,
+  ResqmlClient
 } from "../../client/ResqmlClient";
 
 import { Integer32 } from "../../common/Etp12";
@@ -71,6 +73,7 @@ import {
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   swaggerServers,
   toJSonCustomData
@@ -88,6 +91,7 @@ import {
 import { EtpUri } from "../../common/EtpUri";
 
 import express from "express";
+import { ErrorCode, EtpError } from "../../common/EtpTypes";
 
 /**
  * @description Component of an URI
@@ -370,7 +374,7 @@ const getObjectDataArrays = async (
         .catch(concatMessage);
     }
     if (message !== "") {
-      throw new Error(message);
+      throw new EtpError(message, ErrorCode.EINVALID_STATE);
     }
     const filteredArrays = arrays.filter(m => m != null);
     return filteredArrays.map(a =>
@@ -386,6 +390,8 @@ const getObjectDataArrays = async (
           }
         : null
     );
+  } catch (err) {
+    throw httpErrorFromEtpError(err);
   } finally {
     c.closeSession();
   }
@@ -497,6 +503,7 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
@@ -522,7 +529,6 @@ export default class DataArrayReadAPI {
   })
   public async GetObjectArrays(
     @Param() params: FindInObjectParams,
-    @Query("version") version?: string,
     @Req() request?: express.Request
   ): Promise<GetObjectDataArraysOutput> {
     const m = params.dataObjectType.match(
@@ -534,16 +540,14 @@ export default class DataArrayReadAPI {
       m?.groups?.domainVersion || "",
       m?.groups?.dataType || "",
       params.guid,
-      version
+      params.version
     ).uri;
 
     return getObjectDataArrays(
       uri,
       extractToken(request),
       extractDataPartitionId(request)
-    ).catch((err: Error) => {
-      throw new InternalServerErrorException({ description: err.message });
-    });
+    );
   }
 
   @Get("arrays/:pathInResource/metadata")
@@ -573,7 +577,7 @@ export default class DataArrayReadAPI {
       params.guid,
       version
     ).uri;
-    let c = undefined;
+    let c: ResqmlClient | undefined = undefined;
     try {
       c = await createSession(
         extractToken(request),
@@ -590,7 +594,7 @@ export default class DataArrayReadAPI {
         : null;
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(err);
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -718,11 +722,7 @@ export default class DataArrayReadAPI {
       return res;
     } catch (err) {
       await c?.closeSession();
-      if (err instanceof Error) {
-        throw err;
-      } else {
-        throw new InternalServerErrorException(err);
-      }
+      throw httpErrorFromEtpError(err);
     }
   }
 }

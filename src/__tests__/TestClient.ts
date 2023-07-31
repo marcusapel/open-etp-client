@@ -51,6 +51,7 @@ import {
   restApiRoutePath
 } from "../lib/common/config";
 import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
+import { ResourceGraph } from "src/lib/common/ResponseHandlers";
 
 const jwt = XmlUtils.createDefaultJWT();
 
@@ -219,6 +220,7 @@ afterAll(done => {
 
 const dataspaceName = "demo/Volve";
 
+const crsType = "resqml20.obj_LocalDepth3dCrs";
 const grid2dType = "resqml20.obj_Grid2dRepresentation";
 
 const tSurfType = "resqml20.obj_TriangulatedSetRepresentation";
@@ -259,13 +261,13 @@ describe("Authorization", () => {
     try {
       await c2.requestAuthorize(`Bearer badToken`);
     } catch (err) {
-      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+      expect(err).toHaveProperty("message");
     }
     try {
       await c2.requestSession();
-      await c2.closeSession();
     } catch (err) {
-      expect(err).toEqual(undefined);
+      expect(err).toBeDefined();
+      c2.disconnect();
     }
   });
   it("Check Authorization without token", async () => {
@@ -277,13 +279,13 @@ describe("Authorization", () => {
       await c2.requestAuthorize();
       await c2.requestSession();
     } catch (err) {
-      expect(err).toHaveProperty("message", "Authorization Error: undefined");
+      expect(err).toHaveProperty("message");
     }
     try {
       await c2.requestSession();
-      await c2.closeSession();
     } catch (err) {
-      expect(err).toEqual(undefined);
+      expect(err).toBeDefined();
+      c2.disconnect();
     }
   });
 });
@@ -395,8 +397,9 @@ describe("Resource Graph", () => {
         </eml:EpcExternalPartReference>
         `;
     const p = projects[0];
+    const data = Array.from(xmlContent).map(c => c.charCodeAt(0));
     const object: Energistics.Etp.v12.Datatypes.Object.DataObject = {
-      data: [...Buffer.from(xmlContent)],
+      data,
       format: "xml",
       resource: {
         uri: `${p.uri}/eml.EpcExternalPartReference(53395ada-6f93-4bac-b506-d45997ded2a2)`,
@@ -657,14 +660,27 @@ describe("Objects", () => {
       );
       // Objects
       expect(objects.length).toBe(89);
+
+      const fullGraph: ResourceGraph = await client.getDataspaceGraph(
+        testDataspaceUri
+      );
+      // Graph
+      expect(fullGraph.size).toBe(89);
+      expect(fullGraph.edges.length).toBe(113);
+
       // Property
       const uri = `${testDataspaceUri}/resqml20.${propertyType}(${propertyUid})`;
       const sources = await client.getSources(uri);
-
       expect(sources.length).toBe(0);
+
+      const grapSources = fullGraph.sources(uri);
+      expect(grapSources.length).toBe(0);
 
       const targets = await client.getTargets(uri);
       expect(targets.length).toBe(2);
+
+      const graphTargets = fullGraph.targets(uri);
+      expect(graphTargets.length).toBe(2);
 
       const tSurf = targets.find(r =>
         r.uri.endsWith(`${tSurfType}(${tSurfUid})`)
@@ -715,10 +731,25 @@ describe("Objects", () => {
       )[0];
       expect(interp).toBeDefined();
       const featuredSources = await client.getSources(interp.uri, false, [
+        crsType,
         tSurfType,
         grid2dType
       ]);
       expect(featuredSources).toHaveLength(2);
+      const featuredSourcesWithSecondary = await client.getSources(
+        {
+          uri: interp.uri,
+          depth: 10,
+          dataObjectTypes: [crsType, tSurfType, grid2dType],
+          includeSecondaryTargets: true,
+          includeSecondarySources: false,
+          navigableEdges:
+            Energistics.Etp.v12.Datatypes.Object.RelationshipKind.Both
+        },
+        false,
+        [crsType, tSurfType, grid2dType]
+      );
+      expect(featuredSourcesWithSecondary.length).toBe(3);
     } catch (err: any) {
       failOnUnexpectedError(err);
     } finally {
@@ -1058,7 +1089,7 @@ describe(`Auth`, () => {
       await testServers[type]
         .get(u)
         .set(`Authorization`, `Bearer ${token}`)
-        .expect(500);
+        .expect(404);
     }
   });
 });
@@ -1098,7 +1129,7 @@ describe(`Resources`, () => {
       .get(`${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
-      .expect(500);
+      .expect(404);
   });
 
   it.each(serverData)(`Resource by Types %s`, async type => {

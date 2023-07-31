@@ -39,10 +39,17 @@ import { SchemaObjectFactory } from "@nestjs/swagger/dist/services/schema-object
 import { SwaggerTypesMapper } from "@nestjs/swagger/dist/services/swagger-types-mapper";
 
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
+  HttpException,
+  InternalServerErrorException,
+  NotFoundException,
+  NotImplementedException,
   PipeTransform,
-  Type
+  Type,
+  UnauthorizedException
 } from "@nestjs/common";
 
 import {
@@ -52,6 +59,8 @@ import {
   restApiRoutePath,
   openApiPort
 } from "../common/config";
+import { ResourceGraph } from "../common/ResponseHandlers";
+import { ErrorCode, EtpError } from "../common/EtpTypes";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
@@ -166,7 +175,6 @@ export const extractToken = (request?: express.Request): string => {
   userInfo = "";
   if (!authHeader || authHeader.includes("Basic")) {
     userInfo = authHeader ? authHeader : "";
-    console.log("value of userInfo: " + userInfo);
     return "";
   }
   const token = authHeader.split(" ");
@@ -566,4 +574,88 @@ export const findResources = async (
       : null,
     objects
   );
+};
+
+/**
+ * Find all the resources from REST request and the link between these resources
+ *
+ * @param {ResqmlClient} c Resqml client already connected to the server
+ * @param {ContextInput} contextInput Context of the request (uri, depth, dataObjectTypes, navigableEdges, includeSecondaryTargets, includeSecondarySources)
+ * @param {QueryInput} query Query of the request (filter, orderby, top, skip)
+ * @param {("self" | "sources" | "targets")} [queryScope="self"] Scope of the request
+ * @param {boolean} [countObjects=false] Indicates that the server is requested to provide the source and target count
+ * @param {DateRequest} [storeLastWriteFilter] Filter on the last write date
+ * @param {Map<URI, IResqmlDataObject>} [objects] Map of the objects already loaded, used to avoid loading the same object twice
+ * @returns {Promise<ResourceGraph>} Resource graph containing the resources and the links between them
+ * @throws {Error} If the request failed
+ * @throws {Error} If the token is invalid
+ */
+export const graphResources = async (
+  c: ResqmlClient,
+  contextInput: ContextInput,
+  query: QueryInput,
+  queryScope: "self" | "sources" | "targets" = "self",
+  countObjects = false,
+  storeLastWriteFilter?: Date,
+  objects?: Map<URI, IResqmlDataObject>
+): Promise<ResourceGraph> => {
+  const context = getContext(contextInput, query);
+
+  const scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind =
+    Energistics.Etp.v12.Datatypes.Object.ContextScopeKind[queryScope];
+
+  return c.getGraph(
+    context,
+    scope,
+    countObjects,
+    context.dataObjectTypes,
+    storeLastWriteFilter
+      ? BigInt(storeLastWriteFilter.getTime()) * BigInt(1000)
+      : null,
+    objects
+  );
+};
+
+/**
+ * Check if an error is an ETPError
+ *
+ * @param err
+ * @returns
+ */
+export function isEtpError(err: any): err is EtpError {
+  return err && typeof err.code === "number";
+}
+
+/**
+ * Create a HttpException from an ETPError
+ *
+ * @param {unknown} error EtpError
+ * @returns {HttpException}
+ */
+export const httpErrorFromEtpError = (error: unknown): HttpException => {
+  //add a typeguard to check if err is an EtpError
+  if (isEtpError(error)) {
+    if (
+      error.code == ErrorCode.EAUTHORIZATION_REQUIRED ||
+      error.code == ErrorCode.EREQUEST_DENIED
+    ) {
+      return new UnauthorizedException({ description: error.message });
+    } else if (error.code == ErrorCode.ENOT_FOUND) {
+      return new NotFoundException({ description: error.message });
+    } else if (
+      error.code == ErrorCode.EINVALID_URI ||
+      error.code == ErrorCode.EINVALID_ARGUMENT
+    ) {
+      return new BadRequestException({ description: error.message });
+    } else if (
+      error.code == ErrorCode.ENOSUPPORTEDPROTOCOLS ||
+      error.code == ErrorCode.EINVALID_MESSAGETYPE ||
+      error.code == ErrorCode.ENOTSUPPORTED ||
+      error.code == ErrorCode.ENOSUPPORTEDFORMATS ||
+      error.code == ErrorCode.ENOSUPPORTEDDATAOBJECTTYPES
+    ) {
+      return new NotImplementedException({ description: error.message });
+    }
+  }
+  return new InternalServerErrorException({ description: `Unknown Error` });
 };

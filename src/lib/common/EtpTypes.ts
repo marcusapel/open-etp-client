@@ -25,6 +25,8 @@ import {
 } from "./Etp12";
 
 /** Type representing an ETP resource */
+export type DeletedResource =
+  Energistics.Etp.v12.Datatypes.Object.DeletedResource;
 export type Resource = Energistics.Etp.v12.Datatypes.Object.Resource;
 export type SupportedType = Energistics.Etp.v12.Datatypes.Object.SupportedType;
 
@@ -172,37 +174,79 @@ export interface IDataQuery {
 
 export enum ErrorCode {
   IS_OK = 0,
-  ENOROLE,
-  ENOSUPPORTEDPROTOCOLS,
-  EINVALID_MESSAGETYPE,
-  EUNSUPPORTED_PROTOCOL,
-  EINVALID_ARGUMENT,
-  EREQUEST_DENIED,
-  ENOTSUPPORTED,
-  EINVALID_STATE,
-  EINVALID_URI,
-  EEXPIRED_TOKEN,
-  ENOT_FOUND,
-  ELIMIT_EXCEEDED,
-  ECOMPRESSION_NOTSUPPORTED,
-  EINVALID_OBJECT,
-  EMAX_TRANSACTIONS_EXCEEDED,
-  ECONTENT_TYPE_NOTSUPPORTED,
-  EMAXSIZE_EXCEEDED,
-  EMULTIPART_CANCELLED,
-  EINVALID_MESSAGE,
-  EINVALID_INDEXKIND,
-  ENOSUPPORTEDFORMATS,
-  EREQUESTUUID_REJECTED,
-  EUPDATEGROWINGOBJECT_DENIED,
+  ENOROLE = 1,
+  ENOSUPPORTEDPROTOCOLS = 2,
+  EINVALID_MESSAGETYPE = 3,
+  EUNSUPPORTED_PROTOCOL = 4,
+  EINVALID_ARGUMENT = 5,
+  EREQUEST_DENIED = 6,
+  ENOTSUPPORTED = 7,
+  EINVALID_STATE = 8,
+  EINVALID_URI = 9,
+  EAUTHORIZATION_EXPIRED = 10,
+  ENOT_FOUND = 11,
+  ELIMIT_EXCEEDED = 12,
+  ECOMPRESSION_NOTSUPPORTED = 13,
+  EINVALID_OBJECT = 14,
+  EMAX_TRANSACTIONS_EXCEEDED = 15,
+  EDATAOBJECTTYPE_NOTSUPPORTED = 16,
+  EMAXSIZE_EXCEEDED = 17,
+  EMULTIPART_CANCELLED = 18,
+  EINVALID_MESSAGE = 19,
+  EINVALID_INDEXKIND = 20,
+  ENOSUPPORTEDFORMATS = 21,
+  EREQUESTUUID_REJECTED = 22,
+  EUPDATEGROWINGOBJECT_DENIED = 23,
+  EBACKPRESSURE_LIMIT_EXCEEDED = 24,
+  EBACKPRESSURE_WARNING = 25,
+  ETIMED_OUT = 26,
+  EAUTHORIZATION_REQUIRED = 27,
+  EAUTHORIZATION_EXPIRING = 28,
+  ENOSUPPORTEDDATAOBJECTTYPES = 29,
+
   EINVALID_CHANNELID = 1002,
-  EUNSUPPORTED_OBJECT = 4001,
   ENOCASCADE_DELETE = 4003,
   EPLURAL_OBJECT = 4004,
-  EGROWING_PORTION_IGNORED = 4005,
   ERETENTION_PERIOD_EXCEEDED = 5001,
-  ENOTGROWINGOBJECT = 6002
+  ENOTGROWINGOBJECT = 6001
 }
+
+/**
+ * Represents an ETP error, including the error code and message
+ *
+ * @export
+ * @class EtpError
+ * @extends {Error}
+ */
+export class EtpError extends Error {
+  code: ErrorCode;
+  constructor(message: string, code: ErrorCode) {
+    super(message);
+    this.code = code;
+  }
+}
+
+/**
+ * Convert a ProtocolException to an EtpError
+ * @param ex ProtocolException
+ * @returns EtpError with the error code and message
+ */
+export const errorFromProtocolException = (
+  ex: Energistics.Etp.v12.Protocol.Core.ProtocolException
+): EtpError => {
+  if (ex.error) {
+    return new EtpError(ex.error.message, ex.error.code);
+  }
+  if (ex.errors && ex.errors.size > 0) {
+    const message = Array.from(ex.errors.values()).reduce(
+      (p, c) => p + (p.length > 0 ? ", " : "") + c.message,
+      ""
+    );
+    const code = Array.from(ex.errors.values())[0].code;
+    return new EtpError(message, code);
+  }
+  return new EtpError("Unknwon Error", ErrorCode.EINVALID_STATE);
+};
 
 export enum MessageFlags {
   FINALPART = 2

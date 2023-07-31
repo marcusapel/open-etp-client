@@ -47,10 +47,6 @@ CC0-1.0
 The following software have components provided under the terms of this license:
 
 - lodash (from https://www.npmjs.com/package/lodash)
-- lodash.includes (from https://www.npmjs.com/package/lodash.includes)
-- lodash.isinteger (from https://www.npmjs.com/package/lodash.isinteger)
-- lodash.isplainobject (from https://www.npmjs.com/package/lodash.isplainobject)
-- lodash.once (from https://www.npmjs.com/package/lodash.once)
 
 ========================================================================
 GPL-2.0-only
@@ -78,6 +74,7 @@ The following software have components provided under the terms of this license:
 - inflight (from https://www.npmjs.com/package/inflight)
 - inherits (from https://www.npmjs.com/package/inherits)
 - iterare (from https://www.npmjs.com/package/iterare)
+- lru-cache (from https://www.npmjs.com/package/lru-cache)
 - minimatch (from https://www.npmjs.com/package/minimatch)
 - minimatch (from https://www.npmjs.com/package/minimatch)
 - next-tick (from https://www.npmjs.com/package/next-tick)
@@ -89,12 +86,14 @@ The following software have components provided under the terms of this license:
 - type (from https://www.npmjs.com/package/type)
 - type (from https://www.npmjs.com/package/type)
 - wrappy (from https://www.npmjs.com/package/wrappy)
+- yallist (from https://www.npmjs.com/package/yallist)
 
 ========================================================================
 MIT
 ========================================================================
 The following software have components provided under the terms of this license:
 
+- @lukeed/csprng (from https://www.npmjs.com/package/@lukeed/csprng)
 - @nestjs/class-transformer (from https://www.npmjs.com/package/@nestjs/class-transformer)
 - @nestjs/class-validator (from https://www.npmjs.com/package/@nestjs/class-validator)
 - @nestjs/common (from https://www.npmjs.com/package/@nestjs/common)
@@ -113,6 +112,7 @@ The following software have components provided under the terms of this license:
 - array-flatten (from https://www.npmjs.com/package/array-flatten)
 - balanced-match (from https://www.npmjs.com/package/balanced-match)
 - bintrees (from https://www.npmjs.com/package/bintrees)
+- body-parser (from https://www.npmjs.com/package/body-parser)
 - body-parser (from https://www.npmjs.com/package/body-parser)
 - brace-expansion (from https://www.npmjs.com/package/brace-expansion)
 - brace-expansion (from https://www.npmjs.com/package/brace-expansion)
@@ -143,7 +143,6 @@ The following software have components provided under the terms of this license:
 - destroy (from https://www.npmjs.com/package/destroy)
 - ee-first (from https://www.npmjs.com/package/ee-first)
 - encodeurl (from https://www.npmjs.com/package/encodeurl)
-- encoding (from https://www.npmjs.com/package/encoding)
 - es5-ext (from https://www.npmjs.com/package/es5-ext)
 - es6-iterator (from https://www.npmjs.com/package/es6-iterator)
 - es6-symbol (from https://www.npmjs.com/package/es6-symbol)
@@ -180,13 +179,6 @@ The following software have components provided under the terms of this license:
 - jws (from https://www.npmjs.com/package/jws)
 - libphonenumber-js (from https://www.npmjs.com/package/libphonenumber-js)
 - lodash (from https://www.npmjs.com/package/lodash)
-- lodash.includes (from https://www.npmjs.com/package/lodash.includes)
-- lodash.isboolean (from https://www.npmjs.com/package/lodash.isboolean)
-- lodash.isinteger (from https://www.npmjs.com/package/lodash.isinteger)
-- lodash.isnumber (from https://www.npmjs.com/package/lodash.isnumber)
-- lodash.isplainobject (from https://www.npmjs.com/package/lodash.isplainobject)
-- lodash.isstring (from https://www.npmjs.com/package/lodash.isstring)
-- lodash.once (from https://www.npmjs.com/package/lodash.once)
 - media-typer (from https://www.npmjs.com/package/media-typer)
 - merge-descriptors (from https://www.npmjs.com/package/merge-descriptors)
 - merge2 (from https://www.npmjs.com/package/merge2)
@@ -211,7 +203,6 @@ The following software have components provided under the terms of this license:
 - node-fetch (from https://www.npmjs.com/package/node-fetch)
 - node-gyp-build (from https://www.npmjs.com/package/node-gyp-build)
 - object-assign (from https://www.npmjs.com/package/object-assign)
-- object-hash (from https://www.npmjs.com/package/object-hash)
 - object-inspect (from https://www.npmjs.com/package/object-inspect)
 - on-finished (from https://www.npmjs.com/package/on-finished)
 - parseurl (from https://www.npmjs.com/package/parseurl)
@@ -224,6 +215,7 @@ The following software have components provided under the terms of this license:
 - proxy-addr (from https://www.npmjs.com/package/proxy-addr)
 - queue-microtask (from https://www.npmjs.com/package/queue-microtask)
 - range-parser (from https://www.npmjs.com/package/range-parser)
+- raw-body (from https://www.npmjs.com/package/raw-body)
 - raw-body (from https://www.npmjs.com/package/raw-body)
 - readable-stream (from https://www.npmjs.com/package/readable-stream)
 - reflect-metadata (from https://www.npmjs.com/package/reflect-metadata)
@@ -253,6 +245,7 @@ The following software have components provided under the terms of this license:
 - type-is (from https://www.npmjs.com/package/type-is)
 - typedarray (from https://www.npmjs.com/package/typedarray)
 - typedarray-to-buffer (from https://www.npmjs.com/package/typedarray-to-buffer)
+- uid (from https://www.npmjs.com/package/uid)
 - universalify (from https://www.npmjs.com/package/universalify)
 - unpipe (from https://www.npmjs.com/package/unpipe)
 - utf-8-validate (from https://www.npmjs.com/package/utf-8-validate)

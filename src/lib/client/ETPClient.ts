@@ -127,6 +127,17 @@ export class ETPClient extends ETPCore {
     }
   }
 
+  /**
+   * Disconnect from the server
+   * @memberof ETPClient
+   * @returns {void}
+   */
+  public disconnect(): void {
+    if (this.connection) {
+      this.connection.close();
+    }
+  }
+
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
     messageBody:

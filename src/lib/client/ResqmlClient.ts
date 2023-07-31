@@ -17,12 +17,17 @@
 import { v5 as uuidNameSpace, v4 as uuidRandom } from "uuid";
 
 import * as websocket from "websocket";
-import { ErrorCode } from "../common/EtpTypes";
+import {
+  ErrorCode,
+  EtpError,
+  errorFromProtocolException
+} from "../common/EtpTypes";
 
 import type {
   DataObject,
   DataValue,
   Dataspace,
+  DeletedResource,
   IArrayId,
   IDataArray,
   IDataArrayMetadata,
@@ -56,7 +61,7 @@ import { SupportedTypesCustomer } from "../protocols/SupportedTypesCustomer";
 import { TransactionCustomer } from "../protocols/TransactionCustomer";
 
 import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
-import { Timer } from "../common/ResponseHandlers";
+import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
 
@@ -163,10 +168,10 @@ function formattedTypedArray<T extends NumberArray>(
   return values;
 }
 
-export class AuthorizationError extends Error {
+export class AuthorizationError extends EtpError {
   challenges?: string[];
   constructor(message: string, challenges?: string[]) {
-    super(message);
+    super(message, ErrorCode.EAUTHORIZATION_REQUIRED);
     this.challenges = challenges;
   }
 }
@@ -302,7 +307,11 @@ export class ResqmlClient {
       try {
         this.client.on("connect", resolve);
         this.client.on("error", reject);
-        this.client.on("exception", reject);
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) =>
+            reject(errorFromProtocolException(m))
+        );
         this.client.connect(config, socket);
       } catch (err) {
         reject(err);
@@ -343,7 +352,11 @@ export class ResqmlClient {
       try {
         this.client.on("connect", resolve);
         this.client.on("error", reject);
-        this.client.on("exception", reject);
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) =>
+            reject(errorFromProtocolException(m))
+        );
         this.client.connect(config, socket);
       } catch (err) {
         reject(err);
@@ -381,7 +394,7 @@ export class ResqmlClient {
       }
     }
     return new Promise((resolve, reject) => {
-      this.client.on("authorize", (h, m) => {
+      this.client.on("authorize", (_, m) => {
         if (m.success) {
           resolve();
         } else {
@@ -391,9 +404,20 @@ export class ResqmlClient {
       this.client.on("error", err => {
         reject(new AuthorizationError(`Authorization Error: ${err.message}`));
       });
-      this.client.on("exception", err => {
-        reject(new AuthorizationError(`Authorization Error: ${err.message}`));
-      });
+      this.client.on(
+        "exception",
+        (_, err: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+          const message = err?.error?.message || "Unknown";
+          const auth = new AuthorizationError(
+            `Authorization Error: ${message}`
+          );
+          if (err.error?.code === ErrorCode.EAUTHORIZATION_EXPIRED) {
+            auth.message = "Authorization Error: Authorization expired";
+            auth.code = ErrorCode.EAUTHORIZATION_EXPIRED;
+          }
+          reject(auth);
+        }
+      );
       this.client.requestAuthorize(authentication);
     });
   }
@@ -407,12 +431,37 @@ export class ResqmlClient {
   public async closeSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       const disconnectionWait = 5000;
+      const timer = new Timer(() => reject("timeout"), disconnectionWait);
+      this.client.on("disconnect", () => {
+        timer.cancel(false);
+        resolve();
+      });
+      this.client.on(
+        "exception",
+        (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+          timer.cancel(false);
+          const err = errorFromProtocolException(m);
+          err.message = `Cannot close session: ${err.message}`;
+          reject(err);
+        }
+      );
+      this.client.on("error", () => {
+        timer.cancel(false);
+        reject("Cannot close session");
+      });
+      this.client.closeSession();
+    });
+  }
+
+  public async disconnect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const disconnectionWait = 5000;
       const timer = new Timer(reject, disconnectionWait);
       this.client.on("disconnect", () => {
         timer.cancel(false);
         resolve();
       });
-      this.client.closeSession();
+      this.client.disconnect();
     });
   }
 
@@ -572,10 +621,12 @@ export class ResqmlClient {
    * @param {URI} dataspaceURI to be notified about
    * @param {string[]} [dataObjectTypes=[]] Types to listen to
    * @param {number} [startTime=Date.now()] Start of the notification (can go back in time)
-   * @returns {Energistics.Etp.v12.Datatypes.Uuid} Identifier of notification
+   * @param {((e: Energistics.Etp.v12.Protocol.StoreNotification.ObjectChanged) => void)} [onChanged] Callback when an object is changed
+   * @param {((e: Energistics.Etp.v12.Protocol.StoreNotification.ObjectDeleted) => void)} [onDeleted] Callback when an object is deleted
+   * @returns {Promise<Energistics.Etp.v12.Datatypes.Uuid | null>} Identifier of notification
    * @memberof ResqmlClient
    */
-  public subscribeNotifications(
+  public async subscribeNotifications(
     dataspaceURI: URI,
     dataObjectTypes: string[] = [],
     startTime: number = Date.now(),
@@ -966,13 +1017,13 @@ export class ResqmlClient {
    * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context
    * @param {Energistics.Etp.v12.Datatypes.Object.ContextScopeKind} scope
    * @param {string[]} [dataObjectTypes] If defined, it will overwrite the content of context, If not empty, filter on specified type
-   * @param {boolean} [countObjects=false]
+   * @param {boolean} [countObjects=false] Indicates that the server is requested to provide the source and target count
    * @param {(Integer64 | null)} [storeLastWriteFilter=null]
    * @param {Map<URI, IResqmlDataObject>} [objects]
    * @returns {Promise<Resource[]>}
    * @memberof ResqmlClient
    */
-  public getResources(
+  public async getResources(
     context: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
     scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind,
     dataObjectTypes?: string[],
@@ -1009,16 +1060,101 @@ export class ResqmlClient {
   }
 
   /**
+   * Get Resources deleted from a dataspace
+   *
+   * @param {URI} dataspace dataspace URI
+   * @param {string[]} [dataObjectTypes] If not empty, filter on specified type
+   * @param {(Integer64 | null)} [storeDeletedFilter=null]
+   * @returns {Promise<DeletedResource[]>}
+   * @memberof ResqmlClient
+   */
+  public getDeletedResources(
+    dataspace: URI,
+    dataObjectTypes?: string[],
+    storeDeletedFilter: Integer64 | null = null
+  ): Promise<DeletedResource[]> {
+    const uri: EtpUri = new EtpUri(dataspace);
+    if (!uri.isValid) {
+      return Promise.reject(
+        new EtpError(
+          `Invalid dataspace URI ${dataspace}`,
+          ErrorCode.EINVALID_URI
+        )
+      );
+    }
+    return this.discovery.getDeletedResources(
+      dataspace,
+      dataObjectTypes || [],
+      storeDeletedFilter
+    );
+  }
+
+  /**
+   * Get Resources recursively and build a graph of relationships between them
+   *
+   * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context Context URI or ContextInfo object (see ETP documentation)
+   * @param {Energistics.Etp.v12.Datatypes.Object.ContextScopeKind} scope Scope of the context (see ETP documentation)
+   * @param {boolean} [countObjects=false] Indicates that the server is requested to provide the source and target count
+   * @param {string[]} [dataObjectTypes] If defined, it will overwrite the content of context, If not empty, filter on specified type
+   * @param {(Integer64 | null)} [storeLastWriteFilter=null] If defined, only return objects with a lastWrite time greater than this value
+   * @param {Map<URI, IResqmlDataObject>} [objects] If defined, will be filled with the objects found in the graph, useful to avoid multiple calls to the server
+   * @returns {Promise<ResourceGraph>} A graph of resources and their relationships with other resources (see ETP documentation)
+   * @memberof ResqmlClient
+   */
+  public async getGraph(
+    context: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
+    scope: Energistics.Etp.v12.Datatypes.Object.ContextScopeKind,
+    countObjects = false,
+    dataObjectTypes?: string[],
+    storeLastWriteFilter: Integer64 | null = null,
+    objects?: Map<URI, IResqmlDataObject>
+  ): Promise<ResourceGraph> {
+    let uri: EtpUri;
+    if (typeof context === "string") {
+      uri = new EtpUri(context);
+      context = {
+        dataObjectTypes: dataObjectTypes || [],
+        depth: 1,
+        includeSecondarySources: false,
+        includeSecondaryTargets: false,
+        navigableEdges:
+          Energistics.Etp.v12.Datatypes.Object.RelationshipKind.Both,
+        uri: this.client.dataSpaceSupported && context ? uri.uriPath : `eml:///`
+      };
+    } else {
+      uri = new EtpUri(context.uri);
+      context.uri = uri.uriPath;
+      if (dataObjectTypes && !context.dataObjectTypes.length) {
+        context.dataObjectTypes = dataObjectTypes;
+      }
+    }
+    return this.discovery
+      .getGraph(context, scope, countObjects, storeLastWriteFilter)
+      .then(async graph => {
+        if (uri.query?.filter) {
+          const nodes = await this.filterResources(
+            [...graph.values()],
+            [uri.query.filter],
+            objects
+          );
+          return graph.filter(n => nodes.includes(n));
+        }
+        return graph;
+      });
+  }
+
+  /**
    * Implement the search for sources,
    * make sure that we don't search in a loop by tracking already found items
    *
-   * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context
+   * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context The context to search for sources in
    * @param {boolean} [includeSelf=false] Specifies if initial resource must be included
    * @param {string[]} [dataObjectTypes=[]] If not empty, filter on specified type
+   * @param {Map<URI, IResqmlDataObject>} [objects] Already found objects
    * @returns {Promise<Resource[]>} Matching results
    * @memberof ResqmlClient
    */
-  public getSources(
+  public async getSources(
     context: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
     includeSelf = false,
     dataObjectTypes: string[] = [],
@@ -1040,13 +1176,14 @@ export class ResqmlClient {
    * Implement the search for targets,
    * make sure that we don't search in a loop by tracking already found items
    *
-   * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context
+   * @param {(URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo)} context The context to search for targets in
    * @param {boolean} [includeSelf=false] Specifies if initial resource must be included
    * @param {string[]} [dataObjectTypes=[]] If not empty, filter on specified type
+   * @param {Map<URI, IResqmlDataObject>} [objects] Already found objects
    * @returns {Promise<Resource[]>} Matching results
    * @memberof ResqmlClient
    */
-  public getTargets(
+  public async getTargets(
     context: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
     includeSelf = false,
     dataObjectTypes: string[] = [],
@@ -1646,7 +1783,9 @@ export class ResqmlClient {
         .then(e => e.length > 0 && e[0].code === 0);
     }
     if (!transportType) {
-      return Promise.reject(`Invalid array type`);
+      return Promise.reject(
+        new EtpError(`Invalid array type`, ErrorCode.EINVALID_ARGUMENT)
+      );
     }
 
     const { nbParts, nbSliceInPart, nbSliceExtraPart } =
@@ -1752,17 +1891,16 @@ export class ResqmlClient {
   }
 
   /**
-   * Send the content of a subarray to the server,
-   * Warning: The subarray is sent as is independently of the size limits
+   * Create an empty data array on the server
    *
-   * @param {IArrayId} uid
-   * @param {number[]} starts
-   * @param {number[]} counts
-   * @param {AnyTypedArray} array
+   * @param {IArrayId} uid Array identifier
+   * @param {AnyTypedArray} array Array content
+   * @param {number[]} dimensions Dimensions along each direction
+   * @param {number[]} [preferredSubArrayDimensions=[]] Preferred slab size
    * @returns {Promise<boolean>}
    * @memberof ResqmlClient
    */
-  public putEmptyDataArray(
+  public async putEmptyDataArray(
     uid: IArrayId,
     array: AnyTypedArray,
     dimensions: number[],
@@ -1875,11 +2013,23 @@ export class ResqmlClient {
         const e = await this.dataArray.put([array]);
         return e.length > 0 && e[0].code === 0;
       } catch (err) {
-        return Promise.reject(err);
+        if (err instanceof Error) {
+          return Promise.reject(
+            new EtpError(err.message, ErrorCode.EINVALID_STATE)
+          );
+        } else if (typeof err === "string") {
+          return Promise.reject(new EtpError(err, ErrorCode.EINVALID_STATE));
+        } else {
+          return Promise.reject(
+            new EtpError("Unknown error", ErrorCode.EINVALID_STATE)
+          );
+        }
       }
     }
     if (!logicalArrayType || !transportArrayType) {
-      return Promise.reject("Invalid array type");
+      return Promise.reject(
+        new EtpError("Invalid array type", ErrorCode.EINVALID_ARGUMENT)
+      );
     }
 
     const { nbParts, nbSliceInPart, nbSliceExtraPart } =
@@ -2009,6 +2159,33 @@ export class ResqmlClient {
       Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
       dataObjectTypes,
       countObjects,
+      lastChangedFilter,
+      objects
+    );
+  }
+
+  /**
+   * Get the resources graph of a given dataspace
+   *
+   * @param {URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo} dataSpaceContext uri of dataspace
+   * @param {string[]} dataObjectTypes object types to filter against
+   * @param {(Integer64 | null)} [lastChangedFilter=null] Indicates that the only the resources created after the given time is provided
+   * @param {Map<URI, IResqmlDataObject>} [objects] Map of objects to be used for resolving relationships
+   * @returns {Promise<ResourceGraph>} resource map for the data space
+   * @memberof ResqmlClient
+   */
+  public async getDataspaceGraph(
+    dataSpaceContext: URI | Energistics.Etp.v12.Datatypes.Object.ContextInfo,
+    countObjects = false,
+    dataObjectTypes: string[] = [],
+    lastChangedFilter: Integer64 | null = null,
+    objects?: Map<URI, IResqmlDataObject>
+  ): Promise<ResourceGraph> {
+    return this.getGraph(
+      dataSpaceContext,
+      Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.self,
+      countObjects,
+      dataObjectTypes,
       lastChangedFilter,
       objects
     );
@@ -2327,7 +2504,12 @@ export class ResqmlClient {
                     >()
                   });
                 } else {
-                  return Promise.reject(`Cannot send array : ${v.uid}`);
+                  return Promise.reject(
+                    new EtpError(
+                      `Cannot send array : ${v.uid}`,
+                      ErrorCode.EINVALID_STATE
+                    )
+                  );
                 }
               })
           )
@@ -2353,9 +2535,15 @@ export class ResqmlClient {
     return new Promise((resolve, reject) => {
       try {
         this.client.on("open", resolve);
-        this.client.on("exception", (h, m) => {
-          reject(m.message);
+        this.client.on("error", (h, m) => {
+          reject(m);
         });
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+            reject(errorFromProtocolException(m));
+          }
+        );
         this.client.requestSession("open-etp-client", "0.0.1");
       } catch (err) {
         reject(err);

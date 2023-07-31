@@ -15,15 +15,7 @@
 // limitations under the License.
 // ============================================================================
 
-import {
-  Controller,
-  Get,
-  InternalServerErrorException,
-  Param,
-  Query,
-  Req,
-  UseGuards
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, Req, UseGuards } from "@nestjs/common";
 
 import { Type } from "@nestjs/class-transformer";
 
@@ -43,7 +35,8 @@ import {
   ApiQueryOptions,
   ApiResponseOptions,
   ApiTags,
-  ApiTooManyRequestsResponse
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
 import {
@@ -58,6 +51,7 @@ import type { SupportedType } from "../../client/ResqmlClient";
 import {
   HasBearerGuard,
   HasDataPartitionGuard,
+  OptionalParseBoolPipe,
   OptionalParseDatePipe,
   OptionalParseIntPipe,
   alphaSpaceSchema,
@@ -67,6 +61,8 @@ import {
   extractToken,
   findResources,
   getSchemasForType,
+  graphResources,
+  httpErrorFromEtpError,
   patternString,
   sliceArray,
   swaggerServers,
@@ -83,6 +79,8 @@ import {
   MaxLength
 } from "@nestjs/class-validator";
 
+import { ResourceGraph } from "src/lib/common/ResponseHandlers";
+
 export const uriPattern =
   /^(?<protocol>(?:[^:]+)s?)?:\/\/(?:(?<user>[^:\n\r]+):(?<pass>[^@\n\r]+)@)?(?<host>(?:www\.)?(?:[^:\/\n\r]+))(?::(?<port>\d+))?\/?(?<request>[^?#\n\r]+)?\??(?<query>[^#\n\r]*)?\#?(?<anchor>[^\n\r]*)?$/;
 
@@ -95,6 +93,8 @@ export const dataspaceUriPattern =
 export const dataspacePathPattern = /^[^\r\n'"]+$/;
 
 export const validNamePattern = /^[^\r\n]+$/;
+
+export const versionPattern = /^[^\r\n]+$/;
 
 export const datePattern =
   /^((?:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:.\d+)?))(Z|[+-]\d{2}:\d{2})?)$/;
@@ -263,6 +263,54 @@ class ResourceDto {
   customData!: Record<string, string>;
 }
 
+// DTO for ResourceGraph edges
+class EdgeDto {
+  @ApiProperty({
+    name: "source",
+    description: "Source resource uri",
+    example:
+      "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
+    maxLength: 2048,
+    pattern: patternString(emlUriPattern)
+  })
+  @Matches(emlUriPattern)
+  @MaxLength(2048)
+  source!: string;
+
+  @ApiProperty({
+    name: "target",
+    description: "Target resource uri",
+    example:
+      "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
+    maxLength: 2048,
+    pattern: patternString(emlUriPattern)
+  })
+  @Matches(emlUriPattern)
+  @MaxLength(2048)
+  target!: string;
+}
+
+// DTO for ResourceGraph
+class ResourceGraphDto {
+  @ApiProperty({
+    name: "resources",
+    description: "List of resources",
+    type: [ResourceDto],
+    maxItems: 256,
+    additionalProperties: false
+  })
+  resources!: ResourceDto[];
+
+  @ApiProperty({
+    name: "links",
+    description: "List of links",
+    type: [EdgeDto],
+    maxItems: 256,
+    additionalProperties: false
+  })
+  links!: EdgeDto[];
+}
+
 // Schema for response returning resources successfully
 const resourceResponse: ApiResponseOptions = {
   description: "Success",
@@ -338,7 +386,32 @@ const sendResources = (
   start: number | undefined,
   count: number | undefined,
   resources: Resource[]
-) => sliceArray<Resource>(start, count, resources).map(r => toJSonResource(r));
+): ResourceDto[] =>
+  sliceArray<Resource>(start, count, resources).map(r => toJSonResource(r));
+
+/**
+ * Extract a window of resources from the graph and send them as a DTO
+ * also send links between resources when the links source is in the resource window
+ * @param {number | undefined} start first element to send
+ * @param {number | undefined} count number of elements to send
+ * @param {ResourceGraph} graph full graph
+ * @returns {ResourceGraphDto} part of graph to send as a DTO
+ */
+const sendGraph = (
+  start: number | undefined,
+  count: number | undefined,
+  graph: ResourceGraph
+): ResourceGraphDto => {
+  // convert resource.values into an array
+  const resources = sliceArray<Resource>(start, count, [...graph.values()]);
+  const uris = resources.map(r => r.uri);
+
+  const edges = graph.edges.filter(e => uris.includes(e.sourceUri));
+  return {
+    resources: resources.map(r => toJSonResource(r)),
+    links: edges.map(e => ({ source: e.sourceUri, target: e.targetUri }))
+  };
+};
 
 export class FindInDataSpaceParams {
   @ApiProperty({
@@ -390,6 +463,16 @@ export class FindInObjectParams extends FindInTypeParams {
   })
   @IsUUID()
   guid!: string;
+
+  @ApiPropertyOptional({
+    name: "version",
+    description: "Version of the object",
+    maxLength: 64,
+    pattern: patternString(versionPattern),
+    nullable: true,
+    default: null
+  })
+  version?: string;
 }
 
 /**
@@ -485,6 +568,17 @@ export const dataObjectTypesQueryParam: ApiQueryOptions = {
   }
 };
 
+export const countObjectsQueryParam: ApiQueryOptions = {
+  name: "countObjects",
+  required: false,
+  description:
+    "If true, the source and target count will be computed for each resource.",
+  schema: {
+    type: "boolean",
+    default: false
+  }
+};
+
 export const versionQueryParam: ApiQueryOptions = {
   name: "version",
   required: false,
@@ -510,6 +604,36 @@ export const depthQueryParam: ApiQueryOptions = {
   }
 };
 
+/**
+ * Query parameter to indicate if secondary targets should be included in the response
+ * @export
+ * @class IncludeSecondaryTargetsQueryParam
+ * @extends {ApiQueryOptions}
+ */
+export const includeSecondaryTargetsQueryParam: ApiQueryOptions = {
+  name: "includeSecondaryTargets",
+  required: false,
+  description:
+    "If present, indicate that secondary targets should be included in the response",
+  type: "boolean",
+  example: false
+};
+
+/**
+ * Query parameter to indicate if secondary sources should be included in the response
+ * @export
+ * @class IncludeSecondarySourcesQueryParam
+ * @extends {ApiQueryOptions}
+ */
+export const includeSecondarySourcesQueryParam: ApiQueryOptions = {
+  name: "includeSecondarySources",
+  required: false,
+  description:
+    "If present, indicate that secondary sources should be included in the response",
+  type: "boolean",
+  example: false
+};
+
 const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 
 /**
@@ -527,6 +651,7 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
+@ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
@@ -581,9 +706,7 @@ export default class ResourcesReadAPI {
       return pros;
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -634,9 +757,7 @@ export default class ResourcesReadAPI {
       });
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -651,6 +772,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
+  @ApiQuery(countObjectsQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "List all resources.",
@@ -666,6 +788,7 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -689,7 +812,7 @@ export default class ResourcesReadAPI {
         },
         query,
         "self",
-        false,
+        countObjects,
         storeLastWriteFilter
       );
       await c.closeSession();
@@ -697,9 +820,78 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Graph resources (data objects) available in a dataset
+   * @param params - The parameters to find resources
+   * @param skip - The number of items to skip
+   * @param top - The number of items to return
+   * @param filter - The filter to apply
+   * @param storeLastWriteFilter - The last write time filter to apply
+   * @param dataObjectTypes - The data object types to filter
+   * @param countObjects - If true, the source and target count will be computed for each resource
+   * @param request - The express request
+   * @returns The resources graph (resources and links)
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/graph/all")
+  @ApiQuery(skipQueryParam)
+  @ApiQuery(topQueryParam)
+  @ApiQuery(filterQueryParam)
+  @ApiQuery(storeLastWriteFilterQueryParam)
+  @ApiQuery(dataObjectTypesQueryParam)
+  @ApiQuery(countObjectsQueryParam)
+  @ApiOkResponse(resourceResponse)
+  @ApiOperation({
+    summary: "Graph all resources.",
+    description: `Create a graph for all resources in a dataspaces.
+    Output can be paginated and filtered by types, content, last update time.`,
+    servers: swaggerServers
+  })
+  public async GraphResources(
+    @Param() params: FindInDataSpaceParams,
+    @Query("$skip", OptionalParseIntPipe) skip?: number,
+    @Query("$top", OptionalParseIntPipe) top?: number,
+    @Query("$filter") filter?: string,
+    @Query("storeLastWriteFilter", OptionalParseDatePipe)
+    storeLastWriteFilter?: Date,
+    @Query("dataObjectTypes") dataObjectTypes?: string,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects?: boolean,
+    @Req() request?: express.Request
+  ): Promise<ResourceGraphDto | null> {
+    const query = {
+      top,
+      skip,
+      filter
+    };
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
       );
+      const graph = await graphResources(
+        c,
+        {
+          uri: EtpUri.createDataSpaceUri(params.dataspaceId).uri,
+          depth: 1,
+          dataObjectTypes: dataObjectTypes ? dataObjectTypes.split(",") : [],
+          navigableEdges: "Both"
+        },
+        query,
+        "self",
+        countObjects,
+        storeLastWriteFilter
+      );
+      await c.closeSession();
+      c = undefined;
+      return sendGraph(skip, top, graph);
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -713,6 +905,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(topQueryParam)
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
+  @ApiQuery(countObjectsQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources of a given type.",
@@ -727,6 +920,7 @@ export default class ResourcesReadAPI {
     @Query("$filter") filter?: string,
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -750,7 +944,7 @@ export default class ResourcesReadAPI {
         },
         query,
         "self",
-        false,
+        countObjects,
         storeLastWriteFilter
       );
       await c.closeSession();
@@ -758,9 +952,7 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -775,8 +967,9 @@ export default class ResourcesReadAPI {
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
-  @ApiQuery(versionQueryParam)
   @ApiQuery(depthQueryParam)
+  @ApiQuery(includeSecondarySourcesQueryParam)
+  @ApiQuery(countObjectsQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources referenced by current one.",
@@ -793,8 +986,10 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
-    @Query("version") version?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
+    @Query("includeSecondarySources", OptionalParseBoolPipe)
+    includeSecondarySources?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -811,7 +1006,7 @@ export default class ResourcesReadAPI {
       m?.groups?.domainVersion || "",
       m?.groups?.dataType || "",
       params.guid,
-      version
+      params.version
     ).uri;
     let c = undefined;
     try {
@@ -825,11 +1020,12 @@ export default class ResourcesReadAPI {
           uri,
           depth,
           dataObjectTypes: dataObjectTypes ? dataObjectTypes.split(",") : [],
-          navigableEdges: "Both"
+          navigableEdges: "Both",
+          includeSecondarySources
         },
         query,
         "targets",
-        false,
+        countObjects,
         storeLastWriteFilter
       );
       await c.closeSession();
@@ -837,9 +1033,101 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Graph data objects referenced by given object
+   * @param params - The parameters to find the object
+   * @param skip - The number of items to skip
+   * @param top - The number of items to return
+   * @param filter - The filter to apply
+   * @param storeLastWriteFilter - The last write time filter
+   * @param dataObjectTypes - The data object types to filter
+   * @param version - The version to filter
+   * @param depth - The depth of the graph
+   * @param includeSecondarySources - Include secondary sources
+   * @param countObjects - If true, the source and target count will be computed for each resource
+   * @param request - The express request
+   * @returns The resources graph of the targets(nodes and links)
+   *
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/graph/:dataObjectType/:guid/targets")
+  @ApiQuery(skipQueryParam)
+  @ApiQuery(topQueryParam)
+  @ApiQuery(filterQueryParam)
+  @ApiQuery(storeLastWriteFilterQueryParam)
+  @ApiQuery(dataObjectTypesQueryParam)
+  @ApiQuery(depthQueryParam)
+  @ApiQuery(includeSecondarySourcesQueryParam)
+  @ApiQuery(countObjectsQueryParam)
+  @ApiOkResponse(resourceResponse)
+  @ApiOperation({
+    summary: "Graph the resources referenced by current one.",
+    description: `Graph all resources referenced by a given resource.
+    Referencing can be recursive with a depth greater than 1.
+    Includes the relationships between the resources.
+    Output can be paginated and filtered by content, types and last update time.`,
+    servers: swaggerServers
+  })
+  public async GraphTargets(
+    @Param() params: FindInObjectParams,
+    @Query("$skip", OptionalParseIntPipe) skip?: number,
+    @Query("$top", OptionalParseIntPipe) top?: number,
+    @Query("$filter") filter?: string,
+    @Query("storeLastWriteFilter", OptionalParseDatePipe)
+    storeLastWriteFilter?: Date,
+    @Query("dataObjectTypes") dataObjectTypes?: string,
+    @Query("depth", OptionalParseIntPipe) depth?: number,
+    @Query("includeSecondarySources", OptionalParseBoolPipe)
+    includeSecondarySources?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Req() request?: express.Request
+  ): Promise<ResourceGraphDto | null> {
+    const query = {
+      top,
+      skip,
+      filter
+    };
+    const m = params.dataObjectType.match(
+      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
+    );
+    const uri = EtpUri.createObjectUri(
+      params.dataspaceId,
+      m?.groups?.domainFamily || "",
+      m?.groups?.domainVersion || "",
+      m?.groups?.dataType || "",
+      params.guid,
+      params.version
+    ).uri;
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
       );
+      const graph = await graphResources(
+        c,
+        {
+          uri,
+          depth,
+          dataObjectTypes: dataObjectTypes ? dataObjectTypes.split(",") : [],
+          navigableEdges: "Both",
+          includeSecondarySources
+        },
+        query,
+        "targets",
+        countObjects,
+        storeLastWriteFilter
+      );
+      await c.closeSession();
+      c = undefined;
+      return sendGraph(skip, top, graph);
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
     }
   }
 
@@ -854,8 +1142,9 @@ export default class ResourcesReadAPI {
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
-  @ApiQuery(versionQueryParam)
   @ApiQuery(depthQueryParam)
+  @ApiQuery(includeSecondaryTargetsQueryParam)
+  @ApiQuery(countObjectsQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources referencing current one.",
@@ -872,8 +1161,10 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
-    @Query("version") version?: string,
     @Query("depth", OptionalParseIntPipe) depth?: number,
+    @Query("includeSecondaryTargets", OptionalParseBoolPipe)
+    includeSecondaryTargets?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -890,7 +1181,7 @@ export default class ResourcesReadAPI {
       m?.groups?.domainVersion || "",
       m?.groups?.dataType || "",
       params.guid,
-      version
+      params.version
     ).uri;
     let c = undefined;
     try {
@@ -904,11 +1195,12 @@ export default class ResourcesReadAPI {
           uri,
           depth,
           dataObjectTypes: dataObjectTypes ? dataObjectTypes.split(",") : [],
-          navigableEdges: "Both"
+          navigableEdges: "Both",
+          includeSecondaryTargets
         },
         query,
         "sources",
-        false,
+        countObjects,
         storeLastWriteFilter
       );
       await c.closeSession();
@@ -916,9 +1208,99 @@ export default class ResourcesReadAPI {
       return sendResources(skip, top, resources);
     } catch (err) {
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Graph data objects referencing the given object
+   * @param params - The parameters to find the object
+   * @param skip - The number of items to skip
+   * @param top - The number of items to return
+   * @param filter - The filter to apply
+   * @param storeLastWriteFilter - The last write time filter
+   * @param dataObjectTypes - The data object types to filter
+   * @param depth - The depth of the graph
+   * @param includeSecondaryTargets - Include secondary targets
+   * @param countObjects - If true, the source and target count will be computed for each resource
+   * @param request - The express request
+   *
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/graph/:dataObjectType/:guid/sources")
+  @ApiQuery(skipQueryParam)
+  @ApiQuery(topQueryParam)
+  @ApiQuery(filterQueryParam)
+  @ApiQuery(storeLastWriteFilterQueryParam)
+  @ApiQuery(dataObjectTypesQueryParam)
+  @ApiQuery(depthQueryParam)
+  @ApiQuery(includeSecondaryTargetsQueryParam)
+  @ApiQuery(countObjectsQueryParam)
+  @ApiOkResponse(resourceResponse)
+  @ApiOperation({
+    summary: "Graph the resources referencing current one.",
+    description: `Graph all resources referencing a given resource.
+    Referencing can be recursive with a depth greater than 1.
+    Includes the relationships between the resources.
+    Output can be paginated and filtered by content, types and last update time.`,
+    servers: swaggerServers
+  })
+  public async GraphSources(
+    @Param() params: FindInObjectParams,
+    @Query("$skip", OptionalParseIntPipe) skip?: number,
+    @Query("$top", OptionalParseIntPipe) top?: number,
+    @Query("$filter") filter?: string,
+    @Query("storeLastWriteFilter", OptionalParseDatePipe)
+    storeLastWriteFilter?: Date,
+    @Query("dataObjectTypes") dataObjectTypes?: string,
+    @Query("depth", OptionalParseIntPipe) depth?: number,
+    @Query("includeSecondaryTargets", OptionalParseBoolPipe)
+    includeSecondaryTargets?: boolean,
+    @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Req() request?: express.Request
+  ): Promise<ResourceGraphDto | null> {
+    const query = {
+      top,
+      skip,
+      filter
+    };
+    const m = params.dataObjectType.match(
+      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
+    );
+    const uri = EtpUri.createObjectUri(
+      params.dataspaceId,
+      m?.groups?.domainFamily || "",
+      m?.groups?.domainVersion || "",
+      m?.groups?.dataType || "",
+      params.guid,
+      params.version
+    ).uri;
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
       );
+      const graph = await graphResources(
+        c,
+        {
+          uri,
+          depth,
+          dataObjectTypes: dataObjectTypes ? dataObjectTypes.split(",") : [],
+          navigableEdges: "Both",
+          includeSecondaryTargets
+        },
+        query,
+        "sources",
+        countObjects,
+        storeLastWriteFilter
+      );
+      await c.closeSession();
+      c = undefined;
+      return sendGraph(skip, top, graph);
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
     }
   }
 }
