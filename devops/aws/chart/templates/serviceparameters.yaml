@@ -1,0 +1,4 @@
+{{- template "common.serviceparameters" (list . "os-open-etp-client.serviceparameters") -}}
+{{- define "os-open-etp-client.serviceparameters" -}}
+## Define overrides for the service parameters here
+{{- end -}}
