@@ -14,6 +14,7 @@ import {
   Data,
   GenericProperty
 } from "./Generated/work-product-component/GenericProperty.1.0.0";
+import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.0.0";
 
 export class GenericPropertyOSDU
   extends ResqmlWorkProductComponent<
@@ -294,6 +295,7 @@ export class GenericPropertyOSDU
         this.meta = [FrameOfReferenceCRS];
       }
     } else {
+      const rep = osduRep as GenericRepresentation;
       const d = osduRep.data;
       if (d !== undefined) {
         if (d.SpatialArea !== undefined) {
@@ -302,8 +304,8 @@ export class GenericPropertyOSDU
         if (d.SpatialPoint !== undefined) {
           this.data.SpatialPoint = d.SpatialPoint;
         }
-        if (osduRep.meta !== undefined) {
-          this.meta = osduRep.meta;
+        if (rep.meta !== undefined) {
+          this.meta = rep.meta;
         }
       }
     }
