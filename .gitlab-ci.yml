@@ -1,10 +1,10 @@
 variables:
   #azure
   AZURE_SWAGGER_PATH: api/oetp-client/v2/
-  AWS_SERVICE: open-etp-client
+  AWS_SERVICE: rest-to-etp-proxy-server
   AWS_DEPLOY_TARGET: TF
   AWS_SERVICE_NAMESPACE_SUFFIX: reservoir-ddms
-  AWS_EKS_DEPLOYMENT_NAME: os-open-etp-client
+  AWS_EKS_DEPLOYMENT_NAME: os-rest-to-etp-proxy-server
 
 include:
   # pipeline logic

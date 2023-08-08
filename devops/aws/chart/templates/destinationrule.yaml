@@ -1,4 +1,4 @@
-{{- template "common.destinationrule" (list . "os-open-etp-client.destinationrule") -}}
-{{- define "os-open-etp-client.destinationrule" -}}
+{{- template "common.destinationrule" (list . "os-rest-to-etp-proxy-server.destinationrule") -}}
+{{- define "os-rest-to-etp-proxy-server.destinationrule" -}}
 ## Define overrides for the service destination rule resource here
 {{- end -}}
