@@ -56,6 +56,7 @@ phases:
       - echo "Placeholder" >> ${OUTPUT_DIR}/build-info.json # touched so that the output directory has some content incase the build fails so that testing reports are uploaded
       - echo "Building open-etp-client"
       - npm run build:quick && npm run openAPI
+      - npm run test Common providers/TestAws ResponseHandlers
       - tar -czvf dist.tgz dist node_modules package*
 
       - echo "Building docker image..."
