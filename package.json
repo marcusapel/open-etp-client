@@ -51,7 +51,9 @@
     "git:commit:prompt": "commit",
     "git:hooks:enable": "husky install devops/osdu/husky",
     "git:hooks:disable": "husky uninstall",
-    "prepare": "husky install devops/osdu/husky"
+    "prepare": "husky install devops/osdu/husky",
+    "docker:build:certification": "npm run env:set -- docker build -t etp-certification -f devops/osdu/docker/Dockerfile.certification --pull --build-arg NPM_TOKEN .",
+    "certification": "node dist/src/certification/TestServer.js"
   },
   "config": {
     "commitizen": {
