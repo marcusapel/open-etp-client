@@ -22,17 +22,6 @@ aws-containerize:
     variables:
       - $AWS == '1'
 
-aws-update-tf:
-  script:
-    - echo ${AWS_SERVICE_NAMESPACE}
-    - echo ${AWS_SERVICE_NAMESPACE_SUFFIX:-core}
-    - echo ${AWS_EKS_DEPLOYMENT_NAME}
-    - echo $CONTAINER_IMAGE
-    - echo $AWS_IMAGE_TAG_BASE
-    - echo $CI_COMMIT_SHA
-    - exit 1
-
-
 aws_test:
   image:
     name: node:lts
