@@ -260,7 +260,7 @@ export const visitDoubleValues = async (
       val.push(cur);
     }
 
-    const counts = latticeArray.Offset.map(o => 1);
+    const counts = latticeArray.Offset.map(() => 1);
     counts[0] = latticeArray.Offset[0].Count;
     await visitor(val, {
       uid: { uri: "", pathInResource: "" },
@@ -517,7 +517,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * Return the resource type ("reference-data", "work-product-component", ...)
    *
    * @return {string}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public resourceType(): string {
     const split = this.id.split(":");
@@ -528,7 +528,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * Return the osdu type ("GenericRepresentation", "HorizonInterpretation", ...)
    *
    * @return {string}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public osduType(): string {
     const split = this.id.split(":");
@@ -542,7 +542,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {(SimpleJson<eml20.DataObjectReference> | undefined)} dor
    * @param {ResqmlClient} client
    * @return {Promise<string | undefined>}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public async dorToSrn(
     uri: string,
@@ -567,7 +567,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {string} uri
    * @param {SimpleJson<eml20.DataObjectReference>} dor
    * @return {string}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public static dorToUri(
     uri: string,
@@ -583,7 +583,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    *
    * @param {(string | undefined)} str
    * @return {(string | undefined)}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public capitalize(str: string | undefined): string | undefined {
     if (str === undefined) {
@@ -601,7 +601,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {ResqmlClient} client
    * @param {string[]} uris
    * @return {(Promise<(IResqmlDataObject | undefined)[]>)}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public async getObjects(
     client: ResqmlClient,
@@ -625,7 +625,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {string} uri URI of the containing object
    * @param {SimpleJson<eml20.DataObjectReference>} dor
    * @return {(Promise<IResqmlDataObject | undefined>)}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public async getObjectFromDor(
     client: ResqmlClient,
@@ -644,7 +644,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * Create the AbstractCommonResources part of WPC Data
    *
    * @return {Promise<AbstractCommonResources>}
-   * @memberof ResqmlResource
+   * @memberof WorkProductComponent
    */
   public async AbstractCommonResources(
     context: OSDUContext
@@ -666,7 +666,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
  * Generic class for all WorkProductComponent created from Resqml Objects
  *
  * @export
- * @class WorkProductComponent
+ * @class ResqmlWorkProductComponent
  * @template RES_TYPE
  */
 export class ResqmlWorkProductComponent<

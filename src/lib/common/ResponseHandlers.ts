@@ -23,6 +23,7 @@ import {
   errorFromProtocolException
 } from "./EtpTypes";
 import { Energistics, Integer64 } from "../common/Etp12";
+import { EtpUri } from "./EtpUri";
 
 /**
  * Equivalent to setTimeout that allows to modify remaining time
@@ -220,10 +221,6 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason: EtpError | undefined) => void;
 }> {
-  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
-    super(firstMessageTimeout, subsequentMessageTimeout);
-  }
-
   waitForRequest(requestId: Integer64): Promise<T> {
     return new Promise<T>((resolve, reject) =>
       this.setRequest(requestId, { resolve, reject }, reject)
@@ -291,10 +288,6 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
   reject: (reason: EtpError | undefined) => void;
   results: T[];
 }> {
-  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
-    super(firstMessageTimeout, subsequentMessageTimeout);
-  }
-
   waitForRequest(requestId: Integer64): Promise<T[]> {
     return new Promise<T[]>((resolve, reject) =>
       this.setRequest(requestId, { resolve, reject, results: [] }, reject)
@@ -375,6 +368,29 @@ export class ResourceGraph extends Map<string, Resource> {
   }
 
   /**
+   * Get the EtpUri class corresponding to this node
+   *
+   * @static
+   * @param {string} uri
+   * @returns {EtpUri}
+   * @memberof ResourceGraph
+   */
+  public static etpUri(uri: string): EtpUri {
+    return new EtpUri(uri);
+  }
+
+  /**
+   * Return the values as an Array of resource
+   *
+   * @readonly
+   * @type {Resource[]}
+   * @memberof ResourceGraph
+   */
+  get resources(): Resource[] {
+    return Array.from(this.values());
+  }
+
+  /**
    * Returns the resource with the specified URI.
    *
    * @param {string} uri - The URI of the resource to retrieve.
@@ -397,6 +413,20 @@ export class ResourceGraph extends Map<string, Resource> {
   }
 
   /**
+   * Return the list of targets as array of Resource
+   *
+   * @param {(string | Resource)} resource where requested resources are pointing to
+   * @return {Resource[]}
+   * @memberof ResourceGraph
+   */
+  findTargets(resource: string | Resource): Resource[] {
+    const uri: string = typeof resource === "string" ? resource : resource.uri;
+    return this.targets(uri)
+      .map(s => this.get(s))
+      .filter(r => r !== undefined) as Resource[];
+  }
+
+  /**
    * Returns an array of source URIs whose target is the specified URI.
    * @param {string} uri - The URI of the target resource.
    * @returns {string[]} - An array of source URIs whose target is the specified URI.
@@ -406,6 +436,20 @@ export class ResourceGraph extends Map<string, Resource> {
    */
   sources(uri: string): string[] {
     return this.edges.filter(s => s.targetUri === uri).map(t => t.sourceUri);
+  }
+
+  /**
+   * Return the list of sources as array of Resource
+   *
+   * @param {(string | Resource)} resource where requested resources are pointing to
+   * @return {Resource[]}
+   * @memberof ResourceGraph
+   */
+  findSources(resource: string | Resource): Resource[] {
+    const uri: string = typeof resource === "string" ? resource : resource.uri;
+    return this.sources(uri)
+      .map(s => this.get(s))
+      .filter(r => r !== undefined) as Resource[];
   }
 
   /**
@@ -421,9 +465,7 @@ export class ResourceGraph extends Map<string, Resource> {
   filter(filter: (resource: Resource) => boolean): ResourceGraph {
     const nodes = Array.from(this.values()).filter(filter);
     const graph = new ResourceGraph(nodes, []);
-    graph.edges = this.edges.filter(
-      e => graph.has(e.sourceUri) && graph.has(e.targetUri)
-    );
+    graph.edges = this.edges.filter(e => graph.has(e.sourceUri));
     return graph;
   }
 }
@@ -450,18 +492,8 @@ export class GraphResponseHandler extends ResponseHandler<{
   graph: ResourceGraph;
 }> {
   /**
-   * Creates an instance of GraphResponseHandler.
-   * @param {number} firstMessageTimeout - The timeout for the first message.
-   * @param {number} [subsequentMessageTimeout] - The timeout for subsequent messages.
-   * @memberof GraphResponseHandler
-   */
-  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
-    super(firstMessageTimeout, subsequentMessageTimeout);
-  }
-
-  /**
    * Send a request for a graph of discovery to the server and wait for the responses.
-   * When successull, the answer messages must be either GetResourcesResponse or GetResourceEdgesResponse.
+   * When successful, the answer messages must be either GetResourcesResponse or GetResourceEdgesResponse.
    * @param {Integer64} requestId Id of the request
    * @returns Promise of the graph
    * @memberof GraphResponseHandler
@@ -589,10 +621,6 @@ export class MapResponseHandler<T> extends ResponseHandler<{
   errors: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
 }> {
-  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
-    super(firstMessageTimeout, subsequentMessageTimeout);
-  }
-
   waitForRequest(
     requestId: Integer64,
     keys: string[]
@@ -624,7 +652,10 @@ export class MapResponseHandler<T> extends ResponseHandler<{
     }
 
     items.forEach((v, k) => request.results.set(k, v));
-    return this.processLastMapItem(header);
+    return this.processLastMapItem(
+      header.correlationId,
+      BaseHandler.isFinalMessage(header)
+    );
   }
 
   /**
@@ -650,27 +681,31 @@ export class MapResponseHandler<T> extends ResponseHandler<{
       const str = message.error;
       request.keys.forEach(v => request.errors.set(v, str));
     }
-    return this.processLastMapItem(header);
+    return this.processLastMapItem(
+      header.correlationId,
+      BaseHandler.isFinalMessage(header)
+    );
   }
 
   /**
    * Process last message, if some part of the request is successful, resolve the promise, else reject
    *
    * @private
-   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
-   * @returns {boolean}
+   * @param {bigint} requestId  Id of the request to correlate with the response
+   * @returns {boolean} finalMessage true if this is the last message
    * @memberof ItemMapResponseHandler
    */
   private processLastMapItem(
-    header: Energistics.Etp.v12.Datatypes.MessageHeader
+    requestId: bigint,
+    finalMessage: boolean
   ): boolean {
-    const request = this.get(header.correlationId);
+    const request = this.get(requestId);
     if (!request) {
       return false;
     }
 
-    if (!BaseHandler.isFinalMessage(header)) {
-      this.onIntermediateMessage(header.correlationId);
+    if (!finalMessage) {
+      this.onIntermediateMessage(requestId);
       return true;
     }
 
@@ -690,7 +725,7 @@ export class MapResponseHandler<T> extends ResponseHandler<{
       request.resolve(values);
     }
 
-    this.onFinalMessage(header.correlationId);
+    this.onFinalMessage(requestId);
     return true;
   }
 }
@@ -729,10 +764,6 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
   results: Map<string, Energistics.Etp.v12.Datatypes.ErrorInfo>;
   keys: string[];
 }> {
-  constructor(firstMessageTimeout: number, subsequentMessageTimeout?: number) {
-    super(firstMessageTimeout, subsequentMessageTimeout);
-  }
-
   waitForRequest(
     requestId: Integer64,
     keys: string[]

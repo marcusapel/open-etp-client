@@ -381,7 +381,7 @@ export class ResqmlClient {
       if (typeof userInfo === "string") {
         authentication = userInfo;
       } else {
-        const { username, password } = userInfo || {
+        const { username, password } = userInfo ?? {
           username: "",
           password: ""
         };
@@ -403,7 +403,7 @@ export class ResqmlClient {
       this.client.on(
         "exception",
         (_, err: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
-          const message = err?.error?.message || "Unknown";
+          const message = err?.error?.message ?? "Unknown";
           const auth = new AuthorizationError(
             `Authorization Error: ${message}`
           );
@@ -1031,7 +1031,7 @@ export class ResqmlClient {
     if (typeof context === "string") {
       uri = new EtpUri(context);
       context = {
-        dataObjectTypes: dataObjectTypes || [],
+        dataObjectTypes: dataObjectTypes ?? [],
         depth: 1,
         includeSecondarySources: false,
         includeSecondaryTargets: false,
@@ -1062,9 +1062,10 @@ export class ResqmlClient {
    * @param {string[]} [dataObjectTypes] If not empty, filter on specified type
    * @param {(Integer64 | null)} [storeDeletedFilter=null]
    * @returns {Promise<DeletedResource[]>}
+   * @async
    * @memberof ResqmlClient
    */
-  public getDeletedResources(
+  public async getDeletedResources(
     dataspace: URI,
     dataObjectTypes?: string[],
     storeDeletedFilter: Integer64 | null = null
@@ -1080,7 +1081,7 @@ export class ResqmlClient {
     }
     return this.discovery.getDeletedResources(
       dataspace,
-      dataObjectTypes || [],
+      dataObjectTypes ?? [],
       storeDeletedFilter
     );
   }
@@ -1109,7 +1110,7 @@ export class ResqmlClient {
     if (typeof context === "string") {
       uri = new EtpUri(context);
       context = {
-        dataObjectTypes: dataObjectTypes || [],
+        dataObjectTypes: dataObjectTypes ?? [],
         depth: 1,
         includeSecondarySources: false,
         includeSecondaryTargets: false,
@@ -1274,7 +1275,7 @@ export class ResqmlClient {
         if (tUris.length > 0) {
           (await this.getObjects(tUris)).forEach(
             // eslint-disable-next-line no-loop-func
-            (o, i) => o && objects.set(cURIs[i], o)
+            (o, i) => o && objects.set(tUris[i], o)
           );
         }
         const nUris = new Set<URI>();
@@ -1791,7 +1792,7 @@ export class ResqmlClient {
       logicalType,
       transportType,
       dimensions,
-      preferredSubArrayDimensions || [],
+      preferredSubArrayDimensions ?? [],
       customData,
       uid
     );
@@ -1842,7 +1843,7 @@ export class ResqmlClient {
       array.uid,
       dimensions,
       array.data,
-      array.preferredSubArrayDimensions || [],
+      array.preferredSubArrayDimensions ?? [],
       array.customData
     );
   }
@@ -2540,7 +2541,12 @@ export class ResqmlClient {
             reject(errorFromProtocolException(m));
           }
         );
-        this.client.requestSession("open-etp-client", "0.0.1");
+        this.client.requestSession(
+          process.env.SERVICE_NAME
+            ? process.env.SERVICE_NAME
+            : "open-etp-client",
+          "0.0.1"
+        );
       } catch (err) {
         reject(err);
       }

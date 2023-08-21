@@ -63,6 +63,7 @@ import {
   extractToken,
   getSchemasForType,
   httpErrorFromEtpError,
+  partitionPattern,
   patternString,
   sliceArray,
   swaggerServers
@@ -287,22 +288,26 @@ export class EmlObjectDto {
   @ApiProperty({
     ...getSchemasForType(EmlCitationDto),
     required: true,
-    name: "Citation",
-    additionalProperties: false
+    name: "Citation"
   })
   Citation!: EmlCitationDto;
 }
 
 const xmlDocPattern = /^<\?xml.+$/;
 
-const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
-  description: "Data partition id (ex. 'osdu')",
-  example: partitionId
+  description: "Data partition id",
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
@@ -321,8 +326,8 @@ export default class ObjectsReadAPI {
     description: `Get the actual content of a data object formatted as xml or json.`,
     servers: swaggerServers
   })
-  @ApiQuery(formatQueryParam)
   @ApiQuery(versionQueryParam)
+  @ApiQuery(formatQueryParam)
   @ApiQuery(referencedContentQueryParam)
   @ApiQuery(arrayValuesQueryParam)
   @ApiQuery(arrayMetadataQueryParam)
@@ -340,6 +345,7 @@ export default class ObjectsReadAPI {
         schema: {
           type: "array",
           maxItems: 256,
+          additionalProperties: false,
           items: getSchemasForType(EmlObjectDto, true)
         }
       }
@@ -349,6 +355,7 @@ export default class ObjectsReadAPI {
     @Param() params: FindInObjectParams,
     @Req() request: express.Request,
     @Res() res: express.Response,
+    @Query("version") version?: string,
     @Query("$format") format: "xml" | "json" = "json",
     @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
@@ -360,11 +367,11 @@ export default class ObjectsReadAPI {
     const uris = [
       EtpUri.createObjectUri(
         params.dataspaceId,
-        m?.groups?.domainFamily || "",
-        m?.groups?.domainVersion || "",
-        m?.groups?.dataType || "",
+        m?.groups?.domainFamily ?? "",
+        m?.groups?.domainVersion ?? "",
+        m?.groups?.dataType ?? "",
         params.guid,
-        params.version
+        version
       ).uri
     ];
     if (!format || format === "xml") {

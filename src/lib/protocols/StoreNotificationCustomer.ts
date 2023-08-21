@@ -54,8 +54,16 @@ export class StoreNotificationCustomer extends BaseHandler {
    */
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.StoreNotification.ObjectChanged
+      | Energistics.Etp.v12.Protocol.StoreNotification.ObjectDeleted
+      | Energistics.Etp.v12.Protocol.StoreNotification.SubscribeNotificationsResponse
+      | Energistics.Etp.v12.Protocol.StoreNotification.SubscriptionEnded
+      | Energistics.Etp.v12.Protocol.StoreNotification.UnsolicitedStoreNotifications
+      | Energistics.Etp.v12.Protocol.StoreNotification.Chunk
+      | Energistics.Etp.v12.Protocol.StoreNotification.ObjectActiveStatusChanged
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): void {
     if (messageHeader.protocol !== PROTOCOL.StoreNotification) {
       throw new Error(
         `Unsupported protocol {${messageHeader.protocol}} in StoreNotification`
@@ -167,7 +175,7 @@ export class StoreNotificationCustomer extends BaseHandler {
    */
   public subscribeNotifications(
     message: Energistics.Etp.v12.Protocol.StoreNotification.SubscribeNotifications
-  ) {
+  ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
     const header: Energistics.Etp.v12.Datatypes.MessageHeader =
       this.sessionManager.createFinalMessageHeader(
         PROTOCOL.StoreNotification,
@@ -188,7 +196,7 @@ export class StoreNotificationCustomer extends BaseHandler {
    */
   public unSubscribeNotifications(
     message: Energistics.Etp.v12.Protocol.StoreNotification.UnsubscribeNotifications
-  ) {
+  ): void {
     const header: Energistics.Etp.v12.Datatypes.MessageHeader =
       this.sessionManager.createFinalMessageHeader(
         PROTOCOL.StoreNotification,
@@ -212,7 +220,7 @@ export class StoreNotificationCustomer extends BaseHandler {
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.StoreNotification.SubscribeNotificationsResponse,
     map: SuccessMapResponseHandler
-  ) {
+  ): void {
     const m = new Map<string, ErrorInfo>();
     message.success.forEach((value, key) => {
       if (value.length > 0) {
@@ -225,7 +233,7 @@ export class StoreNotificationCustomer extends BaseHandler {
     map.onException(header, { error: null, errors: m });
   }
 
-  private logReceived(message: string, messageBody: any) {
+  private logReceived(message: string, messageBody: unknown) {
     this.logTrace(`Received ${message}: ${JSON.stringify(messageBody)}`);
   }
 }

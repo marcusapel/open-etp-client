@@ -105,7 +105,7 @@ export class ETPCore extends EventEmitter {
   }
 
   /// Create a new header for a specific message kind and correlation id
-  private createHeader(
+  public createHeader(
     protocol: number,
     messageType: number,
     correlationId = BigInt(0),

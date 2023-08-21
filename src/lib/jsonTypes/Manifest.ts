@@ -2,19 +2,16 @@ import { EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
-import { OSDUContext, OSDUResourceType } from "./OsduContext";
+import { OSDUContext } from "./OsduContext";
 import ResqmlOSDU, { EtpDataspaceManifest } from "./ResqmlOsdu";
 
-import {
-  GenericMasterData,
-  GenericReferenceData,
-  GenericWorkProductComponent,
-  Manifest
-} from "./Generated/manifest/Manifest.1.0.0";
-import { dataspaceUriPattern } from "../restApi/read-etp.module/Resource.controller";
+import { Manifest } from "./Generated/manifest/Manifest.1.0.0";
 import { etpServerPath, osduUrl } from "../common/config";
 
 import serverSchema from "./server-schema.json";
+
+export const dataspaceUriPattern =
+  /^(?:eml:\/\/\/|^eml:\/\/\/dataspace\('[^'"]*?(?:''[^'"]*?)*'\))$/;
 
 /**
  * Register DMS if not already registered
@@ -154,11 +151,19 @@ export const createManifest = async (
       URI,
       IResqmlDataObject
     >();
-    const resolvedObjects = await client.getResolvedObjects(
-      objectUris,
-      objects,
-      false
-    );
+    const tmpUris = [...objectUris];
+    let resolvedObjects: (IResqmlDataObject | null)[] = [];
+
+    // slice objectUris to avoid "too many arguments" error
+    while (tmpUris.length > 0) {
+      const arr = await client.getResolvedObjects(
+        tmpUris.splice(0, 5),
+        objects,
+        false
+      );
+      resolvedObjects = resolvedObjects.concat(arr);
+    }
+
     manifests.Data.WorkProductComponents = [];
     manifests.MasterData = [];
     const urisNotFound = [];

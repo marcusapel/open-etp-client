@@ -53,8 +53,12 @@ export class TransactionCustomer extends BaseHandler {
 
   public handleMessage(
     messageHeader: Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | TransactionProtocol.StartTransactionResponse
+      | TransactionProtocol.CommitTransactionResponse
+      | TransactionProtocol.RollbackTransactionResponse
+      | CoreProtocol.ProtocolException
+  ): void {
     if (messageHeader.protocol === Datatypes.Protocol.Transaction) {
       switch (messageHeader.messageType) {
         case TransactionProtocol.MsgStartTransactionResponse:

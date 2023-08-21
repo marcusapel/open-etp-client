@@ -56,8 +56,10 @@ export class SupportedTypesCustomer extends BaseHandler {
    */
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.SupportedTypes.GetSupportedTypesResponse
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): void {
     if (messageHeader.protocol === PROTOCOL.SupportedTypes) {
       switch (messageHeader.messageType) {
         case SupportedTypes.MsgGetSupportedTypesResponse: {

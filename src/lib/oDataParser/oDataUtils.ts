@@ -14,7 +14,7 @@ type URI = string;
  * It uses an array of orderby information (pairs of path, asc or desc) to provide a
  * compare function to use with sort
  *
- * @class ODataComparator
+ * @class OrderByComparator
  */
 export class OrderByComparator {
   private readonly sorting: Array<ODataSortCriteria>;
@@ -59,10 +59,9 @@ export class OrderByComparator {
  * @param {Record<string, any>} object
  * @param {string} path
  * @returns {any}
- * @memberof OrderByComparator
  */
 export const getPropertyValue = (
-  object: Record<string, any>,
+  object: Record<string, unknown>,
   path: string
 ): any => {
   let cur: any = object;
@@ -183,7 +182,7 @@ const compareValue = (
  *
  * @param {SimpleJson<AbstractResqmlDataObject>} cur Object to check against
  * @param {IDataQuery} filter filter description
- * @returns true if the given object satisfies the filter
+ * @returns {boolean} true if the given object satisfies the filter
  */
 const queryCheckValue = (
   cur: SimpleJson<AbstractResqmlDataObject>,
@@ -228,7 +227,7 @@ const queryCheckValue = (
  * @param map
  * @param queries
  * @param uri
- * @returns
+ * @returns {boolean}
  */
 export const queryFilter = (
   map: Map<string, SimpleJson<AbstractResqmlDataObject>>,
@@ -277,5 +276,5 @@ export const createODataSorting = (
   if (!orderBy) {
     return [];
   }
-  return oDataParser.parse(orderBy, "orderbyList");
+  return oDataParser.parse(orderBy, "orderbyList") as Array<ODataSortCriteria>;
 };

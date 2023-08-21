@@ -56,8 +56,12 @@ export class DataspaceCustomer extends BaseHandler {
 
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.Dataspace.GetDataspacesResponse
+      | Energistics.Etp.v12.Protocol.Dataspace.PutDataspacesResponse
+      | Energistics.Etp.v12.Protocol.Dataspace.DeleteDataspacesResponse
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): void {
     if (messageHeader.protocol === PROTOCOL.Dataspace) {
       switch (messageHeader.messageType) {
         case dataSpace.MsgGetDataspacesResponse: {
@@ -74,14 +78,24 @@ export class DataspaceCustomer extends BaseHandler {
           this.logTrace(
             `Received Dataspace.PutDataspacesResponse message for ${messageHeader.correlationId}.`
           );
-          this.successResolve.onResponse(messageHeader, messageBody.success);
+          this.successResolve.onResponse(
+            messageHeader,
+            (
+              messageBody as Energistics.Etp.v12.Protocol.Dataspace.PutDataspacesResponse
+            ).success
+          );
           break;
         }
         case dataSpace.MsgDeleteDataspacesResponse: {
           this.logTrace(
             `Received Dataspace.DeleteDataspacesResponse message for ${messageHeader.correlationId}.`
           );
-          this.successResolve.onResponse(messageHeader, messageBody.success);
+          this.successResolve.onResponse(
+            messageHeader,
+            (
+              messageBody as Energistics.Etp.v12.Protocol.Dataspace.DeleteDataspacesResponse
+            ).success
+          );
           break;
         }
         case Core.MsgProtocolException: {
