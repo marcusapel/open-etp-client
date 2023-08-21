@@ -42,7 +42,6 @@ import {
   BadRequestException,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   HttpException,
   InternalServerErrorException,
   NotFoundException,
@@ -118,6 +117,9 @@ export const toJSonCustomData = (
     return obj;
   }, o);
 };
+
+export const partitionPattern = /[A-Za-z0-9]+(-[A-Za-z0-9]+)*/;
+export const partitionRegexp = RegExp(partitionPattern);
 
 export type QueryInput = {
   // Pagination: Maximum number of item returned
@@ -199,7 +201,7 @@ export const extractDataPartitionId = (
   request?: express.Request
 ): string | undefined => {
   const header: string | undefined = request?.header("data-partition-id");
-  if (!header?.match(/^[a-zA-Z0-9._-]+$/)) {
+  if (!header || !partitionRegexp.exec(header)) {
     return undefined;
   }
   return header;
@@ -279,7 +281,6 @@ export const HasBearerGuard: (type?: string | string[]) => CanActivate = (
 /**
  * Check data-partition-id header presence for multi-partition mode
  *
- * @param {(string | string[])} [type]
  * @returns
  */
 export const HasDataPartitionGuard: () => CanActivate = () => {
@@ -619,11 +620,16 @@ export const graphResources = async (
 /**
  * Check if an error is an ETPError
  *
- * @param err
+ * @param err object to test against as error
  * @returns
  */
-export function isEtpError(err: any): err is EtpError {
-  return err && typeof err.code === "number";
+export function isEtpError(err: unknown): err is EtpError {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    typeof (err as EtpError).code === "number"
+  );
 }
 
 /**

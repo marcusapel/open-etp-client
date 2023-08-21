@@ -18,6 +18,37 @@ type Operator =
   | "div"
   | "mod";
 
+function padLeft(local: string, padding: string, length: number) {
+  let res = local;
+
+  const padLength = length - local.length;
+  for (let i = 0; i < padLength; i++) {
+    res = padding + res;
+  }
+
+  return res;
+}
+
+function escape(ch: string): string {
+  const charCode = ch.charCodeAt(0);
+  let escapeChar: string;
+  let length: number;
+
+  if (charCode <= 0xff) {
+    escapeChar = "x";
+    length = 2;
+  } else {
+    escapeChar = "u";
+    length = 4;
+  }
+
+  return (
+    "\\" +
+    escapeChar +
+    padLeft(charCode.toString(16).toUpperCase(), "0", length)
+  );
+}
+
 function quote(s: string) {
   /*
    * ECMA-262, 5th ed., 7.8.4: All characters may appear literally in a
@@ -2760,7 +2791,9 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = ((i, list) => {
-          if (list === "") list = [];
+          if (list === "") {
+            list = [];
+          }
           if (Array.isArray(list[0])) {
             list = list[0];
           }
@@ -3296,7 +3329,9 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = ((i, list) => {
-          if (list === "") list = [];
+          if (list === "") {
+            list = [];
+          }
           if (Array.isArray(list[0])) {
             list = list[0];
           }
@@ -3531,7 +3566,9 @@ export default class ODataParser {
       }
       if (result0 !== null) {
         result0 = (function (offset, i, list) {
-          if (list === "") list = [];
+          if (list === "") {
+            list = [];
+          }
           if (Array.isArray(list[0])) {
             list = list[0];
           }

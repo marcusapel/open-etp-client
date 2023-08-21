@@ -74,6 +74,7 @@ import {
   extractToken,
   getSchemasForType,
   httpErrorFromEtpError,
+  partitionPattern,
   patternString,
   swaggerServers,
   toJSonCustomData
@@ -83,6 +84,7 @@ import {
   FindInDataSpaceParams,
   FindInObjectParams,
   dataObjectTypePattern,
+  dataObjectTypeRegexp,
   uriPattern,
   uuidPattern,
   versionQueryParam
@@ -177,8 +179,7 @@ export class DataArrayMetadataDto {
     ...getSchemasForType(ArrayIdDto),
     required: true,
     name: "uid",
-    description: "Array identifiers",
-    additionalProperties: false
+    description: "Array identifiers"
   })
   uid!: IArrayId;
 
@@ -302,8 +303,7 @@ export class DataArrayDto {
     ...getSchemasForType(ArrayIdDto),
     required: true,
     name: "uid",
-    description: "Array identifiers",
-    additionalProperties: false
+    description: "Array identifiers"
   })
   uid!: IArrayId;
 
@@ -311,8 +311,7 @@ export class DataArrayDto {
     ...getSchemasForType(DataArrayDataDto),
     required: true,
     name: "data",
-    description: "Array content",
-    additionalProperties: false
+    description: "Array content"
   })
   data?: DataArrayDataDto;
 }
@@ -390,8 +389,6 @@ const getObjectDataArrays = async (
           }
         : null
     );
-  } catch (err) {
-    throw httpErrorFromEtpError(err);
   } finally {
     c.closeSession();
   }
@@ -486,7 +483,7 @@ export const formatQueryParam: ApiQueryOptions = {
   }
 };
 
-const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
 /**
  * API to Discover and Read data arrays
@@ -498,8 +495,13 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
-  description: "Data partition id (ex. 'osdu')",
-  example: partitionId
+  description: "Data partition id",
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
@@ -529,18 +531,17 @@ export default class DataArrayReadAPI {
   })
   public async GetObjectArrays(
     @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
     @Req() request?: express.Request
   ): Promise<GetObjectDataArraysOutput> {
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
-      params.version
+      version
     ).uri;
 
     return getObjectDataArrays(
@@ -566,14 +567,12 @@ export default class DataArrayReadAPI {
     @Query("version") version?: string,
     @Req() request?: express.Request
   ): Promise<DataArrayMetadataDto | null> {
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
       version
     ).uri;
@@ -634,14 +633,12 @@ export default class DataArrayReadAPI {
     @Query("format") format?: ArrayFormat,
     @Req() request?: express.Request
   ): Promise<DataArrayDto> {
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
       version
     ).uri;

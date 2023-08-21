@@ -57,14 +57,10 @@ export class SeismicHorizonOSDU
       return false;
     }
 
-    if (
-      xml.RepresentedInterpretation?._data?.$type !==
+    return (
+      xml.RepresentedInterpretation?._data?.$type ===
       "resqml20.obj_HorizonInterpretation"
-    ) {
-      return false;
-    }
-
-    return true;
+    );
   }
 
   public getGeometries(
@@ -72,6 +68,50 @@ export class SeismicHorizonOSDU
   ): SimpleJson<resqml20.PointGeometry>[] {
     xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
     return [xml.Grid2dPatch.Geometry];
+  }
+
+  /**
+   * Compute the coverage binGrid
+   * @param {SimpleJson<resqml20.obj_SeismicLatticeFeature> | undefined} feat lattice feature
+   * @param {SimpleJson<resqml20.Point3dFromRepresentationLatticeArray>} lat lattice coordinates
+   * @returns
+   */
+  private coverage(
+    feat: SimpleJson<resqml20.obj_SeismicLatticeFeature> | undefined,
+    lat: SimpleJson<resqml20.Point3dFromRepresentationLatticeArray>
+  ) {
+    let NI = undefined;
+    let NJ = undefined;
+    let dI = undefined;
+    let dJ = undefined;
+    let BinGridCoveragePercent = undefined;
+    if (
+      feat &&
+      lat.NodeIndicesOnSupportingRepresentation.$type ==
+        "resqml20.IntegerLatticeArray"
+    ) {
+      const offset =
+        lat.NodeIndicesOnSupportingRepresentation as SimpleJson<resqml20.IntegerLatticeArray>;
+      if (offset.Offset.length === 2) {
+        const iOffset = offset
+          .Offset[0] as SimpleJson<resqml20.IntegerConstantArray>;
+        const jOffset = offset
+          .Offset[1] as SimpleJson<resqml20.IntegerConstantArray>;
+        if (
+          iOffset.$type == "resqml20.IntegerConstantArray" &&
+          jOffset.$type == "resqml20.IntegerConstantArray"
+        ) {
+          NI = iOffset.Count + 1;
+          dI = iOffset.Value;
+          NJ = jOffset.Count + 1;
+          dJ = jOffset.Value;
+          BinGridCoveragePercent =
+            (100.0 * (NI * dI * NJ * dJ)) /
+            (feat.InlineCount * feat.CrosslineCount);
+        }
+      }
+    }
+    return BinGridCoveragePercent;
   }
 
   public async initData(
@@ -119,37 +159,7 @@ export class SeismicHorizonOSDU
     const startCrossline =
       lat.NodeIndicesOnSupportingRepresentation.StartValue / feat.InlineCount;
 
-    let NI = undefined;
-    let NJ = undefined;
-    let dI = undefined;
-    let dJ = undefined;
-    let BinGridCoveragePercent = undefined;
-    if (
-      feat &&
-      lat.NodeIndicesOnSupportingRepresentation.$type ==
-        "resqml20.IntegerLatticeArray"
-    ) {
-      const offset =
-        lat.NodeIndicesOnSupportingRepresentation as SimpleJson<resqml20.IntegerLatticeArray>;
-      if (offset.Offset.length === 2) {
-        const iOffset = offset
-          .Offset[0] as SimpleJson<resqml20.IntegerConstantArray>;
-        const jOffset = offset
-          .Offset[1] as SimpleJson<resqml20.IntegerConstantArray>;
-        if (
-          iOffset.$type == "resqml20.IntegerConstantArray" &&
-          jOffset.$type == "resqml20.IntegerConstantArray"
-        ) {
-          NI = iOffset.Count + 1;
-          dI = iOffset.Value;
-          NJ = jOffset.Count + 1;
-          dJ = jOffset.Value;
-          BinGridCoveragePercent =
-            (100.0 * (NI * dI * NJ * dJ)) /
-            (feat.InlineCount * feat.CrosslineCount);
-        }
-      }
-    }
+    const BinGridCoveragePercent = this.coverage(feat, lat);
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),

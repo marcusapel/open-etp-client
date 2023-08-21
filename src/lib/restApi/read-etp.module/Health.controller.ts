@@ -30,6 +30,7 @@ import {
 
 import {
   errorMessageSchema,
+  getSchemasForType,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
@@ -98,7 +99,7 @@ export class ClientInfoDto {
     maxLength: 2048,
     pattern: patternString(/^[0-9a-zA-Z \-:]+$/)
   })
-  buildTime?: string;
+  buildTime!: string;
 }
 
 /**
@@ -184,12 +185,16 @@ export default class HealthAPI {
   }
 
   /**
-   * Checking service liveness
+   * Return service information
    *
    * @memberof HealthAPI
    */
   @Get("info")
-  @ApiOkResponse({ description: "Success", type: ClientInfoDto })
+  @ApiOkResponse({
+    description: "Success",
+    schema: getSchemasForType(ClientInfoDto)
+  })
+  @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
   @ApiInternalServerErrorResponse(errorMessageSchema("Unknown Error"))
   @ApiOperation({
     summary: "Check liveness of the server.",
@@ -208,17 +213,23 @@ export default class HealthAPI {
         );
         const version = packageJson.version;
         const artifactId = packageJson.name;
+        let commitId = "unknown";
+        let commitTime = "unknown";
 
         //Get commitId, commitTime and buildTime from env variables
         // get commit info from Git
-        const commitId = child_process
-          .execSync("git rev-parse HEAD")
-          .toString()
-          .trim();
-        const commitTime = child_process
-          .execSync("git log -1 --format=%ci")
-          .toString()
-          .trim();
+        try {
+          commitId = child_process
+            .execSync("git rev-parse HEAD")
+            .toString()
+            .trim();
+          commitTime = child_process
+            .execSync("git log -1 --format=%ci")
+            .toString()
+            .trim();
+        } catch (e) {
+          //Nothing
+        }
 
         resolve({
           groupId,

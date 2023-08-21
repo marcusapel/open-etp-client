@@ -386,14 +386,40 @@ export class EtpUri {
     version?: string,
     oDataQuery?: ODataQuery
   ): EtpUri {
+    const dVersion = domainVersion.replace(".", "");
+    return EtpUri.createTypedObjectUri(
+      dataspace,
+      `${domainFamily}${dVersion}.${objectType}`,
+      uuid,
+      version,
+      oDataQuery
+    );
+  }
+
+  /**
+   * Create an object URI providing its different elements
+   *
+   * @static
+   * @param {string} dataspace
+   * @param {string} qualifiedType example "resqml20.obj_TriangulatedSetRepresentation"
+   * @param {string} uuid
+   * @param {string} [version]
+   * @param {ODataQuery} [oDataQuery] oDataQuery in the format "?filter=...&top=..&skip=...&orderby=..."
+   * @returns corresponding URI string
+   * @memberof EtpUri
+   */
+  public static createTypedObjectUri(
+    dataspace: string,
+    qualifiedType: string,
+    uuid: string,
+    version?: string,
+    oDataQuery?: ODataQuery
+  ): EtpUri {
     const ds =
       EtpUri.createDataSpaceUri(dataspace).uri + (dataspace ? "/" : "");
-    const dVersion = domainVersion?.replace(".", "");
     const id = version ? `uuid=${uuid},version='${version}'` : `${uuid}`;
     return new EtpUri(
-      `${ds}${domainFamily}${dVersion}.${objectType}(${id})${queryToString(
-        oDataQuery
-      )}`
+      `${ds}${qualifiedType}(${id})${queryToString(oDataQuery)}`
     );
   }
 
@@ -432,14 +458,14 @@ export class EtpUri {
 
   private readonly _emlURI: any;
   private readonly _query: any;
-  constructor(private readonly uriString: string) {
-    this._emlURI = uriString.match(regexp);
+  constructor(uriString: string) {
+    this._emlURI = regexp.exec(uriString);
     const q = this.uriQuery;
     // Unfortunately, capturing group does not work for OData, so use brute force
     this._query = null;
     if (q.length > 1) {
       this._query = {};
-      q.substr(1)
+      q.substring(1)
         .split("&")
         .forEach((element: string) => {
           if (element.startsWith("$filter=")) {

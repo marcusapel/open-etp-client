@@ -730,6 +730,16 @@ export class SchemaCache {
         break;
       }
       case "bytes":
+        // check that datum is an array of numbers
+        if (
+          !Array.isArray(datum) ||
+          (datum.length > 0 &&
+            (typeof datum[0] !== "number" || datum[0] < 0 || datum[0] > 255))
+          //!datum.every(e => typeof e === "number" && e >= 0 && e <= 255) ideal but slow
+        ) {
+          throw new Error(`Invalid bytes value: ${datum}`);
+        }
+        break;
       case "string": {
         if (typeof datum !== "string") {
           throw new Error(`Invalid string value: ${datum}`);

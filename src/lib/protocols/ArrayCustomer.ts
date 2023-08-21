@@ -592,7 +592,7 @@ export default class ArrayCustomer extends BaseHandler {
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
     messageBody: MessageBody
-  ) {
+  ): void {
     if (messageHeader.protocol === Protocols.DataArray) {
       switch (messageHeader.messageType) {
         case DataArray.MsgGetDataArraysResponse: {

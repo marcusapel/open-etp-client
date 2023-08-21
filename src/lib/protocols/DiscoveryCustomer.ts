@@ -57,8 +57,12 @@ export class DiscoveryCustomer extends BaseHandler {
 
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.Discovery.GetDeletedResourcesResponse
+      | Energistics.Etp.v12.Protocol.Discovery.GetResourcesEdgesResponse
+      | Energistics.Etp.v12.Protocol.Discovery.GetResourcesResponse
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): void {
     if (messageHeader.protocol === PROTOCOL.Discovery) {
       switch (messageHeader.messageType) {
         case Discovery.MsgGetResourcesResponse: {
