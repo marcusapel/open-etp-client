@@ -110,12 +110,8 @@ export * as XmlUtils from "../mlTypes/XmlJsonUtil";
 export { SimpleJson } from "../mlTypes/XmlJsonUtil";
 export * as Resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 
-if (!process.env.RDMS_AUTHENTICATION_KEY_BASE) {
-  throw new Error(
-    "RDMS_AUTHENTICATION_KEY_BASE environment variable must be defined"
-  );
-}
-const authenticationKeyBase = process.env.RDMS_AUTHENTICATION_KEY_BASE;
+const authenticationKeyBase =
+  process.env.RDMS_AUTHENTICATION_KEY_BASE || "osdu-rddms";
 
 export type IResqmlDataObject = SimpleJson<resqml20.AbstractResqmlDataObject>;
 

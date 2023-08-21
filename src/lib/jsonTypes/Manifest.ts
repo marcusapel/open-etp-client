@@ -183,7 +183,7 @@ export const createManifest = async (
         context,
         client
       );
-      if (res !== undefined) {
+      if (res !== undefined && res.id) {
         // Check if it is an explicit osdu resource
         const al = resolvedObjects[i]?.Aliases?.find(
           a => a.Authority === "osdu"
@@ -193,12 +193,12 @@ export const createManifest = async (
           const d = res.id.split(":");
           const version = await context.getOSDUResourceVersion(res.id);
           if (version) {
-            const stored = await context.fetchOSDU<any>(
+            const stored = await context.fetchOSDU<OSDUResourceType>(
               `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
             );
             if (stored) {
               // If version exists, just update the DDMSDatasets field in the exiting record
-              if (res.data?.DDMSDatasets?.length > 0) {
+              if (res && res.data?.DDMSDatasets?.length > 0) {
                 if (!stored.data) {
                   stored.data = {};
                 }
@@ -207,7 +207,8 @@ export const createManifest = async (
                 } else if (
                   // If the DDMSDatasets already contain the current grid, skip it
                   stored.data.DDMSDatasets.findIndex(
-                    (e: string) => e === res.data?.DDMSDatasets[0]
+                    (e: string) =>
+                      res?.data?.DDMSDatasets && e === res.data.DDMSDatasets[0]
                   ) !== -1
                 ) {
                   continue;
@@ -221,20 +222,22 @@ export const createManifest = async (
             }
           }
         }
-        context.created.set(res.id, res);
+        if (res !== undefined && res.id) {
+          context.created.set(res.id, res);
+        }
       }
     }
 
     manifests.ReferenceData = [];
 
-    const generatedSrn = new Map<string, any>();
+    const generatedSrn = new Map<string, OSDUResourceType>();
 
     for (const res of context.created) {
       const id: string = res[0];
       if (id.includes("master-data")) {
-        manifests.MasterData.push(res[1]);
+        manifests.MasterData.push(res[1] as GenericMasterData);
       } else if (id.includes("reference-data")) {
-        manifests.ReferenceData.push(res[1]);
+        manifests.ReferenceData.push(res[1] as GenericReferenceData);
       } else {
         if (
           context.spatialPoint !== undefined &&
@@ -284,21 +287,29 @@ export const createManifest = async (
               ).then(obj =>
                 c === undefined
                   ? resolve()
-                  : c.convert(objUri, obj, context, client).then((res: any) => {
+                  : c.convert(objUri, obj, context, client).then(res => {
                       const srn = obj
                         ? context.uriToSrn(objUri, obj)
                         : undefined;
-                      if (srn === undefined) {
+                      if (
+                        srn === undefined ||
+                        res === undefined ||
+                        res.id === undefined
+                      ) {
                         reject(
                           new Error(`cannot generate reference for: ${objUri}`)
                         );
                       } else {
                         if (res.id.includes("master-data")) {
-                          manifests.MasterData?.push(res);
+                          manifests.MasterData?.push(res as GenericMasterData);
                         } else if (res.id.includes("reference-data")) {
-                          manifests.ReferenceData?.push(res);
+                          manifests.ReferenceData?.push(
+                            res as GenericReferenceData
+                          );
                         } else {
-                          manifests.Data?.WorkProductComponents?.push(res);
+                          manifests.Data?.WorkProductComponents?.push(
+                            res as GenericWorkProductComponent
+                          );
                         }
                         generatedSrn.set(`${srn}`, res);
                         resolve();

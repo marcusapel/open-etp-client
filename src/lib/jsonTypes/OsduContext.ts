@@ -28,14 +28,16 @@ type Converter = (
   xml: any,
   context: OSDUContext,
   client: ResqmlClient
-) => any;
+) => Promise<OSDUResourceType | undefined>;
 
 type OSDUEntry = {
   osduKind: (obj: IResqmlDataObject) => string;
   convert: Converter;
 };
 
-type OSDUResourceType = {
+export type OSDUResourceType = {
+  acl: AccessControlList;
+  legal: LegalMetaData;
   kind: string;
   id?: string;
   version?: number;
@@ -142,7 +144,7 @@ export class OSDUContext {
   public createMissingReferences?: boolean = true;
   public bearer?: string;
 
-  public created: Map<string, any> = new Map();
+  public created: Map<string, OSDUResourceType> = new Map();
 
   public projectedCRS: Map<string, CoordinateReferenceSystem> = new Map();
   public boundedCRS: Map<string, CoordinateReferenceSystem> = new Map();

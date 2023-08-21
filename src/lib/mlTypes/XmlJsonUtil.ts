@@ -68,10 +68,7 @@ export type SimpleJson<T> = OmitRecursively<T, keyof eml20.HandlerInstance>;
 
 const parser = new cxml.Parser();
 
-if (!process.env.RDMS_JWT_SECRET) {
-  throw new Error("RDMS_JWT_SECRET environment variable must be defined");
-}
-const jwtSecret = process.env.RDMS_JWT_SECRET;
+const jwtSecret = process.env.RDMS_JWT_SECRET || "osdu-rddms";
 
 /**
  * Represents the constraints associated with a number representation
