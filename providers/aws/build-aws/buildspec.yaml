@@ -65,8 +65,16 @@ phases:
       - npm run test Common providers/TestAws ResponseHandlers
       - tar -czvf dist.tgz dist node_modules package*
       - |
-        java -jar sonar-scanner-4.6.2.2472/lib/sonar-scanner-cli-4.6.2.2472.jar -Dsonar.projectKey=os-open-etp-client -Dsonar.host.url=${SONAR_URL} \
-          -Dsonar.login=${SONAR_USERNAME} -Dsonar.password=${SONAR_PASSWORD} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.javascript.lcov.reportPaths=./coverage/lcov-report/lcov.info
+        java -jar sonar-scanner-4.6.2.2472/lib/sonar-scanner-cli-4.6.2.2472.jar \
+          -Dsonar.projectKey=os-open-etp-client \
+          -Dsonar.host.url=${SONAR_URL} \
+          -Dsonar.login=${SONAR_USERNAME} \
+          -Dsonar.password=${SONAR_PASSWORD} \
+          -Dsonar.branch.name=${BRANCH_NAME} \
+          -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info \
+          -Dsonar.sources=./src/lib/providers/aws \
+          -Dsonar.coverage.exclusions=**/examples/*,**/__tests__/*,**/__azure__/*,**/__google__/*
+
       - echo "Building docker image..."
       - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} .
       - docker tag  ${ECR_IMAGE_PROD} ${ECR_IMAGE_BRANCH_LATEST}
