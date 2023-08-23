@@ -1,4 +1,4 @@
-{{- template "common.virtualservice" (list . "os-open-etp-client.virtualservice") -}}
-{{- define "os-open-etp-client.virtualservice" -}}
+{{- template "common.virtualservice" (list . "os-rest-to-etp-proxy-server.virtualservice") -}}
+{{- define "os-rest-to-etp-proxy-server.virtualservice" -}}
 ## Define overrides for the service's virtual service resource here
 {{- end -}}

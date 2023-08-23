@@ -1,7 +1,7 @@
 apiVersion: v2
-name: os-open-etp-client
+name: os-rest-to-etp-proxy-server
 version: __CHART_VERSION__
-description: Open ETP client Helm chart for Kubernetes
+description: REST to ETP Proxy Server Helm chart for Kubernetes
 type: application
 appVersion: __VERSION__
 dependencies:

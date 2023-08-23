@@ -1,4 +1,4 @@
-{{- template "common.service" (list . "os-open-etp-client.service") -}}
-{{- define "os-open-etp-client.service" -}}
+{{- template "common.service" (list . "os-rest-to-etp-proxy-server.service") -}}
+{{- define "os-rest-to-etp-proxy-server.service" -}}
 ## Define overrides for the service resource here
 {{- end -}}

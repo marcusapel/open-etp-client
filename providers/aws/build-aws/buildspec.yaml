@@ -21,22 +21,31 @@ env:
   secrets-manager:
     DOCKER_USERNAME: /osdu/devops/docker_credentials:username
     DOCKER_PASSWORD: /osdu/devops/docker_credentials:password
+    SONAR_USERNAME: /osdu/devops/sonar_credentials:username
+    SONAR_PASSWORD: /osdu/devops/sonar_credentials:password
 
+  parameter-store:
+    SONAR_URL: /osdu/devops/sonar_url
 phases:
   install:
     commands:
       # fix error noted here: https://github.com/yarnpkg/yarn/issues/7866
       - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
       - apt-get update -y
+      - n 18
       - export AWS_ACCOUNT_ID=`aws sts get-caller-identity | grep Account | cut -d':' -f 2 | cut -d'"' -f 2`
       - aws codeartifact login --tool npm --domain osdu-dev --domain-owner ${AWS_ACCOUNT_ID} --repository osdu-npm
       - export REPO_NAME=${PWD##*/}
       - npm install
+      - wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472.zip
+      - unzip -q ./sonar-scanner-cli-4.6.2.2472.zip
 
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
-      - $(aws ecr get-login --no-include-email --region $AWS_REGION) # authenticate with ECR via the AWS CLI
+      - |
+        aws ecr get-login-password --region $AWS_REGION \
+        | docker login --username AWS  --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
   build:
     commands:
       - export OUTPUT_DIR="dist"
@@ -53,8 +62,11 @@ phases:
       - echo "Placeholder" >> ${OUTPUT_DIR}/build-info.json # touched so that the output directory has some content incase the build fails so that testing reports are uploaded
       - echo "Building open-etp-client"
       - npm run build:quick && npm run openAPI
+      - npm run test Common providers/TestAws ResponseHandlers
       - tar -czvf dist.tgz dist node_modules package*
-
+      - |
+        java -jar sonar-scanner-4.6.2.2472/lib/sonar-scanner-cli-4.6.2.2472.jar -Dsonar.projectKey=os-open-etp-client -Dsonar.host.url=${SONAR_URL} \
+          -Dsonar.login=${SONAR_USERNAME} -Dsonar.password=${SONAR_PASSWORD} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.javascript.lcov.reportPaths=./coverage/lcov-report/lcov.info
       - echo "Building docker image..."
       - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} .
       - docker tag  ${ECR_IMAGE_PROD} ${ECR_IMAGE_BRANCH_LATEST}
