@@ -17,7 +17,7 @@ spec:
   http:
     - match:
         - uri:
-            prefix: "/api/oetp-client/v2"
+            prefix: {{ .Values.data.rdmsRestRootPath | quote }}
       route:
         - destination:
             port:
