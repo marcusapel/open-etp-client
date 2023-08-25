@@ -280,7 +280,7 @@ export class ResqmlClient {
       if (typeof userInfo === "string") {
         authentication = userInfo;
       } else {
-        const { username, password } = userInfo || {
+        const { username, password } = userInfo ?? {
           username: "",
           password: ""
         };
@@ -2713,7 +2713,7 @@ export class ResqmlClient {
               nURI.dataSpace,
               nURI.domainFamily,
               nURI.domainVersion,
-              nURI.dataObjectType,
+              nURI.dataType,
               nURI.uuid
             ).uri
           );
