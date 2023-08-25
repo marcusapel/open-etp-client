@@ -2,10 +2,15 @@ import { EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
-import { OSDUContext } from "./OsduContext";
+import { OSDUContext, OSDUResourceType } from "./OsduContext";
 import ResqmlOSDU, { EtpDataspaceManifest } from "./ResqmlOsdu";
 
-import { Manifest } from "./Generated/manifest/Manifest.1.0.0";
+import {
+  GenericMasterData,
+  GenericReferenceData,
+  GenericWorkProductComponent,
+  Manifest
+} from "./Generated/manifest/Manifest.1.0.0";
 import { etpServerPath, osduUrl } from "../common/config";
 
 import serverSchema from "./server-schema.json";
