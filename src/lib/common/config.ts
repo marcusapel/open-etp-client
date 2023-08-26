@@ -19,7 +19,6 @@ const unsetEnvVars: string[] = [];
   "RDMS_ETP_PROTOCOL",
   "RDMS_ETP_HOST",
   "RDMS_ETP_PORT",
-  "RDMS_REST_MAIN_URL",
   "RDMS_REST_ROOT_PATH",
   "RDMS_REST_PORT"
 ].forEach(envVarName => {
@@ -45,14 +44,15 @@ export const dataPartitionId =
     ? (process.env.RDMS_TEST_DATA_PARTITION_ID as string)
     : undefined;
 
-export const restApiMainUrl = process.env.RDMS_REST_MAIN_URL as string;
+export const restApiProtocol = etpServerProtocol.startsWith("wss")
+  ? "https"
+  : "http";
+export const restApiMainUrl =
+  (process.env.RDMS_REST_MAIN_URL as string) ??
+  `${restApiProtocol}://${etpServerHost}`;
 export const restApiRoutePath = process.env.RDMS_REST_ROOT_PATH as string;
 export const restApiPort = parseInt(process.env.RDMS_REST_PORT as string);
 export const openApiPort =
   parseInt(process.env.OPEN_API_PORT as string) || restApiPort;
 
-export const osduUrl =
-  (process.env.RDMS_OSDU_URL as string) ||
-  `${
-    etpServerProtocol.startsWith("wss") ? "https://" : "http://"
-  }${etpServerHost}`;
+export const osduUrl = (process.env.RDMS_OSDU_URL as string) || restApiMainUrl;

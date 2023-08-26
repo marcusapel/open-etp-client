@@ -534,21 +534,26 @@ export default class DataArrayReadAPI {
     @Query("version") version?: string,
     @Req() request?: express.Request
   ): Promise<GetObjectDataArraysOutput> {
-    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
-    const uri = EtpUri.createObjectUri(
-      params.dataspaceId,
-      m?.groups?.domainFamily ?? "",
-      m?.groups?.domainVersion ?? "",
-      m?.groups?.dataType ?? "",
-      params.guid,
-      version
-    ).uri;
+    try {
+      const m = dataObjectTypeRegexp.exec(params.dataObjectType);
+      const uri = EtpUri.createObjectUri(
+        params.dataspaceId,
+        m?.groups?.domainFamily ?? "",
+        m?.groups?.domainVersion ?? "",
+        m?.groups?.dataType ?? "",
+        params.guid,
+        version
+      ).uri;
 
-    return getObjectDataArrays(
-      uri,
-      extractToken(request),
-      extractDataPartitionId(request)
-    );
+      const arr = await getObjectDataArrays(
+        uri,
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      return arr;
+    } catch (err: unknown) {
+      throw httpErrorFromEtpError(err);
+    }
   }
 
   @Get("arrays/:pathInResource/metadata")
