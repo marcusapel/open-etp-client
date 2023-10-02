@@ -13,7 +13,7 @@ import { GridConnectionSetRepresentationManifest } from "./GridConnectionSetRepr
 import {
   Grid2dToOsduKind,
   Grid2dRepresentationManifest
-} from "./SesimicBinGrid2Representation";
+} from "./SeismicBinGrid2Representation";
 import { HorizonInterpretationManifest } from "./HorizonInterpretation";
 import { IjkGridRepresentationManifest } from "./IjkGridRepresentation";
 import { LocalBoundaryFeatureManifest } from "./LocalBoundaryFeature";

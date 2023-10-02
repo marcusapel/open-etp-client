@@ -63,6 +63,7 @@ import {
   getSchemasForType,
   graphResources,
   httpErrorFromEtpError,
+  partitionPattern,
   patternString,
   sliceArray,
   swaggerServers,
@@ -102,10 +103,12 @@ export const datePattern =
 export const filterPattern = /^(?:(_data)|[0-9a-zA-Z /(),.]+|'.*')+$/;
 
 export const dataObjectTypePattern =
-  /^(witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?[0-9a-zA-Z]+$/;
+  /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>\d+).(?<dataType>(obj_)?\w+)$/;
 
 export const dataObjectTypesPattern =
-  /^((witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?[0-9a-zA-Z]+,?)*$/;
+  /^((witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?\w+,?)*$/;
+
+export const dataObjectTypeRegexp = RegExp(dataObjectTypePattern);
 
 export const uuidPattern =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -168,8 +171,7 @@ class ResourceDto {
   @ApiProperty({
     name: "uri",
     description: "Unique Resource Identifier of the resource",
-    example:
-      "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
+    example: `eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)`,
     maxLength: 2048,
     pattern: patternString(emlUriPattern)
   })
@@ -343,7 +345,7 @@ const toJSonDataspace = (
     ...d,
     storeCreated: toDate(d.storeCreated),
     storeLastWrite: toDate(d.storeLastWrite),
-    customData: toJSonCustomData(d.customData) || {}
+    customData: toJSonCustomData(d.customData) ?? {}
   };
 };
 
@@ -368,7 +370,7 @@ const toJSonResource = (
     lastChanged: toDate(d.lastChanged),
     storeCreated: toDate(d.storeCreated),
     storeLastWrite: toDate(d.storeLastWrite),
-    customData: toJSonCustomData(d.customData) || {}
+    customData: toJSonCustomData(d.customData) ?? {}
   };
 };
 
@@ -463,16 +465,6 @@ export class FindInObjectParams extends FindInTypeParams {
   })
   @IsUUID()
   guid!: string;
-
-  @ApiPropertyOptional({
-    name: "version",
-    description: "Version of the object",
-    maxLength: 64,
-    pattern: patternString(versionPattern),
-    nullable: true,
-    default: null
-  })
-  version?: string;
 }
 
 /**
@@ -634,7 +626,7 @@ export const includeSecondarySourcesQueryParam: ApiQueryOptions = {
   example: false
 };
 
-const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
 /**
  * Api for resources access
@@ -647,7 +639,12 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 @ApiHeader({
   name: "data-partition-id",
   description: "Data partition id (ex. 'osdu')",
-  example: partitionId
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
@@ -655,7 +652,7 @@ const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
-@ApiTooManyRequestsResponse(errorMessageSchema("Too many request", 429))
+@ApiTooManyRequestsResponse(errorMessageSchema("Too many requests", 429))
 @ApiInternalServerErrorResponse(errorMessageSchema(`Unknown Error`, 500))
 @ApiDefaultResponse(errorMessageSchema(`Unknown Error`, 500))
 @Controller("dataspaces")
@@ -752,7 +749,7 @@ export default class ResourcesReadAPI {
       return sliceArray<SupportedType>(skip, top, types).map(r => {
         return {
           name: r.dataObjectType,
-          count: r.objectCount || 0
+          count: r.objectCount ?? 0
         };
       });
     } catch (err) {
@@ -962,6 +959,7 @@ export default class ResourcesReadAPI {
    * @memberof ResourcesReadAPI
    */
   @Get(":dataspaceId/resources/:dataObjectType/:guid/targets")
+  @ApiQuery(versionQueryParam)
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
   @ApiQuery(filterQueryParam)
@@ -980,6 +978,7 @@ export default class ResourcesReadAPI {
   })
   public async ListTargets(
     @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Query("$filter") filter?: string,
@@ -997,16 +996,14 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
-      params.version
+      version
     ).uri;
     let c = undefined;
     try {
@@ -1055,6 +1052,7 @@ export default class ResourcesReadAPI {
    * @memberof ResourcesReadAPI
    */
   @Get(":dataspaceId/graph/:dataObjectType/:guid/targets")
+  @ApiQuery(versionQueryParam)
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
   @ApiQuery(filterQueryParam)
@@ -1074,6 +1072,7 @@ export default class ResourcesReadAPI {
   })
   public async GraphTargets(
     @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Query("$filter") filter?: string,
@@ -1091,16 +1090,14 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
-      params.version
+      version
     ).uri;
     let c = undefined;
     try {
@@ -1137,6 +1134,7 @@ export default class ResourcesReadAPI {
    * @memberof ResourcesReadAPI
    */
   @Get(":dataspaceId/resources/:dataObjectType/:guid/sources")
+  @ApiQuery(versionQueryParam)
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
   @ApiQuery(filterQueryParam)
@@ -1155,6 +1153,7 @@ export default class ResourcesReadAPI {
   })
   public async ListSources(
     @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Query("$filter") filter?: string,
@@ -1172,16 +1171,14 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
-      params.version
+      version
     ).uri;
     let c = undefined;
     try {
@@ -1228,6 +1225,7 @@ export default class ResourcesReadAPI {
    * @memberof ResourcesReadAPI
    */
   @Get(":dataspaceId/graph/:dataObjectType/:guid/sources")
+  @ApiQuery(versionQueryParam)
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
   @ApiQuery(filterQueryParam)
@@ -1247,6 +1245,7 @@ export default class ResourcesReadAPI {
   })
   public async GraphSources(
     @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
     @Query("$filter") filter?: string,
@@ -1264,16 +1263,14 @@ export default class ResourcesReadAPI {
       skip,
       filter
     };
-    const m = params.dataObjectType.match(
-      /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
-    );
+    const m = dataObjectTypeRegexp.exec(params.dataObjectType);
     const uri = EtpUri.createObjectUri(
       params.dataspaceId,
-      m?.groups?.domainFamily || "",
-      m?.groups?.domainVersion || "",
-      m?.groups?.dataType || "",
+      m?.groups?.domainFamily ?? "",
+      m?.groups?.domainVersion ?? "",
+      m?.groups?.dataType ?? "",
       params.guid,
-      params.version
+      version
     ).uri;
     let c = undefined;
     try {

@@ -55,16 +55,44 @@ export class SeismicBinGridOSDU
     xml: SimpleJson<resqml20.obj_Grid2dRepresentation>
   ): boolean {
     const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
-    if (
+    return (
       (
         grid2d.RepresentedInterpretation
           ?._data as SimpleJson<resqml20.AbstractFeatureInterpretation>
-      )?.InterpretedFeature._data?.$type !==
+      )?.InterpretedFeature._data?.$type ===
       "resqml20.obj_SeismicLatticeFeature"
-    ) {
-      return false;
+    );
+  }
+
+  /**
+   * Compute easting and northing values
+   *
+   * @param Wgs84Coordinates Coordinates in WSG84 coordinate system
+   * @param crs Local CRS
+   * @returns
+   */
+  private eastingNorthing(
+    Wgs84Coordinates: [number, number][] | undefined,
+    crs: SimpleJson<resqml20.obj_LocalDepth3dCrs>
+  ): { easting: number; northing: number } {
+    let easting = Wgs84Coordinates?.length ? Wgs84Coordinates[0][0] : 0;
+    let northing = Wgs84Coordinates?.length ? Wgs84Coordinates[0][1] : 0;
+    if (crs.ProjectedAxisOrder === "northing easting") {
+      easting = northing;
+      northing = easting;
+    } else if (crs.ProjectedAxisOrder === "southing westing") {
+      easting = -northing;
+      northing = -easting;
+    } else if (crs.ProjectedAxisOrder === "northing westing") {
+      easting = northing;
+      northing = -easting;
+    } else if (crs.ProjectedAxisOrder === "westing northing") {
+      easting = -easting;
+    } else if (crs.ProjectedAxisOrder === "westing southing") {
+      easting = -easting;
+      northing = -northing;
     }
-    return true;
+    return { easting, northing };
   }
 
   public async initData(
@@ -141,23 +169,7 @@ export class SeismicBinGridOSDU
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates } =
       await this.createSpatialInfoFrom2dPoints([A, B, C, D], crs);
 
-    let easting = Wgs84Coordinates?.length ? Wgs84Coordinates[0][0] : 0;
-    let northing = Wgs84Coordinates?.length ? Wgs84Coordinates[0][1] : 0;
-    if (crs.ProjectedAxisOrder === "northing easting") {
-      easting = northing;
-      northing = easting;
-    } else if (crs.ProjectedAxisOrder === "southing westing") {
-      easting = -northing;
-      northing = -easting;
-    } else if (crs.ProjectedAxisOrder === "northing westing") {
-      easting = northing;
-      northing = -easting;
-    } else if (crs.ProjectedAxisOrder === "westing northing") {
-      easting = -easting;
-    } else if (crs.ProjectedAxisOrder === "westing southing") {
-      easting = -easting;
-      northing = -northing;
-    }
+    const { easting, northing } = this.eastingNorthing(Wgs84Coordinates, crs);
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
@@ -235,20 +247,22 @@ export const Grid2dToOsduKind = (xml: IResqmlDataObject): string => {
 };
 
 /**
- * Manifest converter for all 2D Grids, can create either a bingrid, seismic horizon of generic representation
+ * Manifest converter for all 2D Grids, can create either a binGrid, seismic horizon of generic representation
  *
  * @param {string} uri
  * @param {SimpleJson<resqml20.obj_Grid2dRepresentation>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {(Promise<GenericRepresentationOSDU | SeismicBinGridOSDU>)}
+ * @return {(Promise<GenericRepresentationOSDU | SeismicBinGridOSDU | SeismicHorizonOSDU>)}
  */
 export const Grid2dRepresentationManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.obj_Grid2dRepresentation>,
   context: OSDUContext,
   client: ResqmlClient
-): Promise<GenericRepresentationOSDU | SeismicBinGridOSDU> => {
+): Promise<
+  GenericRepresentationOSDU | SeismicBinGridOSDU | SeismicHorizonOSDU
+> => {
   const kind = Grid2dToOsduKind(xml);
   if (kind === "osdu:wks:work-product-component--SeismicBinGrid:1.2.0") {
     return new SeismicBinGridOSDU(xml, context).initData(uri, xml, client);

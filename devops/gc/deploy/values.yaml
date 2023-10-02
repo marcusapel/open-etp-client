@@ -6,7 +6,7 @@ global:
 data:
   # Configmaps
   cloudProvider: "google"
-  rdmsRestRootPath: "/api/oetp-client/v2"
+  rdmsRestRootPath: "/api/reservoir-ddms/v2"
   rdmsRestPort: "8003"
   rdmsEtpHost: "oetp-server"
   rdmsEtpPort: "9002"

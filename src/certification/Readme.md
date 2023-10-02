@@ -15,13 +15,14 @@ This code can be used to certify a server implementation of the Energistics Tran
 
 ## Installation and Run
 
-### Using Native OS
+### Install Using Native OS
 
 1. Clone this repository to your local machine using `git clone https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client.git`
 2. Run `npm install` in the root directory of the repository
-3. Run `npm run certification <config_file.json>` in the root directory of the repository, this will run the certification the server and otions described in the configuration file.
+3. Run `npm run build` in the root directory of the repository
+4. Run `npm run certification <config_file.json>` in the root directory of the repository, this will run the certification the server and options described in the configuration file.
 
-### Using Docker
+### Install Using Docker
 
 1. Install Docker from [Docker](https://docs.docker.com/get-docker/) if not already installed
 2. Run `docker pull community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/certification-open-etp-client-main` to pull the latest version of the certification image
@@ -55,16 +56,16 @@ Here's an example of a JSON configuration file:
 }
 ```
 
-# Contributing
+## Contributing
 
 This requires the installation in your native OS (See above)
 
-## Adding a new test
+### Adding a new test
 
 - Add a new file to the `src\certification\` directory, the file should have the extension `.cert.ts`
 - Example of such a file is coreProtocol.test.ts
 
-## Creating the docker image
+### Creating the docker image
 
 - Build the executable using `npm run build`
 - Run `npm run docker:build:certification` in the root directory of the repository

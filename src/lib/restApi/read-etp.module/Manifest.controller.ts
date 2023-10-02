@@ -17,6 +17,7 @@ import { Body, Controller, Post, Req, Res, UseGuards } from "@nestjs/common";
 
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiDefaultResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -27,7 +28,6 @@ import {
   ApiOperation,
   ApiProperty,
   ApiPropertyOptional,
-  ApiQuery,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse
@@ -42,6 +42,7 @@ import {
   extractToken,
   getSchemasForType,
   httpErrorFromEtpError,
+  partitionPattern,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
@@ -49,7 +50,6 @@ import {
 import {
   emlUriPattern,
   dataspaceUriPattern,
-  versionQueryParam,
   datePattern
 } from "./Resource.controller";
 
@@ -68,7 +68,7 @@ import { JwtPayload } from "jsonwebtoken";
 const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$/;
 
-const partitionId = process.env.DATA_PARTITION_ID || "data-partition-id";
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
 export class ContactDto implements IContact {
   @ApiPropertyOptional({
@@ -159,7 +159,7 @@ export class ContactDto implements IContact {
 class AcceptableUsageDto implements IAcceptableUsage {
   @ApiPropertyOptional({
     name: "WorkflowUsage",
-    type: "String",
+    type: String,
     description:
       "Name of the business activities, processes, and/or workflows that the record is technical assurance value is valid for.",
     example: `${partitionId}:reference-data--WorkflowUsageType:SeismicProcessing:`,
@@ -171,7 +171,7 @@ class AcceptableUsageDto implements IAcceptableUsage {
 
   @ApiPropertyOptional({
     name: "WorkflowPersona",
-    type: "String",
+    type: String,
     description:
       "Name of the role or personas that the record is technical assurance value is valid for.",
     example: `${partitionId}:reference-data--WorkflowPersonaType:SeismicProcessor:`,
@@ -398,8 +398,13 @@ export class ManifestDto {
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
-  description: "Data partition id (ex. 'osdu')",
-  example: "opendes"
+  description: "Data partition id",
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
 })
 @UseGuards(HasDataPartitionGuard())
 @ApiTags("Manifest")
@@ -413,12 +418,14 @@ export class ManifestDto {
 @Controller("manifests")
 export default class ObjectsManifestAPI {
   @Post("build")
+  @ApiBody({
+    type: ManifestInputDto
+  })
   @ApiOperation({
     summary: "Create OSDU manifest.",
     description: `Create the OSDU manifest for several resources.`,
     servers: swaggerServers
   })
-  @ApiQuery(versionQueryParam)
   @ApiOkResponse({
     description: "Success",
     content: {
@@ -426,6 +433,7 @@ export default class ObjectsManifestAPI {
         schema: {
           type: "array",
           maxItems: 256,
+          additionalProperties: false,
           items: getSchemasForType(ManifestDto, true)
         }
       }
