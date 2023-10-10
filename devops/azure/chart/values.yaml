@@ -43,7 +43,6 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt
     cert-manager.io/acme-challenge-type: http01
 
-  
   # Disabling tls as fow now (Not supported by openetp client).
   tlsSecret: osdu-certificate
   hosts:
@@ -55,7 +54,6 @@ ingress:
 identity:
   name: osdu-identity
 
-
 ################################################################################
 # Specify the Service Settings
 #
@@ -63,7 +61,6 @@ service:
   type: ClusterIP
   port: 8003
   target: 8003
-
 
 ################################################################################
 # Specify the Config Map
@@ -74,7 +71,6 @@ configMap: oetp-client-config
 # Specify the OSDU Services to Load
 #
 configuration:
-
   ########################
   ##  RESERVOIR DDMs
   #
@@ -84,29 +80,28 @@ configuration:
     repository: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/open-etp-client-main
     tag: latest
     keyvault: true
-    pathPrefix: /api/oetp-client/v2
+    pathPrefix: /api/reservoir-ddms/v2
     auth:
       disable:
         - "/"
         - "/*"
     env:
-    - name: SERVICE_NAME
-      value: #{AZURE_SERVICE}#
-    - name: KEYVAULT_URL
-      config:
-        name: osdu-svc-config
-        key: ENV_KEYVAULT
-    - name: AZ_AI_INSTRUMENTATION_KEY
-      secret:
-        name: central-logging
-        key: appinsights
+      - name: SERVICE_NAME
+        value: #{AZURE_SERVICE}#
+      - name: KEYVAULT_URL
+        config:
+          name: osdu-svc-config
+          key: ENV_KEYVAULT
+      - name: AZ_AI_INSTRUMENTATION_KEY
+        secret:
+          name: central-logging
+          key: appinsights
 
 ################################################################################
 # Specify pod annotations
 #
 annotations:
   commitId: ""
-
 ################################################################################
 # If istio enabled
 #
