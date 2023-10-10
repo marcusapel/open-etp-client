@@ -51,6 +51,13 @@ describe("Aws", () => {
             const logObj = Logging.getLogger(DEFAULT_LOGGER_NAME);
             expect(logObj).toBeInstanceOf(AwsLogger);
         });
+
+        it("Test log levels", () => {
+            const logObj = Logging.getLogger(DEFAULT_LOGGER_NAME);
+            logObj.info("test info");
+            logObj.warning("test warning");
+            logObj.error("test error");
+        });
     });
 
     describe("Config", () => {
