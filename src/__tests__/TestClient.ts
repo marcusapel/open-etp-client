@@ -299,6 +299,56 @@ describe("Ping", () => {
     expect(res).not.toBeNull();
     await c2.closeSession();
   });
+  it("Ping no await", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(true);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const res = c2.ping();
+    expect(res).not.toBeNull();
+    const res2 = c2.ping();
+    expect(res2).not.toBeNull();
+    const res3 = c2.ping();
+    expect(res3).not.toBeNull();
+    await c2.closeSession();
+  });
+  it("Ping after closeSession", async () => {
+    const c2 = new ResqmlClient();
+    c2.setCallsTraceability(true);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    const res = c2.ping();
+    expect(res).not.toBeNull();
+    const res2 = c2.ping();
+    expect(res2).not.toBeNull();
+    const res3 = c2.ping();
+    expect(res3).not.toBeNull();
+    await c2.closeSession();
+    try {
+      const res = await c2.ping();
+    } catch (err) {
+      expect(err).toHaveProperty("message");
+    }
+  });
+});
+
+describe("Dataspaces", () => {
+  const c2 = new ResqmlClient();
+  it("Dataspaces no await", async () => {
+    c2.setCallsTraceability(true);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    let thrown = false;
+    try {
+      const projects = c2.getDataspaces();
+      expect(c2.isConnected()).toBe(true);
+      expect(projects).toBeTruthy();
+      c2.disconnect();
+      await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+      expect(c2.isConnected()).toBe(true);
+      await c2.closeSession();
+    } catch (err) {
+      thrown = true;
+    }
+    expect(thrown).toBeFalsy();
+  });
 });
 
 describe("Resource Graph", () => {
