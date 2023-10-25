@@ -294,7 +294,7 @@ export default class ArrayCustomer extends BaseHandler {
         return {
           item: {
             __keyName: "_bytes",
-            _bytes: values as number[]
+            _bytes: Buffer.from(values as number[])
           }
         };
     }

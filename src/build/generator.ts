@@ -64,7 +64,7 @@ if (argv.help) {
 }
 
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2019-2023 Emerson Paradigm Holding LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -213,7 +213,7 @@ class ClassMaker {
     }
     switch (schema.type) {
       case "bytes":
-        return "[]";
+        return "Buffer.alloc(0)";
       case "fixed":
         return schema.size ? `[0${",0".repeat(schema.size - 1)}]` : "[]";
       case "string":
@@ -562,8 +562,7 @@ export type Float = number;
  */
 export type Double = number;
 
-/** @maxItems 100000*/
-export type Bytes = Integer8[]
+export type Bytes = Buffer;
 
 /** @isBool*/
 export type Boolean = boolean
