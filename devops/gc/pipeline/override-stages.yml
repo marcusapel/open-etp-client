@@ -23,6 +23,22 @@ gc-containerize-bootstrap-gcr:
   needs: []
 
 .gc_postman_tests:
+  before_script:
+    - curl https://community.opengroup.org/api/v4/projects/1410/packages/generic/gc_auth_token/master/gc_auth_token -o gc_auth_token && chmod +x gc_auth_token
+    - echo $GC_INTEGRATION_TESTER > key-file.json && export GOOGLE_APPLICATION_CREDENTIALS="key-file.json"
+    - git clone https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server.git
+    - >
+      function oetp_sslclient() {
+        openETPServer $* -S wss://${GC_DOMAIN}/api/reservoir-ddms-etp/v2/ \
+        --auth bearer \
+        --jwt-token ./gc_auth_token \
+        --data-partition-id ${GC_TENANT} \
+        --log_level=info
+      }
+    - oetp_sslclient probe --ping
+    - oetp_sslclient space --list
+    - oetp_sslclient space --delete -s demo/Volve || echo "[INFO] No dataspace demo/Volve to cleanup"
+    - oetp_sslclient space --new -s demo/Volve
   script:
     - export GET_COLLECTION_URL="${GC_COLLECTION_HOST}/${GC_COLLECTION_BRANCH}/${COLLECTION_PATH}?inline=false"
     - echo "Get a collection from ${GET_COLLECTION_URL}"
