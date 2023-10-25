@@ -216,6 +216,7 @@ export const simpleJson = (
     return null;
   }
   if (resqmlObj instanceof Date) {
+    delete (resqmlObj as any)["cxmlTimezoneOffset"];
     return resqmlObj;
   }
   if (Array.isArray(resqmlObj)) {

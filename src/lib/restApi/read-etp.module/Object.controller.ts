@@ -138,7 +138,7 @@ export const sendObjects = async (
       const dataObjects = await client.getDataObjects(uris);
       const xml = dataObjects
         .map(o =>
-          o && o.data
+          o && o.data.length > 0
             ? byteToString(o.data).replace(
                 `<?xml version="1.0" encoding="UTF-8"?>`,
                 ""
@@ -375,9 +375,9 @@ export default class ObjectsReadAPI {
       ).uri
     ];
     if (!format || format === "xml") {
-      res.set("Content-Type", "application/x-resqml+xml");
+      res.contentType("application/x-resqml+xml");
     } else {
-      res.set("Content-Type", "application/json");
+      res.contentType("application/json");
     }
     let c = undefined;
     try {

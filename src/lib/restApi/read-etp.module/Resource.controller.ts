@@ -674,6 +674,7 @@ export default class ResourcesReadAPI {
   })
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
+  @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiOperation({
     summary: "List dataspaces.",
     description: `List the dataspaces available in a server. Output can be paginated.`,
@@ -682,6 +683,8 @@ export default class ResourcesReadAPI {
   public async ListDataspaces(
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
+    @Query("storeLastWriteFilter", OptionalParseDatePipe)
+    storeLastWriteFilter?: Date,
     @Req() request?: express.Request
   ): Promise<Array<DataspaceDto>> {
     let c = undefined;
@@ -690,7 +693,11 @@ export default class ResourcesReadAPI {
         extractToken(request),
         extractDataPartitionId(request)
       );
-      const projects = await c.getDataspaces();
+      const projects = await c.getDataspaces(
+        storeLastWriteFilter
+          ? BigInt(storeLastWriteFilter.getTime()) * BigInt(1000)
+          : undefined
+      );
       const pros = projects
         ? sliceArray<Energistics.Etp.v12.Datatypes.Object.Dataspace>(
             skip,

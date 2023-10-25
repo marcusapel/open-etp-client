@@ -109,10 +109,13 @@ export const toJSonCustomData = (
     return undefined;
   }
   const o: Record<string, string> = {};
-  return Object.keys(d).reduce((obj, key: string) => {
+  return Array.from(d.keys()).reduce((obj, key: string) => {
     const val = d.get(key);
-    if (val && val.item) {
-      obj[key] = val.item.toString();
+    if (val && val.item && val.item.__keyName) {
+      const v = val.item[val.item.__keyName];
+      if (v) {
+        obj[key] = v.toString();
+      }
     }
     return obj;
   }, o);
