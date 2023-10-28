@@ -64,6 +64,8 @@ import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv
 import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
+import { retryOnEtpErrors } from "../common/Util";
+import { DataspaceOSDUCustomer } from "../protocols/DataspaceOSDUCustomer";
 
 const socket = websocket.w3cwebsocket;
 
@@ -124,23 +126,18 @@ const notEmpty = <TValue>(
 };
 export const notEmptyFilter = notEmpty;
 
+const byteDecoder = new TextDecoder();
+
 /**
  * Convert an array of bytes to a string
  * Avoiding out of range issue.
  *
- * @param {number[]} bytes
- * @returns
+ * @param {Buffer} bytes
+ * @returns {string} bytes converted according to UTF8
  * @memberof ResqmlClient
  */
-export const byteToString = (bytes: number[]): string => {
-  const length = bytes.length;
-  const chunk = 1024;
-  let str = "";
-  for (let i = 0; i < length; i += chunk) {
-    // fromCharCode can only handle a limited range of characters
-    str += String.fromCharCode(...bytes.slice(i, i + chunk));
-  }
-  return str;
+export const byteToString = (bytes: Buffer): string => {
+  return byteDecoder.decode(bytes);
 };
 
 /**
@@ -203,6 +200,8 @@ export class ResqmlClient {
   private readonly dataspace: DataspaceCustomer = new DataspaceCustomer(
     this.client
   );
+  private readonly dataspaceOSDU: DataspaceOSDUCustomer =
+    new DataspaceOSDUCustomer(this.client);
   private readonly transaction: TransactionCustomer = new TransactionCustomer(
     this.client
   );
@@ -248,6 +247,10 @@ export class ResqmlClient {
       Energistics.Etp.v12.Datatypes.Protocol.DataArray,
       this.dataArray
     );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.DataspaceOSDU,
+      this.dataspaceOSDU
+    );
     if (opt) {
       this.options = opt;
     }
@@ -257,7 +260,7 @@ export class ResqmlClient {
    * Connect to a server using its URL and create a new ETP session
    *
    * @param {string} url URL of the server including port. Example 'ws://localhost:9004'
-   * @param {string} [jwtToken] JWT token used by authentication,
+   * @param {string} [jwToken] JWT token used by authentication,
    *                            When undefined <code>authenticationKey</code> and <code>userInfo</code> are used for authentication
    * @param {string} [authenticationKey] key used to match vendor client & server. When undefined no vendor specific check is done.
    *                           When <code>jwToken</code> is not provided, authenticationKey is also used to generate a JWT from <code>userInfo</code>
@@ -318,7 +321,7 @@ export class ResqmlClient {
 
   /**
 
-   * Connect to a server using its URL bit does not establish a session.
+   * Connect to a server using its URL but does not establish a session.
    *
    * @param {string} url URL of the server including port. Example 'ws://localhost:9004'
    * @param {string} [authentication] Authentication header to use when connecting to the server, when undefined authentication should be done later if required
@@ -421,12 +424,12 @@ export class ResqmlClient {
   /**
    * Close the session
    *
+   * @param {number} [disconnectionWait=5000] Maximum time to wait for disconnection
    * @returns {Promise<void>}
    * @memberof ResqmlClient
    */
-  public async closeSession(): Promise<void> {
+  public async closeSession(disconnectionWait = 5000): Promise<void> {
     return new Promise((resolve, reject) => {
-      const disconnectionWait = 5000;
       const timer = new Timer(() => reject("timeout"), disconnectionWait);
       this.client.on("disconnect", () => {
         timer.cancel(false);
@@ -526,15 +529,27 @@ export class ResqmlClient {
    * @param {boolean} readOnly Indicate that the transaction contains only read only messages
    * @param {URI[]} dataSpaces List of dataspaces (uris) that the messages will impact
    * @param {string} message Commit message
+   * @param {number} [retriesLeft=6] Number of retries
+   * @param {number} [interval=400] Time interval (ms) after first retry
+   * @param {number} [factor=2] Factor to increase the interval between retries
    * @returns {Promise<ArrayByteUuid>} Transaction identifier
    * @memberof ResqmlClient
    */
   public startTransaction(
     readOnly: boolean,
     dataSpaces: URI[],
-    message: string
+    message: string,
+    retriesLeft: number = 6,
+    interval: number = 400,
+    factor: number = 2
   ): Promise<ArrayByteUuid> {
-    return this.transaction.startTransaction(readOnly, dataSpaces, message);
+    return retryOnEtpErrors(
+      () => this.transaction.startTransaction(readOnly, dataSpaces, message),
+      [ErrorCode.EMAX_TRANSACTIONS_EXCEEDED],
+      retriesLeft,
+      interval,
+      factor
+    );
   }
 
   /**
@@ -738,15 +753,18 @@ export class ResqmlClient {
   /**
    * Look for all dataspaces, if server does not support dataspaces, return null
    *
+   * @param {Integer64} [storeLastWriteFilter] Filter on last write date
    * @returns {(Promise<Dataspace[]> | null )} List of project resources, null if no server support
    * @memberof ResqmlClient
    */
-  public getDataspaces(): Promise<Dataspace[] | null> {
+  public getDataspaces(
+    storeLastWriteFilter?: Integer64
+  ): Promise<Dataspace[] | null> {
     if (!this.isInSession()) {
       return Promise.resolve(null);
     }
     return this.client.dataSpaceSupported
-      ? this.dataspace.getDataspaces()
+      ? this.dataspace.getDataspaces(storeLastWriteFilter)
       : Promise.resolve([
           // Handle servers with no dataspace support
           {
@@ -838,10 +856,37 @@ export class ResqmlClient {
   }
 
   /**
+   * Get dataspace information
+   *
+   * @param {URI[]} dataspaceUris List of dataspace uris
+   * @returns {Promise<(Dataspace | null)[]>} List of dataspace information
+   * @memberof ResqmlClient
+   * @public
+   * @async
+   * @example
+   * const dataspaceUris = ["eml:///space/space1", "eml:///space/space2"];
+   * const dataspaceInfo = await client.getDataspaceInfo(dataspaceUris);
+   */
+  public async getDataspaceInfo(
+    dataspaceUris: URI[]
+  ): Promise<(Dataspace | null)[]> {
+    if (this.client.dataSpaceOSDUSupported) {
+      return this.dataspaceOSDU.getDataspaceInfo(dataspaceUris);
+    }
+    if (this.client.dataSpaceSupported) {
+      return (await this.dataspace.getDataspaces()).filter(uri =>
+        dataspaceUris.includes(uri.uri)
+      );
+    }
+    return dataspaceUris.map(() => null);
+  }
+
+  /**
    * Duplicate existing dataspace
    *
    * @param {string} dataspaceUid UUID of the dataspace
    * @param {string} path path of the dataspace if it needs to be created
+   * @param {URI} originURI URI of the origin dataspace
    * @param {Map<string, DataValue>} [customData=new Map<string, DataValue>()] path path of the dataspace if it needs to be created
    * @returns {Promise<boolean>}
    * @memberof ResqmlClient
@@ -849,21 +894,10 @@ export class ResqmlClient {
   public async cloneDataspace(
     dataspaceUid: string,
     path: string,
-    originURI: string,
+    originURI: URI,
     customData: Map<string, DataValue> = new Map<string, DataValue>()
   ): Promise<boolean> {
     const uri = EtpUri.createDataSpaceUri(dataspaceUid).uri;
-    const dataspaces = await this.getDataspaces();
-    if (!dataspaces || dataspaces.findIndex(f => f.uri === uri) !== -1) {
-      return false;
-    }
-    if (dataspaces.findIndex(f => f.uri === originURI) === -1) {
-      return false;
-    }
-
-    customData.set("fromDataspace", {
-      item: { _string: originURI, __keyName: "_string" }
-    });
 
     const p: Dataspace = {
       uri,
@@ -872,7 +906,44 @@ export class ResqmlClient {
       storeLastWrite: BigInt(Date.now()),
       customData
     };
-    return this.createDataspaces([p]);
+
+    const map: Map<string, Dataspace> = new Map<string, Dataspace>();
+    map.set(originURI, p);
+    return this.client.dataSpaceOSDUSupported
+      ? this.dataspace
+          .PutDataspaces([p])
+          .then(this.checkErrors.bind(this))
+          .then(() =>
+            this.dataspaceOSDU.copyDataspacesContent([originURI], uri)
+          )
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
+  }
+
+  /**
+   * Duplicate existing dataspace
+   *
+   * @param {string} destination URI of the dataspace that will receive the copied content
+   * @param {string} sources List of dataspace uris to copy
+   * @returns {Promise<boolean>} Success of copy
+   */
+  public async copyDataspacesContent(
+    destination: URI,
+    sources: URI[]
+  ): Promise<boolean> {
+    return this.client.dataSpaceOSDUSupported
+      ? this.dataspaceOSDU
+          .copyDataspacesContent(sources, destination)
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
   }
 
   /**
@@ -925,12 +996,47 @@ export class ResqmlClient {
   }
 
   /**
+   * Lock dataspaces as read only
+   *
+   * @param dataspaces List of dataspaces URI to lock
+   * @returns {Promise<boolean>} Success of locking
+   */
+  public async lockDataspaces(dataspaces: URI[]): Promise<boolean> {
+    return this.client.dataSpaceOSDUSupported && dataspaces.length > 0
+      ? this.dataspaceOSDU
+          .lockDataspaces(dataspaces)
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
+  }
+
+  /**
+   * Unlock dataspaces as read write
+   *
+   * @param dataspaces List of dataspaces URI to unlock
+   * @returns {Promise<boolean>} Success of unlocking
+   */
+  public async unlockDataspaces(dataspaces: URI[]): Promise<boolean> {
+    return this.client.dataSpaceOSDUSupported && dataspaces.length > 0
+      ? this.dataspaceOSDU
+          .lockDataspaces(dataspaces, false)
+          .then(this.checkErrors.bind(this))
+          .catch(reason => {
+            this.logger.error(reason);
+            return false;
+          })
+      : false;
+  }
+
+  /**
    * Get JS Objects corresponding to the given uris.
    * None of the reference inside the objects will be resolved.
    * If there is a need for resolved objects use {@link getResolvedObjects} instead.
    *
    * @param {URI[]} uris of the objects to get
-   * @param {boolean} [includeArrayValues=false]
    * @returns {Promise<Array<IResqmlDataObject|null>} Resulting object in order of query, null if query fail
    * @memberof ResqmlClient
    */
@@ -1985,6 +2091,33 @@ export class ResqmlClient {
   }
 
   /**
+   * In case of small array send the array using a sinle message
+   * @param {Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataArraysType} array
+   * @returns {Promise<boolean>} Put success
+   * @memberof ResqmlClient
+   */
+  private async putArrayInOneMessage(
+    array: Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataArraysType
+  ): Promise<boolean> {
+    try {
+      const e = await this.dataArray.put([array]);
+      return e.length > 0 && e[0].code === 0;
+    } catch (err) {
+      if (err instanceof Error) {
+        return Promise.reject(
+          new EtpError(err.message, ErrorCode.EINVALID_STATE)
+        );
+      } else if (typeof err === "string") {
+        return Promise.reject(new EtpError(err, ErrorCode.EINVALID_STATE));
+      } else {
+        return Promise.reject(
+          new EtpError("Unknown error", ErrorCode.EINVALID_STATE)
+        );
+      }
+    }
+  }
+
+  /**
    * Transfer an array to the server
    *
    * @param {Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataArraysType} array
@@ -2006,22 +2139,7 @@ export class ResqmlClient {
       this.client.negotiatedSize &&
       size + this.overhead < this.client.negotiatedSize
     ) {
-      try {
-        const e = await this.dataArray.put([array]);
-        return e.length > 0 && e[0].code === 0;
-      } catch (err) {
-        if (err instanceof Error) {
-          return Promise.reject(
-            new EtpError(err.message, ErrorCode.EINVALID_STATE)
-          );
-        } else if (typeof err === "string") {
-          return Promise.reject(new EtpError(err, ErrorCode.EINVALID_STATE));
-        } else {
-          return Promise.reject(
-            new EtpError("Unknown error", ErrorCode.EINVALID_STATE)
-          );
-        }
-      }
+      return this.putArrayInOneMessage(array);
     }
     if (!logicalArrayType || !transportArrayType) {
       return Promise.reject(
@@ -2527,7 +2645,7 @@ export class ResqmlClient {
    * @returns {Promise<void>} void promise
    * @memberof ResqmlClient
    */
-  public requestSession(): Promise<void> {
+  public async requestSession(): Promise<void> {
     this.connected = true;
     return new Promise((resolve, reject) => {
       try {
@@ -2713,7 +2831,7 @@ export class ResqmlClient {
               nURI.dataSpace,
               nURI.domainFamily,
               nURI.domainVersion,
-              nURI.dataType,
+              nURI.objectType,
               nURI.uuid
             ).uri
           );

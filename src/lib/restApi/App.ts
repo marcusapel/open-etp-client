@@ -31,7 +31,7 @@ import {
 } from "@nestjs/platform-express";
 
 import express from "express";
-import glob from "glob";
+import { globSync } from "glob";
 import helmet from "helmet";
 
 import { bigIntToString } from "../mlTypes/XmlJsonUtil";
@@ -49,8 +49,7 @@ Logging.getLogger("EtpClient");
 
 // requires all the files which conform to the given pattern and returns the list of defaults exports
 function requireDefaults(pattern: string) {
-  return glob
-    .sync(pattern, { cwd: __dirname, absolute: true })
+  return globSync(pattern, { cwd: __dirname, absolute: true })
     .map(require)
     .map(imported => imported.default);
 }
@@ -91,9 +90,8 @@ export default async function app(): Promise<NestExpressApplication> {
     `- Initializing ${clouds.Config.CLOUD_PROVIDER || "default"} configurations`
   );
 
-  const nestApp = await NestFactory.create<NestExpressApplication>(
-    ApplicationModule
-  );
+  const nestApp =
+    await NestFactory.create<NestExpressApplication>(ApplicationModule);
 
   // allows for validation to be used
   nestApp.useGlobalPipes(
@@ -146,7 +144,7 @@ export default async function app(): Promise<NestExpressApplication> {
   nestApp.use(helmet.noSniff());
   nestApp.use(helmet.contentSecurityPolicy());
 
-  const adapt: ExpressAdapter = nestApp.getHttpAdapter().getInstance();
+  const adapt = nestApp.getHttpAdapter().getInstance();
   adapt.get("/swagger-ui/index.html", function (req, res) {
     return res.redirect(302, restApiRoutePath);
   });

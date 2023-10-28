@@ -828,7 +828,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
 
     messages.forEach((value, key) => {
       request.results.set(key, {
-        code: value.length === 0 ? ErrorCode.IS_OK : ErrorCode.EINVALID_STATE,
+        code: ErrorCode.IS_OK,
         message: value
       });
     });

@@ -1,21 +1,4 @@
-// ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ============================================================================
-
 /* eslint-disable @typescript-eslint/no-namespace */
-import Schemas from "./EtpSchemas";
 
 /**
  * @pattern ^.*$
@@ -63,8 +46,7 @@ export type Float = number;
  */
 export type Double = number;
 
-/** @maxItems 100000*/
-export type Bytes = Integer8[];
+export type Bytes = Buffer;
 
 /** @isBool*/
 export type Boolean = boolean;
@@ -2548,7 +2530,8 @@ export namespace Energistics {
           ChannelDataLoad = 22,
           RESERVED_23 = 23,
           Dataspace = 24,
-          SupportedTypes = 25
+          SupportedTypes = 25,
+          DataspaceOSDU = 2424
         }
       }
     }
@@ -2894,7 +2877,7 @@ export namespace Energistics {
             public blobId: Energistics.Etp.v12.Datatypes.Uuid = [
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ];
-            public data: Bytes = [];
+            public data: Bytes = Buffer.alloc(0);
             public final = false;
           }
           export const MsgChunk = 9;
@@ -3119,7 +3102,7 @@ export namespace Energistics {
             public blobId: Energistics.Etp.v12.Datatypes.Uuid = [
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ];
-            public data: Bytes = [];
+            public data: Bytes = Buffer.alloc(0);
             public final = false;
           }
           export const MsgChunk = 8;
@@ -3167,7 +3150,7 @@ export namespace Energistics {
             public blobId: Energistics.Etp.v12.Datatypes.Uuid = [
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ];
-            public data: Bytes = [];
+            public data: Bytes = Buffer.alloc(0);
             public final = false;
           }
           export const MsgChunk = 3;
@@ -6918,7 +6901,7 @@ export namespace Energistics {
   "depends": []
 }`);
             public uid: AvroString = "";
-            public data: Bytes = [];
+            public data: Bytes = Buffer.alloc(0);
           }
         }
       }
@@ -8207,7 +8190,7 @@ export namespace Energistics {
               new Energistics.Etp.v12.Datatypes.Object.Resource();
             public format: AvroString = "xml";
             public blobId: null | Energistics.Etp.v12.Datatypes.Uuid = null;
-            public data: Bytes = [];
+            public data: Bytes = Buffer.alloc(0);
           }
         }
       }
@@ -9387,6 +9370,322 @@ export namespace Energistics {
             public SuppMsgOut: AvroString = "";
           }
           export const MsgWMLS_UpdateInStoreResponse = 14;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class GetDataspaceInfo {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "GetDataspaceInfo",
+  "protocol": "2424",
+  "messageType": "1",
+  "senderRole": "customer",
+  "protocolRoles": "store,customer",
+  "multipartFlag": false,
+  "fields": [
+    {
+      "name": "uris",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.GetDataspaceInfo",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 1;
+            public uris = new Map<AvroString, AvroString>();
+          }
+          export const MsgGetDataspaceInfo = 1;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class GetDataspaceInfoResponse {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "GetDataspaceInfoResponse",
+  "protocol": "2424",
+  "messageType": "2",
+  "senderRole": "store",
+  "protocolRoles": "store,customer",
+  "multipartFlag": true,
+  "fields": [
+    {
+      "name": "dataspaces",
+      "type": {
+        "type": "map",
+        "values": "Energistics.Etp.v12.Datatypes.Object.Dataspace"
+      }
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.GetDataspaceInfoResponse",
+  "depends": [
+    "Energistics.Etp.v12.Datatypes.Object.Dataspace"
+  ]
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 2;
+            public dataspaces = new Map<
+              AvroString,
+              Energistics.Etp.v12.Datatypes.Object.Dataspace
+            >();
+          }
+          export const MsgGetDataspaceInfoResponse = 2;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class CopyDataspacesContent {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "CopyDataspacesContent",
+  "protocol": "2424",
+  "messageType": "3",
+  "senderRole": "customer",
+  "protocolRoles": "store,customer",
+  "multipartFlag": false,
+  "fields": [
+    {
+      "name": "dataspaces",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    },
+    {
+      "name": "targetDataspace",
+      "type": "string"
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyDataspacesContent",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 3;
+            public dataspaces = new Map<AvroString, AvroString>();
+            public targetDataspace: AvroString = "";
+          }
+          export const MsgCopyDataspacesContent = 3;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class CopyDataspacesContentResponse {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "CopyDataspacesContentResponse",
+  "protocol": "2424",
+  "messageType": "4",
+  "senderRole": "store",
+  "protocolRoles": "store,customer",
+  "multipartFlag": true,
+  "fields": [
+    {
+      "name": "success",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyDataspacesContentResponse",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 4;
+            public success = new Map<AvroString, AvroString>();
+          }
+          export const MsgCopyDataspacesContentResponse = 4;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class LockDataspaces {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "LockDataspaces",
+  "protocol": "2424",
+  "messageType": "5",
+  "senderRole": "customer",
+  "protocolRoles": "store,customer",
+  "multipartFlag": false,
+  "fields": [
+    {
+      "name": "uris",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    },
+    {
+      "name": "lock",
+      "type": "boolean"
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.LockDataspaces",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 5;
+            public uris = new Map<AvroString, AvroString>();
+            public lock = false;
+          }
+          export const MsgLockDataspaces = 5;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class LockDataspacesResponse {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "LockDataspacesResponse",
+  "protocol": "2424",
+  "messageType": "6",
+  "senderRole": "store",
+  "protocolRoles": "store,customer",
+  "multipartFlag": false,
+  "fields": [
+    {
+      "name": "success",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.LockDataspacesResponse",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 6;
+            public success = new Map<AvroString, AvroString>();
+          }
+          export const MsgLockDataspacesResponse = 6;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class CopyToDataspace {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "CopyToDataspace",
+  "protocol": "2424",
+  "messageType": "7",
+  "senderRole": "customer",
+  "protocolRoles": "store,customer",
+  "multipartFlag": false,
+  "fields": [
+    {
+      "name": "uris",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    },
+    {
+      "name": "dataspaceUri",
+      "type": "string"
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyToDataspace",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 7;
+            public uris = new Map<AvroString, AvroString>();
+            public dataspaceUri: AvroString = "";
+          }
+          export const MsgCopyToDataspace = 7;
+        }
+      }
+    }
+  }
+}
+export namespace Energistics {
+  export namespace Etp {
+    export namespace v12 {
+      export namespace Protocol {
+        export namespace DataspaceOSDU {
+          export class CopyToDataspaceResponse {
+            public static _schema: any = JSON.parse(`{
+  "type": "record",
+  "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+  "name": "CopyToDataspaceResponse",
+  "protocol": "2424",
+  "messageType": "8",
+  "senderRole": "store",
+  "protocolRoles": "store,customer",
+  "multipartFlag": true,
+  "fields": [
+    {
+      "name": "success",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ],
+  "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyToDataspaceResponse",
+  "depends": []
+}`);
+            public static _protocol = 2424;
+            public static _messageTypeId = 8;
+            public success = new Map<AvroString, AvroString>();
+          }
+          export const MsgCopyToDataspaceResponse = 8;
         }
       }
     }

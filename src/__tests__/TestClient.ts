@@ -59,7 +59,7 @@ const failOnUnexpectedError = (err: Error) => {
   expect(err).toBeFalsy();
 };
 
-export const dataPatitionMode =
+export const dataPartitionMode =
   process.env.RDMS_DATA_PARTITION_MODE || "single";
 export const testDataPartitionId = process.env.RDMS_TEST_DATA_PARTITION_ID;
 
@@ -71,8 +71,8 @@ const logger = Logging.getLogger("Jest");
 
 describe("Valid data partition", () => {
   it("Non empty parameters", () => {
-    expect(dataPatitionMode).not.toBeFalsy();
-    if (dataPatitionMode !== "single") {
+    expect(dataPartitionMode).not.toBeFalsy();
+    if (dataPartitionMode !== "single") {
       expect(testDataPartitionId).not.toBeFalsy();
     }
   });
@@ -447,9 +447,8 @@ describe("Resource Graph", () => {
         </eml:EpcExternalPartReference>
         `;
     const p = projects[0];
-    const data = Array.from(xmlContent).map(c => c.charCodeAt(0));
     const object: Energistics.Etp.v12.Datatypes.Object.DataObject = {
-      data,
+      data: Buffer.from(xmlContent),
       format: "xml",
       resource: {
         uri: `${p.uri}/eml.EpcExternalPartReference(53395ada-6f93-4bac-b506-d45997ded2a2)`,
@@ -705,15 +704,13 @@ describe("Objects", () => {
       const t = await client.getDataspaceTypes(testDataspaceUri);
       expect(t.length).toBe(14);
 
-      const objects: Resource[] = await client.getDataspaceResources(
-        testDataspaceUri
-      );
+      const objects: Resource[] =
+        await client.getDataspaceResources(testDataspaceUri);
       // Objects
       expect(objects.length).toBe(89);
 
-      const fullGraph: ResourceGraph = await client.getDataspaceGraph(
-        testDataspaceUri
-      );
+      const fullGraph: ResourceGraph =
+        await client.getDataspaceGraph(testDataspaceUri);
       // Graph
       expect(fullGraph.size).toBe(89);
       expect(fullGraph.edges.length).toBe(113);
@@ -828,9 +825,8 @@ describe("Objects", () => {
       // project: /home/pdgm/data/testingPackageCpp.epc
       const testDataspaceUri = testDataspace?.uri;
 
-      const objects: Resource[] = await client.getDataspaceResources(
-        testDataspaceUri
-      );
+      const objects: Resource[] =
+        await client.getDataspaceResources(testDataspaceUri);
 
       // Objects
       expect(objects.length).toBe(89);
@@ -892,9 +888,8 @@ describe("Objects", () => {
     // project: /home/pdgm/data/testingPackageCpp.epc
     const testDataspaceUri = testDataspace?.uri;
 
-    const objects: Resource[] = await client.getDataspaceResources(
-      testDataspaceUri
-    );
+    const objects: Resource[] =
+      await client.getDataspaceResources(testDataspaceUri);
 
     // Objects
     expect(objects.length).toBe(89);
@@ -1011,6 +1006,87 @@ describe("Core messages", () => {
       setTimeout(() => resolve(false), 5000);
     });
     expect(v).toBeTruthy();
+  });
+});
+
+describe("OSDU Dataspaces", () => {
+  const c2 = new ResqmlClient();
+  it("Dataspaces import", async () => {
+    c2.setCallsTraceability(true);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    let thrown = false;
+    try {
+      const projects = await c2.getDataspaces();
+      expect(c2.isConnected()).toBe(true);
+      expect(projects).toBeTruthy();
+
+      if (projects == null) {
+        await c2.closeSession();
+        return;
+      }
+
+      const p = projects[0];
+      const pInfo = await c2.getDataspaceInfo([p.uri]);
+      expect(pInfo.length).toBe(1);
+      expect(pInfo[0]?.uri).toBe(p.uri);
+
+      await c2.createDataspaces([
+        {
+          uri: "eml:///dataspace('Import/test')",
+          path: "Import/test",
+          storeLastWrite: BigInt(0),
+          storeCreated: BigInt(0),
+          customData: new Map()
+        }
+      ]);
+
+      // Attempt to delete lock dataspace should fail
+      expect(
+        await c2.lockDataspaces(["eml:///dataspace('Import/test')"])
+      ).toBeTruthy();
+      expect(
+        await c2.deleteDataspaces(["eml:///dataspace('Import/test')"])
+      ).toBeFalsy();
+      expect(
+        await c2.unlockDataspaces(["eml:///dataspace('Import/test')"])
+      ).toBeTruthy();
+
+      // Unlock of a read-only dataspace should fail
+      expect(
+        await c2.unlockDataspaces(["eml:///dataspace('Import/test')"])
+      ).toBeFalsy();
+
+      // Import of a read-write dataspace should fail
+      expect(
+        await c2.copyDataspacesContent("eml:///dataspace('Import/test')", [
+          p.uri
+        ])
+      ).toBeFalsy();
+
+      // Import of a read-only dataspace should succeed
+      expect(await c2.lockDataspaces([p.uri])).toBeTruthy();
+      expect(
+        await c2.copyDataspacesContent("eml:///dataspace('Import/test')", [
+          p.uri
+        ])
+      ).toBeTruthy();
+      //Unlock of a referenced dataspace should fail
+      expect(await c2.unlockDataspaces([p.uri])).toBeFalsy();
+      expect(
+        (await c2.getDataspaceResources("eml:///dataspace('Import/test')"))
+          .length
+      ).toBeGreaterThan(0);
+
+      expect(
+        await c2.deleteDataspaces(["eml:///dataspace('Import/test')"])
+      ).toBeTruthy();
+      expect(await c2.unlockDataspaces([p.uri])).toBeTruthy();
+
+      await c2.closeSession();
+    } catch (err) {
+      thrown = true;
+    }
+    expect(thrown).toBeFalsy();
   });
 });
 
@@ -1133,7 +1209,10 @@ describe(`Auth`, () => {
       `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
       `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
       `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/all`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/sources`
     ];
     for (const u of uris) {
       await testServers[type]
@@ -1397,10 +1476,10 @@ describe(`Manifest`, () => {
     async type => {
       const manifestInput = {
         uris: [
-          "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
-          "eml:///dataspace('demo/Volve')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)",
-          "eml:///dataspace('demo/Volve')/resqml20.obj_StratigraphicColumn(86a81e8f-5995-46a6-a84e-57669b167007)",
-          "eml:///dataspace('demo/Volve')/resqml20.obj_SubRepresentation(e802bbac-d36e-4df1-95ee-bbe5ea5a85fb)"
+          `eml:///dataspace('${dataspaceName}')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)`,
+          `eml:///dataspace('${dataspaceName}')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)`,
+          `eml:///dataspace('${dataspaceName}')/resqml20.obj_StratigraphicColumn(86a81e8f-5995-46a6-a84e-57669b167007)`,
+          `eml:///dataspace('${dataspaceName}')/resqml20.obj_SubRepresentation(e802bbac-d36e-4df1-95ee-bbe5ea5a85fb)`
         ],
         acl: {
           viewers: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],

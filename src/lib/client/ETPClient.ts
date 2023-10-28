@@ -44,6 +44,7 @@ export interface IClientConfig extends WebSocket.IConfig {
  */
 export class ETPClient extends ETPCore {
   public dataSpaceSupported: boolean;
+  public dataSpaceOSDUSupported: boolean;
   public transactionSupported: boolean;
   private host = "";
   private readonly serverProtocols: Energistics.Etp.v12.Datatypes.SupportedProtocol[] =
@@ -53,6 +54,7 @@ export class ETPClient extends ETPCore {
   constructor(config: IConfiguration) {
     super(config);
     this.dataSpaceSupported = false;
+    this.dataSpaceOSDUSupported = false;
     this.transactionSupported = false;
   }
 
@@ -244,6 +246,13 @@ export class ETPClient extends ETPCore {
           Energistics.Etp.v12.Protocol.Dataspace.DeleteDataspaces._protocol
         ) {
           this.dataSpaceSupported = true;
+        }
+
+        if (
+          protocolId ===
+          Energistics.Etp.v12.Protocol.DataspaceOSDU.GetDataspaceInfo._protocol
+        ) {
+          this.dataSpaceOSDUSupported = true;
         }
 
         if (
