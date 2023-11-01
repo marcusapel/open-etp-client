@@ -1,6 +1,6 @@
 variables:
   #azure
-  AZURE_SWAGGER_PATH: api/oetp-client/v2/
+  AZURE_SWAGGER_PATH: api/reservoir-ddms/v2/
   AWS_SERVICE: rest-to-etp-proxy-server
   AWS_DEPLOY_TARGET: TF
   AWS_SERVICE_NAMESPACE_SUFFIX: reservoir-ddms
