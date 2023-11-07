@@ -1244,6 +1244,26 @@ describe(`Resources`, () => {
     const len = res.body.length;
     expect(len).toBeGreaterThan(0);
   });
+  it.each(serverData)(`Dataspaces Info %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/info`)
+      .set(`Authorization`, `Bearer ${token}`)
+      .expect(`Content-Type`, /json/)
+      .expect(200);
+    expect(res.body.path).toBe(dataspaceName);
+  });
+  it.each(serverData)(`Dataspaces Lock %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+      .set(`Authorization`, `Bearer ${token}`)
+      .expect(200);
+  });
+  it.each(serverData)(`Dataspaces Unlock %s`, async type => {
+    const res = await testServers[type]
+      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/unlock`)
+      .set(`Authorization`, `Bearer ${token}`)
+      .expect(200);
+  });
   it.each(serverData)(`Types %s`, async type => {
     const res = await testServers[type]
       .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`)
