@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm set-script prepare '' && npm ci --quiet
 
 ###############################################################################
-FROM node:16-alpine
+FROM node:18-alpine
 
 # env
 ENV NODE_ENV=production
