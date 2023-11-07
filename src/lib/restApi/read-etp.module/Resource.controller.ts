@@ -80,7 +80,8 @@ import {
   MaxLength
 } from "@nestjs/class-validator";
 
-import { ResourceGraph } from "src/lib/common/ResponseHandlers";
+import { ResourceGraph } from "../../common/ResponseHandlers";
+import { ErrorCode, EtpError } from "../../common/EtpTypes";
 
 export const uriPattern =
   /^(?<protocol>(?:[^:]+)s?)?:\/\/(?:(?<user>[^:\n\r]+):(?<pass>[^@\n\r]+)@)?(?<host>(?:www\.)?(?:[^:\/\n\r]+))(?::(?<port>\d+))?\/?(?<request>[^?#\n\r]+)?\??(?<query>[^#\n\r]*)?\#?(?<anchor>[^\n\r]*)?$/;
@@ -708,6 +709,138 @@ export default class ResourcesReadAPI {
       await c.closeSession();
       c = undefined;
       return pros;
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Get Info about a dataset
+   *
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/info")
+  @ApiOkResponse({
+    description: "Success",
+    type: DataspaceDto
+  })
+  @ApiOperation({
+    summary: "Get info on a dataspace.",
+    description: `Get all information bout explicit dataspace.`,
+    servers: swaggerServers
+  })
+  public async GetDataspaceInfo(
+    @Param() params: FindInDataSpaceParams,
+    @Req() request?: express.Request
+  ): Promise<DataspaceDto> {
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      const info = await c.getDataspaceInfo([uri.uri]);
+      await c.closeSession();
+      c = undefined;
+
+      if (info.length !== 1 || info[0] === null) {
+        throw new EtpError(
+          `Dataspace ${params.dataspaceId} not found`,
+          ErrorCode.ENOT_FOUND
+        );
+      }
+
+      return toJSonDataspace(info[0]);
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Lock a dataspace
+   *
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/lock")
+  @ApiOkResponse({
+    description: "Success",
+    type: Boolean
+  })
+  @ApiOperation({
+    summary: "Lock a dataspace.",
+    description: `Set a dataspace read-only.`,
+    servers: swaggerServers
+  })
+  public async LockDataspace(
+    @Param() params: FindInDataSpaceParams,
+    @Req() request?: express.Request
+  ): Promise<boolean> {
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      const success = await c.lockDataspaces([uri.uri]);
+      await c.closeSession();
+      c = undefined;
+
+      if (!success) {
+        throw new EtpError(
+          `Dataspace ${params.dataspaceId} not found`,
+          ErrorCode.ENOT_FOUND
+        );
+      }
+
+      return success;
+    } catch (err) {
+      await c?.closeSession();
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Unlock a dataspace
+   *
+   * @memberof ResourcesReadAPI
+   */
+  @Get(":dataspaceId/unlock")
+  @ApiOkResponse({
+    description: "Success",
+    type: Boolean
+  })
+  @ApiOperation({
+    summary: "Unlock a dataspace.",
+    description: `Set a dataspace read-write.`,
+    servers: swaggerServers
+  })
+  public async UnlockDataspace(
+    @Param() params: FindInDataSpaceParams,
+    @Req() request?: express.Request
+  ): Promise<boolean> {
+    let c = undefined;
+    try {
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request)
+      );
+      const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      const success = await c.unlockDataspaces([uri.uri]);
+      await c.closeSession();
+      c = undefined;
+
+      if (!success) {
+        throw new EtpError(
+          `Dataspace ${params.dataspaceId} not found`,
+          ErrorCode.ENOT_FOUND
+        );
+      }
+
+      return success;
     } catch (err) {
       await c?.closeSession();
       throw httpErrorFromEtpError(err);

@@ -113,7 +113,7 @@ export const toJSonCustomData = (
     const val = d.get(key);
     if (val && val.item && val.item.__keyName) {
       const v = val.item[val.item.__keyName];
-      if (v) {
+      if (v !== undefined) {
         obj[key] = v.toString();
       }
     }
