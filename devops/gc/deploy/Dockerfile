@@ -29,7 +29,7 @@ RUN apk add --update python3 make g++
 # add first the package in a dedicated layer
 COPY package.json package-lock.json ./
 # clean install of production modules and clean private registry access
-RUN npm set-script prepare '' && npm ci --quiet --production
+RUN npm pkg delete scripts.prepare && npm ci --quiet --production
 
 ########################################################
 # Release stage
