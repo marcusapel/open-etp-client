@@ -15,7 +15,16 @@
 // limitations under the License.
 // ============================================================================
 
-import { Controller, Get, Param, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards
+} from "@nestjs/common";
 
 import { Type } from "@nestjs/class-transformer";
 
@@ -764,7 +773,7 @@ export default class ResourcesReadAPI {
    *
    * @memberof ResourcesReadAPI
    */
-  @Get(":dataspaceId/lock")
+  @Post(":dataspaceId/lock")
   @ApiOkResponse({
     description: "Success",
     type: Boolean
@@ -808,7 +817,7 @@ export default class ResourcesReadAPI {
    *
    * @memberof ResourcesReadAPI
    */
-  @Get(":dataspaceId/unlock")
+  @Delete(":dataspaceId/lock")
   @ApiOkResponse({
     description: "Success",
     type: Boolean

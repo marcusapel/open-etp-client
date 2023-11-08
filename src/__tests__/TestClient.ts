@@ -1253,14 +1253,14 @@ describe(`Resources`, () => {
     expect(res.body.path).toBe(dataspaceName);
   });
   it.each(serverData)(`Dataspaces Lock %s`, async type => {
-    const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+    await testServers[type]
+      .post(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
-      .expect(200);
+      .expect(201);
   });
   it.each(serverData)(`Dataspaces Unlock %s`, async type => {
-    const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/unlock`)
+    await testServers[type]
+      .delete(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
   });

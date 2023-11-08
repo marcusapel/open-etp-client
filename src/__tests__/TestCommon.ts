@@ -267,7 +267,8 @@ describe("DataValues", () => {
   );
   expect(EtpDataValue.toAvroString(EtpDataValue.int(1))).toBeUndefined();
   expect(
-    EtpDataValue.toBytes(EtpDataValue.bytes(Buffer.from([0, 1, 2])))
+    EtpDataValue.toBytes(EtpDataValue.bytes(Buffer.from([0, 1, 2])))?.toJSON()
+      ?.data
   ).toEqual([0, 1, 2]);
   const aBool = new Energistics.Etp.v12.Datatypes.ArrayOfBoolean();
   aBool.values = [false, true];
