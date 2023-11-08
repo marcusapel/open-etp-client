@@ -1,5 +1,5 @@
 compile-and-unit-test:
-  image: docker:20.10.12-alpine3.14
+  image: alpine:3.16
   tags: ["osdu-medium"]
   stage: build
   artifacts:
