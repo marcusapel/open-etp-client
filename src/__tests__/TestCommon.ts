@@ -316,7 +316,9 @@ describe("DataValues", () => {
   ]);
   const aBytes = new Energistics.Etp.v12.Datatypes.ArrayOfBytes();
   aBytes.values = [Buffer.from([0, 1]), Buffer.from([2, 3])];
-  expect(EtpDataValue.toArray(EtpDataValue.array(aBytes))).toEqual([
+  expect(
+    EtpDataValue.toArray(EtpDataValue.array(aBytes))?.map(m => m.toJSON().data)
+  ).toEqual([
     [0, 1],
     [2, 3]
   ]);
