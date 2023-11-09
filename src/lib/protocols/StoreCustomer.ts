@@ -49,7 +49,7 @@ class DataObjectsResponseHandler extends MapResponseHandler<DataObject> {
    * @param chunk chunk message content
    */
   public onChunk(
-    _header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
     chunk: Energistics.Etp.v12.Protocol.Store.Chunk
   ) {
     // Find chunk from UUID
@@ -62,13 +62,13 @@ class DataObjectsResponseHandler extends MapResponseHandler<DataObject> {
       );
     }
 
-    // Find request from correlationId
-    const request = this.get(chunkKey.correlationId);
+    // Find request from chunk header correlationId
+    const request = this.get(header.correlationId);
 
     // Find data object from key
     if (!request) {
       throw new EtpError(
-        `Request {${chunkKey.correlationId}} not found`,
+        `Request {${header.correlationId}} not found`,
         ErrorCode.ENOT_FOUND
       );
     }

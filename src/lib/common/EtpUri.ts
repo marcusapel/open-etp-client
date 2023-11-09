@@ -175,7 +175,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get domainFamily(): string {
-    return this.groups ? this.groups.domain || "" : "";
+    return this.groups ? this.groups.domain ?? "" : "";
   }
 
   /**
@@ -186,7 +186,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get domainVersion(): string {
-    return this.groups ? this.groups.domainVersion || "" : "";
+    return this.groups ? this.groups.domainVersion ?? "" : "";
   }
 
   /**
@@ -219,7 +219,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get objectType(): string {
-    return this.groups ? this._emlURI.groups.objectType || "" : "";
+    return this.groups ? this._emlURI.groups.objectType ?? "" : "";
   }
 
   /**
@@ -261,7 +261,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get dataSpace(): string {
-    return this.groups ? this._emlURI.groups.dataspace || "" : "";
+    return this.groups ? this._emlURI.groups.dataspace ?? "" : "";
   }
 
   /**
@@ -283,7 +283,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get version(): string {
-    return this.groups ? this._emlURI.groups.version || "" : "";
+    return this.groups ? this._emlURI.groups.version ?? "" : "";
   }
 
   /**
@@ -294,7 +294,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get orderby(): string {
-    return this.query && this.query.orderby ? this.query.orderby || "" : "";
+    return this.query?.orderby ? this.query.orderby ?? "" : "";
   }
 
   /**
@@ -327,7 +327,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get filter(): string {
-    return this.query && this.query.filter ? this.query.filter || "" : "";
+    return this.query?.filter ? this.query.filter ?? "" : "";
   }
 
   /**
@@ -354,9 +354,9 @@ export class EtpUri {
       return new EtpUri(`eml:///`);
     }
     if (
-      dataspace.match(
+      RegExp(
         /^eml:\/\/\/$|^eml:\/\/\/dataspace\('(?:[^'"]*?(?:''[^'"]*?)*)'\)$/
-      )
+      ).exec(dataspace)
     ) {
       return new EtpUri(dataspace);
     }
@@ -458,8 +458,8 @@ export class EtpUri {
 
   private readonly _emlURI: any;
   private readonly _query: any;
-  constructor(uriString: string) {
-    this._emlURI = regexp.exec(uriString);
+  constructor(private readonly uriString: string) {
+    this._emlURI = RegExp(regexp).exec(uriString);
     const q = this.uriQuery;
     // Unfortunately, capturing group does not work for OData, so use brute force
     this._query = null;
@@ -469,13 +469,13 @@ export class EtpUri {
         .split("&")
         .forEach((element: string) => {
           if (element.startsWith("$filter=")) {
-            this._query.filter = element.substr(8);
+            this._query.filter = element.substring(8);
           } else if (element.startsWith("$orderby=")) {
-            this._query.orderby = element.substr(9);
+            this._query.orderby = element.substring(9);
           } else if (element.startsWith("$top=")) {
-            this._query.top = +element.substr(5);
+            this._query.top = +element.substring(5);
           } else if (element.startsWith("$skip=")) {
-            this._query.skip = +element.substr(6);
+            this._query.skip = +element.substring(6);
           }
         });
     }
@@ -489,7 +489,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get uri(): string {
-    return this._emlURI ? this._emlURI.input || "" : "";
+    return this._emlURI ? this._emlURI.input ?? "" : "";
   }
 
   /**
@@ -502,7 +502,7 @@ export class EtpUri {
   get uriPath(): string {
     const u = this.uri;
     const index = u.indexOf("?");
-    return index === -1 ? u : u.substr(0, index);
+    return index === -1 ? u : u.substring(0, index);
   }
 
   /**
@@ -513,7 +513,7 @@ export class EtpUri {
    * @memberof EtpUri
    */
   get uriQuery(): string {
-    return this.groups ? this.groups.query || "" : "";
+    return this.groups ? this.groups.query ?? "" : "";
   }
 
   /**

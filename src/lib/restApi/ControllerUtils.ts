@@ -111,7 +111,7 @@ export const toJSonCustomData = (
   const o: Record<string, string> = {};
   return Array.from(d.keys()).reduce((obj, key: string) => {
     const val = d.get(key);
-    if (val && val.item && val.item.__keyName) {
+    if (val?.item?.__keyName) {
       const v = val.item[val.item.__keyName];
       if (v !== undefined) {
         obj[key] = v.toString();
@@ -187,7 +187,7 @@ export const extractToken = (request?: express.Request): string => {
     return "";
   }
   // Check token respects base64 format.
-  if (!token[1].match(/^[a-zA-Z0-9._-]+$/)) {
+  if (!RegExp(/^[a-zA-Z0-9._-]+$/).exec(token[1])) {
     throw new Error("Invalid auth token format");
   }
   // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
@@ -535,10 +535,10 @@ const getContext = (
   return {
     uri: context.uri,
     depth: context.depth ? +context.depth : 1,
-    dataObjectTypes: context.dataObjectTypes || [],
+    dataObjectTypes: context.dataObjectTypes ?? [],
     navigableEdges: navigable,
-    includeSecondaryTargets: context.includeSecondaryTargets || false,
-    includeSecondarySources: context.includeSecondarySources || false
+    includeSecondaryTargets: context.includeSecondaryTargets ?? false,
+    includeSecondarySources: context.includeSecondarySources ?? false
   };
 };
 

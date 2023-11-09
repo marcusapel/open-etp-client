@@ -273,7 +273,7 @@ export class BinaryReader {
     const len = this.readInt();
     const pos = this.idx;
     this.idx += len;
-    return this.buffer.slice(pos, pos + len).toString("utf-8");
+    return this.buffer.subarray(pos, pos + len).toString("utf-8");
   }
   private readEnum() {
     return this.readInt();
@@ -327,7 +327,7 @@ export class BinaryWriter {
    * @memberof BinaryWriter
    */
   constructor(schemas: SchemaCache, buffer: Buffer | undefined) {
-    this.buffer = buffer ? buffer : Buffer.alloc(2048);
+    this.buffer = buffer ?? Buffer.alloc(2048);
     this._index = 0;
     this.schemas = {};
     if (schemas !== undefined) {
@@ -343,7 +343,7 @@ export class BinaryWriter {
    * @memberof BinaryWriter
    */
   public getBuffer(): Buffer {
-    return this.buffer.slice(0, this._index);
+    return this.buffer.subarray(0, this._index);
   }
 
   /**
