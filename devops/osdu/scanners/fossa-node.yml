@@ -4,7 +4,7 @@ include:
 # --------------------------------------------------------------------------------
 
 rdms_rest_fossa-analyze:
-  image: $CI_REGISTRY/divido/fossa-cli-utilities/fossa-cli-utilities:v5.1
+  image: $CI_REGISTRY/divido/fossa-cli-utilities/fossa-cli-utilities:v7.0
   stage: scan
   needs: ["compile-and-unit-test"]
   tags: ["osdu-medium"]
