@@ -1252,13 +1252,11 @@ describe(`Resources`, () => {
       .expect(200);
     expect(res.body.path).toBe(dataspaceName);
   });
-  it.each(serverData)(`Dataspaces Lock %s`, async type => {
+  it.each(serverData)(`Dataspaces Lock/unlock %s`, async type => {
     await testServers[type]
       .post(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(201);
-  });
-  it.each(serverData)(`Dataspaces Unlock %s`, async type => {
     await testServers[type]
       .delete(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
