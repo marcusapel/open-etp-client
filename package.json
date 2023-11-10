@@ -182,7 +182,7 @@
       "default",
       "jest-junit"
     ],
-    "collectCoverage": true,
+    "collectCoverage": false,
     "collectCoverageFrom": [
       "src/lib/**/*.{ts,tsx}"
     ],
@@ -201,7 +201,7 @@
     "testEnvironment": "node"
   },
   "engines": {
-    "node": ">=16 <19",
+    "node": ">=12 <19",
     "npm": ">=6.13 <10"
   }
 }
