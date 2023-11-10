@@ -1031,9 +1031,11 @@ describe("OSDU Dataspaces", () => {
       expect(pInfo.length).toBe(1);
       expect(pInfo[0]?.uri).toBe(p.uri);
 
+      const destinationSpace = "eml:///dataspace('Import/test')";
+
       await c2.createDataspaces([
         {
-          uri: "eml:///dataspace('Import/test')",
+          uri: destinationSpace,
           path: "Import/test",
           storeLastWrite: BigInt(0),
           storeCreated: BigInt(0),
@@ -1042,45 +1044,86 @@ describe("OSDU Dataspaces", () => {
       ]);
 
       // Attempt to delete lock dataspace should fail
-      expect(
-        await c2.lockDataspaces(["eml:///dataspace('Import/test')"])
-      ).toBeTruthy();
-      expect(
-        await c2.deleteDataspaces(["eml:///dataspace('Import/test')"])
-      ).toBeFalsy();
-      expect(
-        await c2.unlockDataspaces(["eml:///dataspace('Import/test')"])
-      ).toBeTruthy();
+      expect(await c2.lockDataspaces([destinationSpace])).toBeTruthy();
+      expect(await c2.deleteDataspaces([destinationSpace])).toBeFalsy();
+      expect(await c2.unlockDataspaces([destinationSpace])).toBeTruthy();
 
       // Unlock of a read-only dataspace should fail
-      expect(
-        await c2.unlockDataspaces(["eml:///dataspace('Import/test')"])
-      ).toBeFalsy();
+      expect(await c2.unlockDataspaces([destinationSpace])).toBeFalsy();
 
       // Import of a read-write dataspace should fail
       expect(
-        await c2.copyDataspacesContent("eml:///dataspace('Import/test')", [
-          p.uri
-        ])
+        await c2.copyDataspacesContent(destinationSpace, [p.uri])
       ).toBeFalsy();
 
       // Import of a read-only dataspace should succeed
       expect(await c2.lockDataspaces([p.uri])).toBeTruthy();
       expect(
-        await c2.copyDataspacesContent("eml:///dataspace('Import/test')", [
-          p.uri
-        ])
+        await c2.copyDataspacesContent(destinationSpace, [p.uri])
       ).toBeTruthy();
       //Unlock of a referenced dataspace should fail
       expect(await c2.unlockDataspaces([p.uri])).toBeFalsy();
       expect(
-        (await c2.getDataspaceResources("eml:///dataspace('Import/test')"))
-          .length
+        (await c2.getDataspaceResources(destinationSpace)).length
       ).toBeGreaterThan(0);
 
+      expect(await c2.deleteDataspaces([destinationSpace])).toBeTruthy();
+      expect(await c2.unlockDataspaces([p.uri])).toBeTruthy();
+
+      await c2.closeSession();
+    } catch (err) {
+      thrown = true;
+    }
+    expect(thrown).toBeFalsy();
+  });
+
+  it("Resources import", async () => {
+    c2.setCallsTraceability(true);
+    await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
+    let thrown = false;
+    try {
+      const projects = await c2.getDataspaces();
+      expect(c2.isConnected()).toBe(true);
+      expect(projects).toBeTruthy();
+
+      if (projects == null) {
+        await c2.closeSession();
+        return;
+      }
+
+      const p = projects[0];
+      const pInfo = await c2.getDataspaceInfo([p.uri]);
+      expect(pInfo.length).toBe(1);
+      expect(pInfo[0]?.uri).toBe(p.uri);
+
+      const res = await c2.getDataspaceResources(p.uri);
+      expect(res.length).toBeGreaterThan(0);
+
+      const destinationSpace = "eml:///dataspace('Import/test')";
+
+      await c2.createDataspaces([
+        {
+          uri: destinationSpace,
+          path: "Import/test",
+          storeLastWrite: BigInt(0),
+          storeCreated: BigInt(0),
+          customData: new Map()
+        }
+      ]);
+
+      // Import of a read-only dataspace should succeed
+      expect(await c2.lockDataspaces([p.uri])).toBeTruthy();
       expect(
-        await c2.deleteDataspaces(["eml:///dataspace('Import/test')"])
+        await c2.copyToDataspace(destinationSpace, [res[0].uri])
       ).toBeTruthy();
+
+      //Unlock of a referenced dataspace should fail
+      expect(await c2.unlockDataspaces([p.uri])).toBeFalsy();
+      expect(
+        (await c2.getDataspaceResources(destinationSpace)).length
+      ).toBeGreaterThan(0);
+
+      expect(await c2.deleteDataspaces([destinationSpace])).toBeTruthy();
       expect(await c2.unlockDataspaces([p.uri])).toBeTruthy();
 
       await c2.closeSession();

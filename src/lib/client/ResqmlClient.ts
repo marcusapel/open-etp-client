@@ -907,43 +907,85 @@ export class ResqmlClient {
       customData
     };
 
-    const map: Map<string, Dataspace> = new Map<string, Dataspace>();
-    map.set(originURI, p);
-    return this.client.dataSpaceOSDUSupported
-      ? this.dataspace
-          .PutDataspaces([p])
-          .then(this.checkErrors.bind(this))
-          .then(() =>
-            this.dataspaceOSDU.copyDataspacesContent([originURI], uri)
-          )
-          .then(this.checkErrors.bind(this))
-          .catch(reason => {
-            this.logger.error(reason);
-            return false;
-          })
-      : false;
+    if (this.client.dataSpaceOSDUSupported) {
+      return this.dataspace
+        .PutDataspaces([p])
+        .then(this.checkErrors.bind(this))
+        .then(() => this.dataspaceOSDU.copyDataspacesContent([originURI], uri))
+        .then(this.checkErrors.bind(this))
+        .catch(reason => {
+          this.logger.error(reason);
+          return false;
+        });
+    }
+
+    if (!this.client.dataSpaceSupported) {
+      return false;
+    }
+
+    const dataspaces = await this.getDataspaces();
+    if (!dataspaces || dataspaces.findIndex(f => f.uri === uri) !== -1) {
+      return false;
+    }
+    if (dataspaces.findIndex(f => f.uri === originURI) === -1) {
+      return false;
+    }
+
+    customData.set("fromDataspace", {
+      item: { _string: originURI, __keyName: "_string" }
+    });
+
+    return this.createDataspaces([p]);
   }
 
   /**
-   * Duplicate existing dataspace
+   * Copy content of dataspaces into another dataspace
    *
-   * @param {string} destination URI of the dataspace that will receive the copied content
-   * @param {string} sources List of dataspace uris to copy
+   * @param {URI} destination URI of the dataspace that will receive the copied content
+   * @param {URI[]} sources List of dataspace uris to copy
    * @returns {Promise<boolean>} Success of copy
    */
   public async copyDataspacesContent(
     destination: URI,
     sources: URI[]
   ): Promise<boolean> {
-    return this.client.dataSpaceOSDUSupported
-      ? this.dataspaceOSDU
-          .copyDataspacesContent(sources, destination)
-          .then(this.checkErrors.bind(this))
-          .catch(reason => {
-            this.logger.error(reason);
-            return false;
-          })
-      : false;
+    if (!this.client.dataSpaceOSDUSupported) {
+      this.logger.error("DataspaceOSDU not supported by server");
+      return Promise.resolve(false);
+    }
+    return this.dataspaceOSDU
+      .copyDataspacesContent(sources, destination)
+      .then(this.checkErrors.bind(this))
+      .catch(reason => {
+        this.logger.error(reason);
+        return false;
+      });
+  }
+
+  /**
+   * Copy resource from into another dataspace
+   * Note: this requires the resources to be in a read only dataspaces
+   *
+   * @param {URI} dataspaceUri Target dataspace
+   * @param {URI[]} resources Resources to import
+   * @returns {Promise<boolean>}
+   * @memberof DataspaceCustomer
+   */
+  public copyToDataspace(
+    dataspaceUri: URI,
+    resources: URI[]
+  ): Promise<boolean> {
+    if (!this.client.dataSpaceOSDUSupported) {
+      this.logger.error("DataspaceOSDU not supported by server");
+      return Promise.resolve(false);
+    }
+    return this.dataspaceOSDU
+      .copyToDataspace(resources, dataspaceUri)
+      .then(this.checkErrors.bind(this))
+      .catch(reason => {
+        this.logger.error(reason);
+        return false;
+      });
   }
 
   /**
@@ -1493,12 +1535,7 @@ export class ResqmlClient {
     slowStart?: number,
     slowCount?: number
   ): Energistics.Etp.v12.Datatypes.DataArrayTypes.GetDataSubarraysType[] {
-    if (
-      !desc.uid ||
-      !desc.uid.uri ||
-      !desc.uid.pathInResource ||
-      !desc.dimensions
-    ) {
+    if (!desc?.uid.uri || !desc.uid.pathInResource || !desc.dimensions) {
       return [];
     }
 
@@ -1663,6 +1700,8 @@ export class ResqmlClient {
       // and the large array of values and dimensions
       const s = subarrays[0];
       const nData: Energistics.Etp.v12.Datatypes.AnyArray = {
+        // Note: use of Object.assign is intentional, as the spread operator can use huge
+        // amounts of memory for large arrays.
         item: Object.assign({}, s.item)
       };
       if (nData.item.__keyName && nData.item.__keyName !== "_bytes") {
@@ -1774,7 +1813,7 @@ export class ResqmlClient {
   ): Promise<void> {
     try {
       const metaData = await this.getArrayDescription([dataArray]);
-      if (!metaData || !metaData[0]) {
+      if (!metaData?.[0]) {
         throw new Error(
           `Cannot get metadata of ${dataArray.uri}/${dataArray.pathInResource}`
         );
@@ -1787,7 +1826,7 @@ export class ResqmlClient {
       );
       for (const a of subarraysDefinition) {
         const subArray = await this.dataArray.getSubarrays([a]);
-        if (subArray && subArray[0]) {
+        if (subArray?.[0]) {
           this.visitSubArray(subArray[0], visitor);
         }
       }
@@ -1826,7 +1865,7 @@ export class ResqmlClient {
           // Keep metadata unknown
         }
       }
-      if (metaData && metaData.dimensions) {
+      if (metaData?.dimensions) {
         const size = ArrayCustomer.getArraySizeFromMetaData(metaData);
         if (
           this.client.negotiatedSize &&
@@ -2478,7 +2517,7 @@ export class ResqmlClient {
           obj[key].$type.lastIndexOf("Hdf5Dataset") !== -1
         ) {
           let contentType = "obj_EpcExternalPartReference";
-          if (obj[key].HdfProxy && obj[key].HdfProxy.ContentType) {
+          if (obj[key].HdfProxy?.ContentType) {
             contentType = obj[key].HdfProxy.ContentType.substring(
               obj[key].HdfProxy.ContentType.indexOf("type=") + 5
             );
@@ -2597,7 +2636,7 @@ export class ResqmlClient {
             clientOrigin
               .getDataArray(v.uid.uri, v.uid.pathInResource)
               .then(dataset => {
-                if (dataset && dataset.data) {
+                if (dataset?.data) {
                   const etpUri = new EtpUri(v.uid.uri);
                   const hdfUri = EtpUri.createObjectUri(
                     target.dataSpace,
@@ -2644,6 +2683,7 @@ export class ResqmlClient {
    * @public
    * @returns {Promise<void>} void promise
    * @memberof ResqmlClient
+   * @async
    */
   public async requestSession(): Promise<void> {
     this.connected = true;
@@ -2785,7 +2825,7 @@ export class ResqmlClient {
       ) {
         // Resolve the data arrays
         let contentType = "obj_EpcExternalPartReference";
-        if (obj[key].HdfProxy && obj[key].HdfProxy.ContentType) {
+        if (obj[key].HdfProxy?.ContentType) {
           contentType = obj[key].HdfProxy.ContentType.substring(
             obj[key].HdfProxy.ContentType.indexOf("type=") + 5
           );
@@ -2894,7 +2934,7 @@ export class ResqmlClient {
     subArray: IDataSubarray | null,
     visitor: (values: number[] | boolean[], da: IDataSubarray) => any
   ) {
-    if (!subArray || !subArray.data) {
+    if (!subArray?.data) {
       return;
     }
     const da =
