@@ -236,9 +236,10 @@ export class DataspaceOSDUCustomer extends BaseHandler {
   }
 
   /**
-   * Copy content of dataspaces into another dataspace
+   * Copy resource from a dataspaces into another dataspace
+   * Note: this requires the resources to be in a read only dataspace
    *
-   * @param {URI[]} resources Resource to import by reference
+   * @param {URI[]} resources Resource to import
    * @param {URI} dataspaceUri Target dataspace
    * @returns {Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]>}
    * @memberof DataspaceCustomer
@@ -249,7 +250,7 @@ export class DataspaceOSDUCustomer extends BaseHandler {
   ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
     const header = this.sessionManager.createFinalMessageHeader(
       PROTOCOL.DataspaceOSDU,
-      dataSpaceOSDU.MsgCopyDataspacesContent,
+      dataSpaceOSDU.MsgCopyToDataspace,
       BigInt(0)
     );
     const uris = new Map<string, URI>();
