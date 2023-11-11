@@ -1104,7 +1104,7 @@ describe("OSDU Dataspaces", () => {
     await c3.createDataspaces([
       {
         uri: destinationSpace,
-        path: "Import/test",
+        path: "Import/test2",
         storeLastWrite: BigInt(0),
         storeCreated: BigInt(0),
         customData: new Map()
