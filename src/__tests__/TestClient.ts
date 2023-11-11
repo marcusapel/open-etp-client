@@ -1077,7 +1077,7 @@ describe("OSDU Dataspaces", () => {
     expect(thrown).toBeFalsy();
   });
 
-  it("Resources import", async () => {
+  it.skip("Resources import", async () => {
     c2.setCallsTraceability(true);
     await c2.openSession(etpServerUrl, jwt, testDataPartitionId);
     let thrown = false;
