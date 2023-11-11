@@ -1099,7 +1099,7 @@ describe("OSDU Dataspaces", () => {
       const res = await c2.getDataspaceResources(p.uri);
       expect(res.length).toBeGreaterThan(0);
 
-      const destinationSpace = "eml:///dataspace('Import/test')";
+      const destinationSpace = "eml:///dataspace('Import/test2')";
 
       await c2.createDataspaces([
         {
