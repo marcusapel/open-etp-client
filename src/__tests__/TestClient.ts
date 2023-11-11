@@ -1078,28 +1078,30 @@ describe("OSDU Dataspaces", () => {
   });
 
   it("Resources import", async () => {
-    c2.setCallsTraceability(true);
+    const c3 = new ResqmlClient();
+    c3.setCallsTraceability(true);
+    await c3.openSession(etpServerUrl, jwt, testDataPartitionId);
+    expect(c3.isConnected()).toBe(true);
 
-    const projects = await c2.getDataspaces();
-    expect(c2.isConnected()).toBe(true);
+    const projects = await c3.getDataspaces();
     expect(projects).toBeTruthy();
 
     if (projects == null) {
-      await c2.closeSession();
+      await c3.closeSession();
       return;
     }
 
     const p = projects[0];
-    const pInfo = await c2.getDataspaceInfo([p.uri]);
+    const pInfo = await c3.getDataspaceInfo([p.uri]);
     expect(pInfo.length).toBe(1);
     expect(pInfo[0]?.uri).toBe(p.uri);
 
-    const res = await c2.getDataspaceResources(p.uri);
+    const res = await c3.getDataspaceResources(p.uri);
     expect(res.length).toBeGreaterThan(0);
 
     const destinationSpace = "eml:///dataspace('Import/test2')";
 
-    await c2.createDataspaces([
+    await c3.createDataspaces([
       {
         uri: destinationSpace,
         path: "Import/test",
@@ -1110,21 +1112,21 @@ describe("OSDU Dataspaces", () => {
     ]);
 
     // Import of a read-only dataspace should succeed
-    expect(await c2.lockDataspaces([p.uri])).toBeTruthy();
+    expect(await c3.lockDataspaces([p.uri])).toBeTruthy();
     expect(
-      await c2.copyToDataspace(destinationSpace, [res[0].uri])
+      await c3.copyToDataspace(destinationSpace, [res[0].uri])
     ).toBeTruthy();
 
     //Unlock of a referenced dataspace should fail
-    expect(await c2.unlockDataspaces([p.uri])).toBeFalsy();
+    expect(await c3.unlockDataspaces([p.uri])).toBeFalsy();
     expect(
-      (await c2.getDataspaceResources(destinationSpace)).length
+      (await c3.getDataspaceResources(destinationSpace)).length
     ).toBeGreaterThan(0);
 
-    expect(await c2.deleteDataspaces([destinationSpace])).toBeTruthy();
-    expect(await c2.unlockDataspaces([p.uri])).toBeTruthy();
+    expect(await c3.deleteDataspaces([destinationSpace])).toBeTruthy();
+    expect(await c3.unlockDataspaces([p.uri])).toBeTruthy();
 
-    await c2.closeSession();
+    await c3.closeSession();
   });
 });
 
