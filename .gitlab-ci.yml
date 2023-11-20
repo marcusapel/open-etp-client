@@ -25,7 +25,7 @@ include:
   ## fossa
   - project: "osdu/platform/ci-cd-pipelines"
     file: "scanners/fossa-npm.yml"
-    ref: use-standard-fossa
+    ref: add-fossa-npm
 
   # lint
   - local: "devops/osdu/scanners/lint-node.yml"
