@@ -1,5 +1,5 @@
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2019-2023 Emerson Paradigm Holding LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 import "jest";
 
+import fs from "fs";
+
 import {
   Energistics,
   EtpContentType,
@@ -24,8 +26,6 @@ import {
   Resqml20,
   XmlUtils
 } from "../index";
-
-import fs from "fs";
 
 import * as Util from "../lib/common/Util";
 
@@ -266,9 +266,10 @@ describe("DataValues", () => {
     "test"
   );
   expect(EtpDataValue.toAvroString(EtpDataValue.int(1))).toBeUndefined();
-  expect(EtpDataValue.toBytes(EtpDataValue.bytes([0, 1, 2]))).toEqual([
-    0, 1, 2
-  ]);
+  expect(
+    EtpDataValue.toBytes(EtpDataValue.bytes(Buffer.from([0, 1, 2])))?.toJSON()
+      ?.data
+  ).toEqual([0, 1, 2]);
   const aBool = new Energistics.Etp.v12.Datatypes.ArrayOfBoolean();
   aBool.values = [false, true];
   expect(EtpDataValue.toArray(EtpDataValue.array(aBool))).toEqual([
@@ -314,11 +315,10 @@ describe("DataValues", () => {
     "t2"
   ]);
   const aBytes = new Energistics.Etp.v12.Datatypes.ArrayOfBytes();
-  aBytes.values = [
-    [0, 1],
-    [2, 3]
-  ];
-  expect(EtpDataValue.toArray(EtpDataValue.array(aBytes))).toEqual([
+  aBytes.values = [Buffer.from([0, 1]), Buffer.from([2, 3])];
+  expect(
+    EtpDataValue.toArray(EtpDataValue.array(aBytes))?.map(m => m.toJSON().data)
+  ).toEqual([
     [0, 1],
     [2, 3]
   ]);

@@ -1439,7 +1439,8 @@
         "ChannelDataLoad",
         "RESERVED_23",
         "Dataspace",
-        "SupportedTypes"
+        "SupportedTypes",
+        "DataspaceOSDU"
       ],
       "fullName": "Energistics.Etp.v12.Datatypes.Protocol",
       "depends": []
@@ -5415,6 +5416,187 @@
         }
       ],
       "fullName": "Energistics.Etp.v12.PrivateProtocols.WitsmlSoap.WMLS_UpdateInStoreResponse",
+      "depends": []
+    },
+
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "GetDataspaceInfo",
+      "protocol": "2424",
+      "messageType": "1",
+      "senderRole": "customer",
+      "protocolRoles": "store,customer",
+      "multipartFlag": false,
+      "fields": [
+        {
+          "name": "uris",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.GetDataspaceInfo",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "GetDataspaceInfoResponse",
+      "protocol": "2424",
+      "messageType": "2",
+      "senderRole": "store",
+      "protocolRoles": "store,customer",
+      "multipartFlag": true,
+      "fields": [
+        {
+          "name": "dataspaces",
+          "type": {
+            "type": "map",
+            "values": "Energistics.Etp.v12.Datatypes.Object.Dataspace"
+          }
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.GetDataspaceInfoResponse",
+      "depends": ["Energistics.Etp.v12.Datatypes.Object.Dataspace"]
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "CopyDataspacesContent",
+      "protocol": "2424",
+      "messageType": "3",
+      "senderRole": "customer",
+      "protocolRoles": "store,customer",
+      "multipartFlag": false,
+      "fields": [
+        {
+          "name": "dataspaces",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        },
+        {
+          "name": "targetDataspace",
+          "type": "string"
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyDataspacesContent",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "CopyDataspacesContentResponse",
+      "protocol": "2424",
+      "messageType": "4",
+      "senderRole": "store",
+      "protocolRoles": "store,customer",
+      "multipartFlag": true,
+      "fields": [
+        {
+          "name": "success",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyDataspacesContentResponse",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "LockDataspaces",
+      "protocol": "2424",
+      "messageType": "5",
+      "senderRole": "customer",
+      "protocolRoles": "store,customer",
+      "multipartFlag": false,
+      "fields": [
+        {
+          "name": "uris",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        },
+        {
+          "name": "lock",
+          "type": "boolean"
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.LockDataspaces",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "LockDataspacesResponse",
+      "protocol": "2424",
+      "messageType": "6",
+      "senderRole": "store",
+      "protocolRoles": "store,customer",
+      "multipartFlag": false,
+      "fields": [
+        {
+          "name": "success",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.LockDataspacesResponse",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "CopyToDataspace",
+      "protocol": "2424",
+      "messageType": "7",
+      "senderRole": "customer",
+      "protocolRoles": "store,customer",
+      "multipartFlag": false,
+      "fields": [
+        {
+          "name": "uris",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        },
+        {
+          "name": "dataspaceUri",
+          "type": "string"
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyToDataspace",
+      "depends": []
+    },
+    {
+      "type": "record",
+      "namespace": "Energistics.Etp.v12.Protocol.DataspaceOSDU",
+      "name": "CopyToDataspaceResponse",
+      "protocol": "2424",
+      "messageType": "8",
+      "senderRole": "store",
+      "protocolRoles": "store,customer",
+      "multipartFlag": true,
+      "fields": [
+        {
+          "name": "success",
+          "type": {
+            "type": "map",
+            "values": "string"
+          }
+        }
+      ],
+      "fullName": "Energistics.Etp.v12.Protocol.DataspaceOSDU.CopyToDataspaceResponse",
       "depends": []
     }
   ]

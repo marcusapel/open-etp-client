@@ -64,7 +64,7 @@ if (argv.help) {
 }
 
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2019-2023 Emerson Paradigm Holding LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,10 +82,6 @@ interface IModulePair {
   name: string;
   module: string;
 }
-
-const references: string[] = [];
-const tsImports: IModulePair[] = [];
-const jsRequires: IModulePair[] = [];
 
 const protocol = fs.readFileSync(argv.inputFile, "ascii");
 interface ISchema {
@@ -213,7 +209,7 @@ class ClassMaker {
     }
     switch (schema.type) {
       case "bytes":
-        return "[]";
+        return "Buffer.alloc(0)";
       case "fixed":
         return schema.size ? `[0${",0".repeat(schema.size - 1)}]` : "[]";
       case "string":
@@ -292,6 +288,34 @@ class ClassMaker {
     }
   }
 
+  /**
+   * Provide a enum value for a given protocol, if not defined return default index
+   * @param symbol
+   * @param index
+   * @returns
+   */
+  private protocolNumber(symbol: string, index: number): number {
+    // Custom Protocols
+    if (symbol === "DataspaceOSDU") {
+      return 2424;
+    }
+    return index;
+  }
+
+  /**
+   * Provide a custom value for a given enum value, if not defined return default index
+   * @param name Name of the enum
+   * @param value Symbol value
+   * @param index Index of the symbol
+   * @returns
+   */
+  private enumValue(name: string, value: string, index: number): number {
+    if (name === "Energistics.Etp.v12.Datatypes.Protocol") {
+      return this.protocolNumber(value, index);
+    }
+    return index;
+  }
+
   public processEnum(schema: ISchema, name: string) {
     this.log(`Generating: ${name}`);
     this.definedTypes[name] = schema;
@@ -300,7 +324,11 @@ class ClassMaker {
     const symbolsLast = schema.symbols ? schema.symbols.length - 1 : 0;
     schema.symbols &&
       schema.symbols.forEach((value, index) =>
-        this.line(`${value}=${index}${index === symbolsLast ? "" : ","}`)
+        this.line(
+          `${value}=${this.enumValue(name, value, index)}${
+            index === symbolsLast ? "" : ","
+          }`
+        )
       );
     this.end("}");
     this.endNamespace(name);
@@ -494,24 +522,8 @@ const classes = new ClassMaker();
 classes.createClasses(schemas);
 
 const fdw = fs.openSync(argv.outputFile, "w");
-references &&
-  references.forEach(ref => {
-    fs.writeSync(fdw, `/// <reference path='${ref}'/>\n`);
-  });
 
 fs.writeSync(fdw, "/* eslint-disable @typescript-eslint/no-namespace */\n");
-
-tsImports &&
-  tsImports.forEach((imp: { name: string; module: string }) => {
-    fs.writeSync(
-      fdw,
-      `export import ${imp.name} = require('${imp.module}');\n`
-    );
-  });
-
-jsRequires.forEach((req: { name: string; module: string }) => {
-  fs.writeSync(fdw, `import ${req.name} from '${req.module}';\n`);
-});
 
 fs.writeSync(
   fdw,
@@ -562,8 +574,7 @@ export type Float = number;
  */
 export type Double = number;
 
-/** @maxItems 100000*/
-export type Bytes = Integer8[]
+export type Bytes = Buffer;
 
 /** @isBool*/
 export type Boolean = boolean

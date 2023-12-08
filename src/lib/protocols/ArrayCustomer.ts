@@ -294,7 +294,7 @@ export default class ArrayCustomer extends BaseHandler {
         return {
           item: {
             __keyName: "_bytes",
-            _bytes: values as number[]
+            _bytes: Buffer.from(values as number[])
           }
         };
     }
@@ -553,7 +553,7 @@ export default class ArrayCustomer extends BaseHandler {
     }
     return {
       item: {
-        _bytes: array.data.item._bytes?.slice(start, end),
+        _bytes: array.data.item._bytes?.subarray(start, end),
         __keyName: "_bytes"
       }
     };
@@ -997,7 +997,7 @@ export default class ArrayCustomer extends BaseHandler {
     const map = new Map<string, IDataSubarray>();
     message.dataSubarrays.forEach((value, key) => {
       const item = this.popArrayId(header.correlationId, key);
-      if (item && item.starts && item.counts) {
+      if (item?.starts && item.counts) {
         map.set(key, {
           uid: { uri: item.uri, pathInResource: item.pathInResource },
           starts: item.starts,

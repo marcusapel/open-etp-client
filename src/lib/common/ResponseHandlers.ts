@@ -797,7 +797,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
       const results: Energistics.Etp.v12.Datatypes.ErrorInfo[] =
         request.keys.map(k => {
           const e = request.results.get(k);
-          return e ? e : new Energistics.Etp.v12.Datatypes.ErrorInfo();
+          return e ?? new Energistics.Etp.v12.Datatypes.ErrorInfo();
         });
       request.resolve(results);
       // Remove request information
@@ -828,7 +828,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
 
     messages.forEach((value, key) => {
       request.results.set(key, {
-        code: value.length === 0 ? ErrorCode.IS_OK : ErrorCode.EINVALID_STATE,
+        code: ErrorCode.IS_OK,
         message: value
       });
     });
@@ -837,7 +837,7 @@ export class SuccessMapResponseHandler extends ResponseHandler<{
       const errors: Energistics.Etp.v12.Datatypes.ErrorInfo[] =
         request.keys.map(k => {
           const e = request.results.get(k);
-          return e ? e : new Energistics.Etp.v12.Datatypes.ErrorInfo();
+          return e ?? new Energistics.Etp.v12.Datatypes.ErrorInfo();
         });
       request.resolve(errors);
       // Remove request information

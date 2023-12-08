@@ -27,6 +27,7 @@
 
 import { SchemaCache as AvroSchemaCache } from "./EtpAvro";
 import schemas from "./EtpSchemas";
+import { ErrorCode } from "./EtpTypes";
 
 export class SchemaCache extends AvroSchemaCache {
   constructor(types: any = schemas.types) {
@@ -53,3 +54,65 @@ export class SchemaCache extends AvroSchemaCache {
     return undefined;
   }
 }
+
+/**
+ * Provides a retry mechanism with exponential backoff
+ *
+ * @param fn Function to retry
+ * @param {number} retriesLeft  Number of retries
+ * @param {number} interval Time interval (ms) after first retry
+ * @param {number} factor Factor to increase the interval between retries
+ * @returns the result of the function
+ * @throws error after last unsuccessful retry
+ */
+export const retry = async <T>(
+  fn: () => Promise<T>,
+  retriesLeft = 6,
+  interval = 400,
+  factor = 2
+): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retriesLeft) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+      return retry(fn, retriesLeft - 1, interval * factor, factor);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Provides a retry mechanism with exponential backoff, when an etp request fails with a specific error codes
+ *
+ * @param fn Function to retry
+ * @param {ErrorCode[]} errorCodes Error codes to retry on
+ * @param {number} retriesLeft  Number of retries
+ * @param {number} interval Time interval (ms) after first retry
+ * @param {number} factor Factor to increase the interval between retries
+ * @returns the result of the function
+ * @throws error after last unsuccessful retry
+ */
+export const retryOnEtpErrors = async <T>(
+  fn: () => Promise<T>,
+  errorCodes: [ErrorCode],
+  retriesLeft = 6,
+  interval = 400,
+  factor = 2
+): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retriesLeft && errorCodes.indexOf(error.code) != -1) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+      return retryOnEtpErrors(
+        fn,
+        errorCodes,
+        retriesLeft - 1,
+        interval * factor,
+        factor
+      );
+    }
+    throw error;
+  }
+};

@@ -68,7 +68,7 @@ export class ETPCore extends EventEmitter {
 
   constructor(configuration: IConfiguration) {
     super();
-    this.traceCalls = configuration.traceCalls || false;
+    this.traceCalls = configuration.traceCalls ?? false;
   }
 
   /// Send an acknowledgement of receipt of a message.
@@ -99,7 +99,7 @@ export class ETPCore extends EventEmitter {
           sessionId: this.sessionId
         }
       );
-      this.handlers.forEach(h => h && h.stop());
+      this.handlers.forEach(h => h?.stop());
       this.sessionId = EtpUri.invalidGuid();
     }
   }
@@ -228,7 +228,7 @@ export class ETPCore extends EventEmitter {
       : undefined;
     this.logTrace(
       `Received Ping message for session ${this.sessionId} sent ${
-        deltaTime || "unknown"
+        deltaTime ?? "unknown"
       } microseconds ago`
     );
     const responseHeader = this.createFinalMessageHeader(
@@ -274,12 +274,12 @@ export class ETPCore extends EventEmitter {
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Core.CloseSession
   ): void {
-    this.handlers.forEach(h => h && h.stop());
+    this.handlers.forEach(h => h?.stop());
     this.logTrace(
       `Received CloseSession message for session ${this.sessionId}. Reason ${message.reason}. Closing WebSocket.`
     );
     this.sessionId = EtpUri.invalidGuid();
-    this.connection && this.connection.close();
+    this.connection?.close();
     this.emit("close");
   }
 
@@ -332,7 +332,7 @@ export class ETPCore extends EventEmitter {
     }
     this.stats.bytesSent += data.byteLength;
     this.stats.messagesSent++;
-    this.connection && this.connection.send(data);
+    this.connection?.send(data);
     return id;
   }
 

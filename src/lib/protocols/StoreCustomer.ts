@@ -18,6 +18,7 @@ import {
   DataObject,
   ErrorCode,
   ErrorInfo,
+  EtpError,
   MessageFlags
 } from "../common/EtpTypes";
 
@@ -28,11 +29,102 @@ import {
   SuccessMapResponseHandler
 } from "../common/ResponseHandlers";
 
-import { Energistics } from "../common/Etp12";
+import { Energistics, Integer64 } from "../common/Etp12";
+import { EtpUri } from "../common/EtpUri";
+
+import { v4 as uuidRandom } from "uuid";
 
 const Core = Energistics.Etp.v12.Protocol.Core;
 const Store = Energistics.Etp.v12.Protocol.Store;
 const PROTOCOL = Energistics.Etp.v12.Datatypes.Protocol;
+
+class DataObjectsResponseHandler extends MapResponseHandler<DataObject> {
+  chunkKeys: Map<string, { key: string; correlationId: Integer64 }> = new Map();
+
+  /**
+   * Process the content of a Chunk message
+   * Add the chunk data to the data object
+   *
+   * @param _header header of the chunk message
+   * @param chunk chunk message content
+   */
+  public onChunk(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    chunk: Energistics.Etp.v12.Protocol.Store.Chunk
+  ) {
+    // Find chunk from UUID
+    const uuid = EtpUri.uuidByteArrayToString(chunk.blobId);
+    const chunkKey = this.chunkKeys.get(uuid);
+    if (!chunkKey) {
+      throw new EtpError(
+        `Chunk ID {${chunk.blobId.toString()}} not found in data object map`,
+        ErrorCode.ENOT_FOUND
+      );
+    }
+
+    // Find request from chunk header correlationId
+    const request = this.get(header.correlationId);
+
+    // Find data object from key
+    if (!request) {
+      throw new EtpError(
+        `Request {${header.correlationId}} not found`,
+        ErrorCode.ENOT_FOUND
+      );
+    }
+
+    const key = chunkKey.key;
+    const dataObject = request.results.get(key);
+    if (!dataObject) {
+      throw new EtpError(
+        `Data object {${key}} not found in data object map`,
+        ErrorCode.ENOT_FOUND
+      );
+    }
+
+    // check that data object blobId is the same as chunk blobId
+    if (
+      !dataObject.blobId ||
+      EtpUri.uuidByteArrayToString(dataObject.blobId) !== uuid
+    ) {
+      throw new EtpError(
+        `Data object {${key}} blobId is different from chunk blobId {${uuid}}`,
+        ErrorCode.EINVALID_STATE
+      );
+    }
+
+    // Add chunk data to data object
+    dataObject.data = Buffer.concat([dataObject.data, chunk.data]);
+
+    if (chunk.final) {
+      // Remove chunk from map
+      this.chunkKeys.delete(uuid);
+      dataObject.blobId = null;
+    }
+  }
+
+  /**
+   * Handle a successful response message.
+   * Save chunk information in chunkKeys map then call super.onResponse
+   *
+   * @param {Energistics.Etp.v12.Datatypes.MessageHeader} header
+   * @param {Map<string, Energistics.Etp.v12.Datatypes.Object.DataObject>} items
+   * @returns {boolean}
+   * @memberof ItemMapResponseHandler
+   */
+  public onResponse(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    items: Map<string, Energistics.Etp.v12.Datatypes.Object.DataObject>
+  ): boolean {
+    items.forEach((value, key) => {
+      if (value.blobId) {
+        const uuid = EtpUri.uuidByteArrayToString(value.blobId);
+        this.chunkKeys.set(uuid, { correlationId: header.correlationId, key });
+      }
+    });
+    return super.onResponse(header, items);
+  }
+}
 
 /**
  * Implementation of client for Store protocol
@@ -52,14 +144,19 @@ export class StoreCustomer extends BaseHandler {
     this.successResolve = new SuccessMapResponseHandler(
       sessionManager.responseTimeoutPeriod
     );
-    this.storeResolve = new MapResponseHandler<DataObject>(
+    this.storeResolve = new DataObjectsResponseHandler(
       sessionManager.responseTimeoutPeriod
     );
   }
   public handleMessage(
     messageHeader: Energistics.Etp.v12.Datatypes.MessageHeader,
-    messageBody: any
-  ) {
+    messageBody:
+      | Energistics.Etp.v12.Protocol.Store.GetDataObjectsResponse
+      | Energistics.Etp.v12.Protocol.Store.PutDataObjectsResponse
+      | Energistics.Etp.v12.Protocol.Store.DeleteDataObjectsResponse
+      | Energistics.Etp.v12.Protocol.Store.Chunk
+      | Energistics.Etp.v12.Protocol.Core.ProtocolException
+  ): void {
     if (messageHeader.protocol !== PROTOCOL.Store) {
       throw new Error(
         `Unsupported protocol {${messageHeader.protocol}} in Store`
@@ -94,6 +191,16 @@ export class StoreCustomer extends BaseHandler {
           messageHeader,
           messageBody as Energistics.Etp.v12.Protocol.Store.DeleteDataObjectsResponse,
           this.successResolve
+        );
+        break;
+      }
+      case Store.MsgChunk: {
+        this.logTrace(
+          `Received Store.Chunk message for ${messageHeader.correlationId}.`
+        );
+        this.onChunk(
+          messageHeader,
+          messageBody as Energistics.Etp.v12.Protocol.Store.Chunk
         );
         break;
       }
@@ -190,6 +297,106 @@ export class StoreCustomer extends BaseHandler {
     }
   }
 
+  /**
+   * Send a single object to the server, if object is smaller than negotiated size send it in one PutDataObjects message,
+   * otherwise split it in multiple messages using Chunk messages.
+   *
+   * @param key The key to use for the object (URI)
+   * @param value The object to send
+   * @param negotiatedSize The negotiated size for message (optional)
+   * @returns {Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]>} The promise waiting for the response
+   */
+  public sendSingleObject(
+    key: string,
+    value: DataObject,
+    negotiatedSize?: number
+  ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
+    const header = this.sessionManager.createFinalMessageHeader(
+      PROTOCOL.Store,
+      Store.MsgPutDataObjects,
+      BigInt(0)
+    );
+
+    const map = new Map<string, DataObject>();
+    map.set(value.resource.uri, value);
+
+    // If negotiated size is not defined or object fit in one message, send the message
+    const allBuffer = this.sessionManager.computeData(header, {
+      dataObjects: map,
+      pruneContainedObjects: false
+    });
+    if (
+      negotiatedSize === undefined ||
+      allBuffer.byteLength <= negotiatedSize
+    ) {
+      this.logTrace(
+        `Sending Store.PutDataObjects ${header.messageId} : ${key}}.`
+      );
+      return this.successResolve.waitForRequest(
+        this.sessionManager.sendData(header.messageId, allBuffer),
+        [key]
+      );
+    }
+
+    // Object is too big, split it in multiple messages
+
+    // Initialize blob information
+    const chunkData = value.data;
+    value.data = Buffer.alloc(0);
+    value.blobId = EtpUri.uuidStringToByteArray(uuidRandom());
+
+    // Send first parent message
+    const putDataObject: Energistics.Etp.v12.Protocol.Store.PutDataObjects =
+      new Energistics.Etp.v12.Protocol.Store.PutDataObjects();
+    putDataObject.dataObjects.set(key, value);
+    // Remove MessageFlags.FINALPART bit from header.messageFlags
+    header.messageFlags = header.messageFlags & ~MessageFlags.FINALPART;
+
+    const parentId = this.sessionManager.send(header, putDataObject);
+    this.logTrace(
+      `Sending Store.PutDataObjects ${header.messageId} : ${key}} in chunks.`
+    );
+
+    // Send the data as chunks maximum size of negotiated size
+
+    const chunk: Energistics.Etp.v12.Protocol.Store.Chunk = {
+      blobId: value.blobId,
+      data: Buffer.alloc(0),
+      final: false
+    };
+    // Compute the size of the header plus buffer
+    const headerChunkSize = 50;
+
+    const chunkSize = negotiatedSize - headerChunkSize;
+
+    for (let i = 0; i < chunkData.length; i += chunkSize) {
+      const headerChunk = this.sessionManager.createHeader(
+        PROTOCOL.Store,
+        Store.MsgChunk,
+        parentId
+      );
+      chunk.data = chunkData.subarray(i, i + chunkSize);
+      chunk.final = i + chunkSize >= chunkData.length;
+
+      if (chunk.final) {
+        headerChunk.messageFlags =
+          headerChunk.messageFlags | MessageFlags.FINALPART;
+        return this.successResolve.waitForRequest(
+          this.sessionManager.send(headerChunk, chunk),
+          [key]
+        );
+      } else {
+        this.sessionManager.send(headerChunk, chunk);
+      }
+    }
+    return Promise.reject(
+      new EtpError(
+        `Cannot Chunk ${value.resource.uri}`,
+        ErrorCode.EINVALID_STATE
+      )
+    );
+  }
+
   public async put(
     data: Energistics.Etp.v12.Datatypes.Object.DataObject[]
   ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
@@ -227,35 +434,18 @@ export class StoreCustomer extends BaseHandler {
             Array.from(dataObjects.keys())
           )
         );
-      } else {
-        const nbParts = Math.ceil(allBuffer.byteLength / negotiatedSize);
-        const partSize = Math.ceil(data.length / nbParts);
-        for (let i = 0; i < nbParts; i++) {
-          const toSend = i < nbParts - 1 ? data.splice(0, partSize) : data;
-          promises.push(this.put(toSend));
-        }
       }
-    } else {
-      // Carefully send one by one
+    }
+    // No batch send, carefully send objects one by one
+    if (promises.length == 0) {
+      let count = 0;
       dataObjects.forEach((value, key) => {
-        const header = this.sessionManager.createFinalMessageHeader(
-          PROTOCOL.Store,
-          Store.MsgPutDataObjects,
-          BigInt(0)
-        );
+        count++;
         const putDataObject: Energistics.Etp.v12.Protocol.Store.PutDataObjects =
           new Energistics.Etp.v12.Protocol.Store.PutDataObjects();
         putDataObject.dataObjects.set(key, value);
-        this.logTrace(
-          `Sending Store.PutDataObjects ${header.messageId} : ${key}}.`
-        );
 
-        promises.push(
-          this.successResolve.waitForRequest(
-            this.sessionManager.send(header, putDataObject),
-            [key]
-          )
-        );
+        promises.push(this.sendSingleObject(key, value, negotiatedSize));
       });
     }
     return Promise.all(promises)
@@ -361,7 +551,7 @@ export class StoreCustomer extends BaseHandler {
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Store.PutDataObjectsResponse,
     map: SuccessMapResponseHandler
-  ) {
+  ): void {
     const m = new Map<string, ErrorInfo>();
     message.success.forEach((value, key) => {
       if (value.createdContainedObjectUris.length > 0) {
@@ -387,7 +577,7 @@ export class StoreCustomer extends BaseHandler {
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     message: Energistics.Etp.v12.Protocol.Store.DeleteDataObjectsResponse,
     map: SuccessMapResponseHandler
-  ) {
+  ): void {
     const m = new Map<string, ErrorInfo>();
     message.deletedUris.forEach((_, key) => {
       m.set(key, {
@@ -411,6 +601,24 @@ export class StoreCustomer extends BaseHandler {
     message: Energistics.Etp.v12.Protocol.Store.GetDataObjectsResponse
   ) {
     return this.storeResolve.onResponse(header, message.dataObjects);
+  }
+
+  /**
+   * Build a DataObject chunk by chunk and resove the query corresponding to the correlationId.
+   *
+   * @private
+   * @param header
+   * @param message
+   * @param map
+   * @returns response message handler
+   * @memberof StoreCustomer
+   */
+
+  private async onChunk(
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    message: Energistics.Etp.v12.Protocol.Store.Chunk
+  ) {
+    return this.storeResolve.onChunk(header, message);
   }
 
   /**

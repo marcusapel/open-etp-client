@@ -1,4 +1,4 @@
-FROM node:16-alpine AS BASE
+FROM node:18-alpine AS BASE
 
 ENV NODE_ENV=production
 
@@ -9,10 +9,10 @@ WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 
 # clean install of production modules and clean private registry access
-RUN npm set-script prepare '' && npm ci --quiet
+RUN npm pkg delete scripts.prepare && npm ci --quiet
 
 ###############################################################################
-FROM node:16-alpine
+FROM node:18-alpine
 
 # env
 ENV NODE_ENV=production

@@ -1,5 +1,5 @@
 // ============================================================================
-// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+// Copyright 2019-2023 Emerson Paradigm Holding LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 import http from "http";
 
 import {
-  byteToString,
   EtpUri,
   IDataArray,
   IResqmlDataObject,
   ResqmlClient,
   URI,
-  XmlUtils
+  XmlUtils,
+  byteToString
 } from "..";
 
 import { serverHost, serverPath, serverPort, serverProtocol } from "./Config";
@@ -67,12 +67,12 @@ c2.openSession(
   undefined,
   20000000
 )
-  .then(() => c2.getProjects())
+  .then(() => c2.getDataspaces())
   .then(async projects => {
     if (!projects || projects.length === 0) {
       return [];
     }
-    return c2.getProjectResources(projects[0].uri);
+    return c2.getDataspaceResources(projects[0].uri);
   })
   .then(resources => c2.getDataObjects(resources.map(r => r.uri)))
   .then(dataObjects => {
@@ -116,7 +116,8 @@ c2.openSession(
           })
           .then(() => {
             log(
-              `${uid.pathInResource}: nbValue: ${length}, average : ${length ? average / BigInt(length) : 0
+              `${uid.pathInResource}: nbValue: ${length}, average : ${
+                length ? average / BigInt(length) : 0
               }`
             );
           });
