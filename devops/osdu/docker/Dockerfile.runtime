@@ -36,6 +36,9 @@ RUN npm pkg delete scripts.prepare && npm ci --quiet --production
 
 FROM node:${docker_node_image_version} as release
 
+# Update the Alpine packages
+RUN apk update
+RUN apk upgrade
 
 ARG VERSION=0.1
 ARG DIST=dist.tgz
