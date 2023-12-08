@@ -23,7 +23,8 @@ include:
     file: "scanners/gitlab-ultimate.yml"
 
   ## fossa
-  - local: "devops/osdu/scanners/fossa-node.yml"
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "scanners/fossa-npm.yml"
 
   # lint
   - local: "devops/osdu/scanners/lint-node.yml"
