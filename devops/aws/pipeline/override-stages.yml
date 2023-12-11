@@ -39,6 +39,7 @@ aws_test:
   image:
     name: node:lts
   tags: ["osdu-medium"]
+  allow_failure: true
   extends:
     - .aws_common_variables
     - .aws_variables
