@@ -137,11 +137,7 @@ export class GenericRepresentationOSDU
       }
     }
 
-    xml.ExtraMetadata?.forEach(x => {
-      if (this.data.ExtensionProperties) {
-        this.data.ExtensionProperties[x.Name] = x.Value;
-      }
-    });
+    this.assignExtraMetaData(xml.ExtraMetadata);
 
     if (geometries.length > 0) {
       const dataspaceUri = EtpUri.createDataSpaceUri(

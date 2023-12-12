@@ -105,11 +105,7 @@ export class FaultInterpretationOSDU
       ExtensionProperties: undefined
     };
 
-    xml.ExtraMetadata?.forEach(x => {
-      if (this.data.ExtensionProperties) {
-        this.data.ExtensionProperties[x.Name] = x.Value;
-      }
-    });
+    this.assignExtraMetaData(xml.ExtraMetadata);
 
     delete this.__context;
     return this;
