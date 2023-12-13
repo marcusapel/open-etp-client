@@ -161,6 +161,68 @@ const stopServer = (): void => {
   }
 };
 
+/**
+ * Create a large object (Local3dCrs) by adding meta data
+ * @param {Energistics.Etp.v12.Datatypes.Object.Dataspace} dataspace to create the object in
+ * @param {string} uuid of the object
+ * @param {number} count number of extrameta to add
+ * @return large object resource
+ */
+const createLargeContent = (
+  dataspace: Energistics.Etp.v12.Datatypes.Object.Dataspace,
+  uuid: string,
+  count: number
+): Omit<Energistics.Etp.v12.Datatypes.Object.DataObject, "_schema"> => {
+  let xmlContent: string | undefined = `<?xml version="1.0" encoding="UTF-8"?>
+          <resqml2:LocalDepth3dCrs xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gsr="http://www.isotc211.org/2005/gsr" xmlns:dc="http://purl.org/dc/terms/" xmlns:resqml1="http://www.resqml.org/schemas/1series" xmlns:resqml2="http://www.energistics.org/energyml/data/resqmlv2" xmlns:witsml1="http://www.witsml.org/schemas/1series" xmlns:eml="http://www.energistics.org/energyml/data/commonv2" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:ptm="http://www.f2i-consulting.com/PropertyTypeMapping" xmlns:abstract="http://www.energistics.org/schemas/abstract" schemaVersion="2.0" uuid="${uuid}" xsi:type="resqml2:obj_LocalDepth3dCrs">
+          <eml:Citation xsi:type="eml:Citation">
+            <eml:Title xsi:type="eml:DescriptionString">Local Depth CRS</eml:Title>
+            <eml:Originator xsi:type="eml:NameString">mike.king</eml:Originator>
+            <eml:Creation xsi:type="xsd:dateTime">2023-01-18T14:24:00Z</eml:Creation>
+            <eml:Format xsi:type="eml:DescriptionString">Roxar Software Solutions AS</eml:Format>
+          </eml:Citation>`;
+  for (let i = 0; i < count; i++) {
+    xmlContent += `<resqml2:ExtraMetadata xsi:type="resqml2:NameValuePair">
+        <resqml2:Name xsi:type="xsd:string">pdgm/dx/resqml/test${i}</resqml2:Name>
+        <resqml2:Value xsi:type="xsd:string">ENERGISTICS</resqml2:Value>
+      </resqml2:ExtraMetadata>`;
+  }
+  xmlContent += `
+    <resqml2:YOffset xsi:type="xsd:double">0</resqml2:YOffset>
+    <resqml2:ZOffset xsi:type="xsd:double">0</resqml2:ZOffset>
+    <resqml2:ArealRotation xsi:type="eml:PlaneAngleMeasure" uom="dega">0</resqml2:ArealRotation>
+    <resqml2:ProjectedAxisOrder xsi:type="eml:AxisOrder2d">easting northing</resqml2:ProjectedAxisOrder>
+    <resqml2:ProjectedUom xsi:type="eml:LengthUom">m</resqml2:ProjectedUom>
+    <resqml2:VerticalUom xsi:type="eml:LengthUom">m</resqml2:VerticalUom>
+    <resqml2:XOffset xsi:type="xsd:double">0</resqml2:XOffset>
+    <resqml2:ZIncreasingDownward xsi:type="xsd:boolean">true</resqml2:ZIncreasingDownward>
+    <resqml2:VerticalCrs xsi:type="eml:VerticalUnknownCrs">
+      <eml:Unknown xsi:type="eml:DescriptionString">unknown</eml:Unknown>
+    </resqml2:VerticalCrs>
+    <resqml2:ProjectedCrs xsi:type="eml:ProjectedUnknownCrs">
+      <eml:Unknown xsi:type="eml:DescriptionString">WKT</eml:Unknown>
+    </resqml2:ProjectedCrs>
+  </resqml2:LocalDepth3dCrs>
+  `;
+
+  const res = new Energistics.Etp.v12.Datatypes.Object.DataObject();
+  res.data = Buffer.from(xmlContent);
+  res.format = "xml";
+  res.resource = {
+    uri: `${dataspace.uri}/resqml20.obj_LocalDepth3dCrs(${uuid})`,
+    name: "Local Depth CRS",
+    alternateUris: [],
+    sourceCount: null,
+    targetCount: null,
+    storeCreated: BigInt(Date.now()),
+    storeLastWrite: BigInt(Date.now()),
+    activeStatus: Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
+    lastChanged: BigInt(Date.now()),
+    customData: new Map()
+  };
+  return res;
+};
+
 const maxTime = 400000000;
 
 type TServer = Record<string, request.SuperTest<request.Test>>;
@@ -479,6 +541,41 @@ describe("Resource Graph", () => {
       await client.rollbackTransaction(transaction);
     }
     await client.closeSession();
+  });
+
+  it("Put and Get large object", async () => {
+    await client.openSession(
+      etpServerUrl,
+      jwt,
+      testDataPartitionId,
+      undefined,
+      undefined,
+      1900000
+    );
+    const projects = await client.getDataspaces();
+    expect(projects).toBeTruthy();
+    if (!projects) {
+      return;
+    }
+    const object = createLargeContent(
+      projects[0],
+      "53395ada-6f93-4bac-b506-d45997ded2a1",
+      8000
+    );
+    const transaction = await client.startTransaction(
+      false,
+      [projects[0].uri],
+      "Create large object"
+    );
+    try {
+      await client.putDataObjects([object]);
+      await client.getDataObjects([object.resource.uri]);
+      await client.deleteObjects([object.resource.uri]);
+      await client.rollbackTransaction(transaction);
+    } catch (e) {
+      await client.rollbackTransaction(transaction);
+    }
+    await client.closeSession(30000);
   });
 
   it("Create Delete Dataspace", async () => {

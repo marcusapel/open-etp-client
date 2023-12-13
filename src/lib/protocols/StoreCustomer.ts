@@ -381,10 +381,8 @@ export class StoreCustomer extends BaseHandler {
       if (chunk.final) {
         headerChunk.messageFlags =
           headerChunk.messageFlags | MessageFlags.FINALPART;
-        return this.successResolve.waitForRequest(
-          this.sessionManager.send(headerChunk, chunk),
-          [key]
-        );
+        this.sessionManager.send(headerChunk, chunk);
+        return this.successResolve.waitForRequest(parentId, [key]);
       } else {
         this.sessionManager.send(headerChunk, chunk);
       }
@@ -604,12 +602,11 @@ export class StoreCustomer extends BaseHandler {
   }
 
   /**
-   * Build a DataObject chunk by chunk and resove the query corresponding to the correlationId.
+   * Build a DataObject chunk by chunk and resolve the query corresponding to the correlationId.
    *
    * @private
    * @param header
    * @param message
-   * @param map
    * @returns response message handler
    * @memberof StoreCustomer
    */
