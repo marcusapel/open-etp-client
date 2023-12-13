@@ -640,6 +640,52 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     return objects.length === 1 && objects[0] !== null ? objects[0] : undefined;
   }
 
+  public assignExtraMetaData(
+    extraMetadata?: SimpleJson<resqml20.NameValuePair>[]
+  ): void {
+    if (extraMetadata === undefined) {
+      return;
+    }
+    extraMetadata
+      .filter(x => x.Name.startsWith("osdu/"))
+      .forEach(x => {
+        const path = x.Name.split("/");
+        path.shift(); // remove the "osdu" prefix
+
+        // check that the decomposed path corresponds to a valid path in the object prototype
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        let curObj: Record<string, any> = this;
+        let pathInObject = true;
+        for (let i = 0; i < path.length - 1; i++) {
+          if (path[i] in curObj) {
+            const key = path[i];
+            if (curObj[key] === undefined) {
+              curObj[key] = {};
+            } else if (typeof curObj[key] !== "object") {
+              pathInObject = false;
+              break;
+            }
+            curObj = curObj[key];
+          } else {
+            pathInObject = false;
+            break;
+          }
+        }
+
+        // If path is valid, set the value
+        if (pathInObject) {
+          curObj[path[path.length - 1]] = x.Value;
+        } else if ("data" in this && typeof this.data === "object") {
+          // If path is not valid, set the value in the ExtensionProperties
+          const data = this.data as Record<string, any>;
+          if (data["ExtensionProperties"] === undefined) {
+            data["ExtensionProperties"] = {};
+          }
+          data.ExtensionProperties[path.join("/")] = x.Value;
+        }
+      });
+  }
+
   /**
    * Create the AbstractCommonResources part of WPC Data
    *

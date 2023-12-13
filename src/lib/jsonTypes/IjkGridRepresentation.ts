@@ -63,7 +63,7 @@ export class IjkGridRepresentationOSDU
         dataspaceUri,
         xml.Geometry?.CellGeometryIsDefined,
         client,
-        (values: boolean[] | number[] | bigint[], data: IDataSubarray) => {
+        (values: boolean[] | number[] | bigint[], _data: IDataSubarray) => {
           const v = values as boolean[];
           v.forEach(b => (count += b ? 1 : 0));
         }
@@ -187,11 +187,7 @@ export class IjkGridRepresentationOSDU
       ExtensionProperties: undefined
     };
 
-    xml.ExtraMetadata?.forEach(x => {
-      if (this.data.ExtensionProperties) {
-        this.data.ExtensionProperties[x.Name] = x.Value;
-      }
-    });
+    this.assignExtraMetaData(xml.ExtraMetadata);
 
     if (xml.Geometry) {
       const si = await this.createSpatialInfo(client, dataspaceUri.uri, [

@@ -222,12 +222,9 @@ export class GenericPropertyOSDU
       ];
     }
 
-    xml.ExtraMetadata?.forEach(x => {
-      if (this.data.ExtensionProperties) {
-        this.data.ExtensionProperties[x.Name] = x.Value;
-      }
-    });
     await this.initGeometry(ReservoirDMSUrl, xml, client);
+
+    this.assignExtraMetaData(xml.ExtraMetadata);
 
     delete this.__context;
     return this;

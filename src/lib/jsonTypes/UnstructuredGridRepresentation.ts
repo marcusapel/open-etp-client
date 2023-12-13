@@ -133,11 +133,7 @@ export class UnstructuredGridRepresentationOSDU
       });
     }
 
-    xml.ExtraMetadata?.forEach(x => {
-      if (this.data.ExtensionProperties) {
-        this.data.ExtensionProperties[x.Name] = x.Value;
-      }
-    });
+    this.assignExtraMetaData(xml.ExtraMetadata);
 
     if (xml.Geometry) {
       const si = await this.createSpatialInfo(client, dataspaceUri.uri, [
