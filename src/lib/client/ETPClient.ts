@@ -104,7 +104,7 @@ export class ETPClient extends ETPCore {
     this.connection = new socketClass(
       this.host,
       "etp12.energistics.org", // protocol
-      "localhost", // origin
+      undefined, // origin
       headers, // http headers
       undefined,
       config // pass config through
