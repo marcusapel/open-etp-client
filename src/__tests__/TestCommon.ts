@@ -47,7 +47,7 @@ describe("Schemas", () => {
   });
 
   it("Create WITSML JSON schema", () => {
-    const s = new XmlUtils.WitsmlTypeUtils().createJSONSchemas("witsml20.Log");
+    const s = new XmlUtils.WitsmlTypeUtils().createJSONSchemas("witsml21.Log");
     expect(s).toContain("#/definitions/Citation");
   });
 });
@@ -85,15 +85,17 @@ describe("JSON serialization", () => {
       "./devops/data/obj_IjkGridRepresentation_9a487aca-44ca-4989-8ba7-653a5358ee80.xml",
       "ascii"
     );
-    XmlUtils.xml2typescript(grid, "obj_IjkGridRepresentation").then(obj => {
-      const o2 = obj as any;
-      expect(xUtils.checkValidity(o2)).toBe(true);
-      delete o2.Citation.Title;
-      expect(xUtils.checkValidity(o2)).toBe(false);
-      o2.Citation.Title = "test";
-      expect(xUtils.checkValidity(o2)).toBe(true);
-      done();
-    });
+    XmlUtils.xml2typescript(grid, "resqml20.obj_IjkGridRepresentation").then(
+      obj => {
+        const o2 = obj as any;
+        expect(xUtils.checkValidity(o2)).toBe(true);
+        delete o2.Citation.Title;
+        expect(xUtils.checkValidity(o2)).toBe(false);
+        o2.Citation.Title = "test";
+        expect(xUtils.checkValidity(o2)).toBe(true);
+        done();
+      }
+    );
   });
 });
 
