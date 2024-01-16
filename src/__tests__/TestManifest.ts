@@ -104,6 +104,10 @@ describe("Manifest Conversion", () => {
       {
         Name: "osdu/legal/legaltags/0", // Replace one element of legal tags array
         Value: "legals0"
+      },
+      {
+        Name: "osdu/acl", // Replace one element of legal tags array
+        Value: `{"owners":["acl1","acl2"]}`
       }
     ];
 
@@ -119,5 +123,7 @@ describe("Manifest Conversion", () => {
         osdu.data.ExtensionProperties["tags/tag1/tag2"]
     ).toEqual("tag2");
     expect(osdu.legal.legaltags[0]).toEqual("legals0");
+    expect(osdu.acl.owners[0]).toEqual("acl1");
+    expect(osdu.acl.owners[1]).toEqual("acl2");
   });
 });

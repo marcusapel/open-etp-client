@@ -10,4 +10,4 @@ export { MemberSpec, MemberFlag } from "./xml/MemberSpec";
 export { MemberRef, MemberRefFlag } from "./xml/MemberRef";
 export { Parser } from "./parser/Parser";
 
-export { init, register, defaultContext } from "./importer/JS";
+export { init, register, context } from "./importer/JS";

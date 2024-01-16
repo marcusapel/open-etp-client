@@ -4,6 +4,7 @@ const eml = require("./commonv2");
 const Primitive = require("../../../xml-primitives");
 
 cxml.register(
+  cxml.context("resqml20"),
   "http://www.energistics.org/energyml/data/resqmlv2",
   exports,
   [

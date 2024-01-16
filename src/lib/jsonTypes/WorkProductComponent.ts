@@ -7,6 +7,8 @@ import {
 
 import * as eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
 import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+import * as eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
+import * as resqml22 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 
 import { IDataSubarray } from "../common/EtpTypes";
@@ -71,17 +73,23 @@ const DBL_LAT_ARRAY = "resqml20.DoubleLatticeArray";
 const INT_CST_ARRAY = "resqml20.IntegerConstantArray";
 const INT_HDF_ARRAY = "resqml20.IntegerHdf5Array";
 
+const DBL_CST_ARRAY22 = "eml23.DoubleConstantArray";
+const DBL_HDF_ARRAY22 = "eml23.DoubleExternalArray";
+const DBL_LAT_ARRAY22 = "eml23.DoubleLatticeArray";
+const INT_CST_ARRAY22 = "eml23.IntegerConstantArray";
+const INT_HDF_ARRAY22 = "eml23.IntegerExternalArray";
+
 /**
  * Extract an array of integer values from a generic AbstractIntegerArray
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractIntegerArray>} array
+ * @param {SimpleJson<resqml20.AbstractIntegerArray|eml23.AbstractIntegerArray>} array
  * @param {ResqmlClient} client
  * @return {Promise<number[]>}
  */
 export const getIntegerValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.AbstractIntegerArray>,
+  array: SimpleJson<resqml20.AbstractIntegerArray | eml23.AbstractIntegerArray>,
   client: ResqmlClient
 ): Promise<number[]> => {
   if (array.$type === INT_HDF_ARRAY) {
@@ -92,27 +100,55 @@ export const getIntegerValues = async (
     const da = await client.getDataArray(uri, hdfArray.Values.PathInHdfFile);
     const values = da?.data?.data.item._ArrayOfInt?.values;
     if (!values) {
-      return Promise.reject();
+      return Promise.reject(
+        new Error(`Cannot get integer values from HDF5 array ${uri}`)
+      );
     }
     return values;
   } else if (array.$type === INT_CST_ARRAY) {
     const constArray = array as resqml20.IntegerConstantArray;
     return new Array(constArray.Count).fill(constArray.Value);
+  } else if (array.$type === INT_HDF_ARRAY22) {
+    const hdfArray = array as eml23.IntegerExternalArray;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
+
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+    const da = await client.getDataArray(
+      uri,
+      hdfArray.Values.ExternalDataArrayPart[0].PathInExternalFile
+    );
+    const values = da?.data?.data.item._ArrayOfInt?.values;
+    if (!values) {
+      return Promise.reject(
+        new Error(`Cannot get integer values from HDF5 array ${uri}`)
+      );
+    }
+    return values;
+  } else if (array.$type === INT_CST_ARRAY22) {
+    const constArray = array as eml23.IntegerConstantArray;
+    return new Array(constArray.Count).fill(constArray.Value);
   }
-  return Promise.reject(`Not supported type yet`);
+
+  return Promise.reject(new Error(`Unsupported array type ${array.$type}`));
 };
 
 /**
  * Extract an array of boolean values from a generic AbstractBooleanArray
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractBooleanArray>} array
+ * @param {SimpleJson<resqml20.AbstractBooleanArray|eml23.AbstractBooleanArray>} array
  * @param {ResqmlClient} client
  * @return {Promise<number[]>}
  */
 export const getBooleanValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.AbstractBooleanArray>,
+  array: SimpleJson<resqml20.AbstractBooleanArray | eml23.AbstractBooleanArray>,
   client: ResqmlClient
 ): Promise<boolean[]> => {
   if (array.$type === "resqml20.BooleanHdf5Array") {
@@ -123,15 +159,41 @@ export const getBooleanValues = async (
     const da = await client.getDataArray(uri, hdfArray.Values.PathInHdfFile);
     const values = da?.data?.data.item._ArrayOfBoolean?.values;
     if (!values) {
-      return Promise.reject("Cannot get HDF5 from boolean");
+      return Promise.reject(
+        new Error(`Cannot get boolean values from HDF5 array ${uri}`)
+      );
     }
     return values;
   } else if (array.$type === "resqml20.BooleanConstantArray") {
     const constArray = array as resqml20.BooleanConstantArray;
     return new Array(constArray.Count).fill(constArray.Value);
-  }
+  } else if (array.$type === "eml23.BooleanExternalArray") {
+    const hdfArray = array as eml23.BooleanExternalArray;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
 
-  return Promise.reject(`Not supported type yet`);
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+    const da = await client.getDataArray(
+      uri,
+      hdfArray.Values.ExternalDataArrayPart[0].PathInExternalFile
+    );
+    const values = da?.data?.data.item._ArrayOfBoolean?.values;
+    if (!values) {
+      return Promise.reject(
+        new Error(`Cannot get boolean values from HDF5 array ${uri}`)
+      );
+    }
+    return values;
+  } else if (array.$type === "eml23.BooleanConstantArray") {
+    const constArray = array as eml23.BooleanConstantArray;
+    return new Array(constArray.Count).fill(constArray.Value);
+  }
+  return Promise.reject(new Error(`Unsupported array type ${array.$type}`));
 };
 
 type DoubleVisitorInput = (
@@ -143,14 +205,14 @@ type DoubleVisitorInput = (
  * Apply a visitor function to all values of a generic AbstractBooleanArray
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractIntegerArray>} array
+ * @param {SimpleJson<resqml20.AbstractBooleanArray|eml23.AbstractBooleanArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
  * @return {Promise<void>}
  */
 export const visitBooleanValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.AbstractBooleanArray>,
+  array: SimpleJson<resqml20.AbstractBooleanArray | eml23.AbstractBooleanArray>,
   client: ResqmlClient,
   visitor: DoubleVisitorInput
 ): Promise<void> => {
@@ -172,23 +234,51 @@ export const visitBooleanValues = async (
       counts: [constArray.Count]
     });
     return;
+  } else if (array.$type === "eml23.BooleanExternalArray") {
+    const hdfArray = array as eml23.BooleanExternalArray;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
+
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+    await client.visitDataArrayValues(
+      {
+        uri,
+        pathInResource:
+          hdfArray.Values.ExternalDataArrayPart[0].PathInExternalFile
+      },
+      visitor
+    );
+    return;
+  } else if (array.$type === "eml23.BooleanConstantArray") {
+    const constArray = array as eml23.BooleanConstantArray;
+    visitor(new Array(constArray.Count).fill(constArray.Value), {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [constArray.Count]
+    });
+    return;
   }
 
-  return Promise.reject(`Not supported type yet`);
+  return Promise.reject(new Error(`Unsupported array type ${array.$type}`));
 };
 
 /**
  * Apply a visitor function to all values of a generic AbstractIntegerArray
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractIntegerArray>} array
+ * @param {SimpleJson<resqml20.AbstractIntegerArray|eml23.AbstractIntegerArray>} array
  * @param {ResqmlClient} client
- * @param {DoubleVisitorInput} visitor
+ * @param {IntegerVisitorInput} visitor
  * @return {Promise<void>}
  */
 export const visitIntegerValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.AbstractIntegerArray>,
+  array: SimpleJson<resqml20.AbstractIntegerArray | eml23.AbstractIntegerArray>,
   client: ResqmlClient,
   visitor: (
     nullValue: number | undefined,
@@ -213,8 +303,35 @@ export const visitIntegerValues = async (
       starts: [0],
       counts: [constArray.Count]
     });
+  } else if (array.$type === INT_HDF_ARRAY22) {
+    const hdfArray = array as eml23.IntegerExternalArray;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
+
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+
+    await client.visitDataArrayValues(
+      {
+        uri,
+        pathInResource:
+          hdfArray.Values.ExternalDataArrayPart[0].PathInExternalFile
+      },
+      visitor.bind(this, hdfArray.NullValue)
+    );
+  } else if (array.$type === INT_CST_ARRAY22) {
+    const constArray = array as eml23.IntegerConstantArray;
+    visitor(undefined, new Array(constArray.Count).fill(constArray.Value), {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [constArray.Count]
+    });
   } else {
-    return Promise.reject(`Not supported type yet`);
+    return Promise.reject(new Error(`Unsupported array type ${array.$type}`));
   }
 };
 
@@ -222,14 +339,16 @@ export const visitIntegerValues = async (
  * Apply a visitor function to all values of a generic AbstractDoubleArray
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractDoubleArray>} array
+ * @param {SimpleJson<resqml20.AbstractDoubleArray|eml23.AbstractFloatingPointArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
  * @return {Promise<void>}
  */
 export const visitDoubleValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.AbstractDoubleArray>,
+  array: SimpleJson<
+    resqml20.AbstractDoubleArray | eml23.AbstractFloatingPointArray
+  >,
   client: ResqmlClient,
   visitor: DoubleVisitorInput
 ): Promise<void> => {
@@ -269,6 +388,53 @@ export const visitDoubleValues = async (
     });
 
     // return Promise.reject("Not supported type yet");
+  } else if (array.$type === DBL_HDF_ARRAY22) {
+    const hdfArray = array as eml23.FloatingPointExternalArray;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
+
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+
+    await client.visitDataArrayValues(
+      {
+        uri,
+        pathInResource:
+          hdfArray.Values.ExternalDataArrayPart[0].PathInExternalFile
+      },
+      visitor
+    );
+  } else if (array.$type === DBL_CST_ARRAY22) {
+    const constArray = array as eml23.FloatingPointConstantArray;
+    await visitor(new Array(constArray.Count).fill(constArray.Value), {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [constArray.Count]
+    });
+  } else if (array.$type === DBL_LAT_ARRAY22) {
+    const latticeArray = array as eml23.FloatingPointLatticeArray;
+    let cur = latticeArray.StartValue;
+    let count = 1;
+    latticeArray.Offset.forEach(o => (count *= o.Count + 1));
+    const val = [cur];
+    for (let i = 0; i < latticeArray.Offset[0].Count; i++) {
+      cur += latticeArray.Offset[0].Value;
+      val.push(cur);
+    }
+
+    const counts = latticeArray.Offset.map(() => 1);
+    counts[0] = latticeArray.Offset[0].Count;
+    await visitor(val, {
+      uid: { uri: "", pathInResource: "" },
+      starts: latticeArray.Offset.map(() => 0),
+      counts
+    });
+
+    // return Promise.reject("Not supported type yet");
   }
 };
 
@@ -276,37 +442,67 @@ export const visitDoubleValues = async (
  * Apply a visitor function to all values of a generic Point3dHdf5Array
  *
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.Point3dHdf5Array>} array
+ * @param {SimpleJson<resqml20.Point3dHdf5Array|resqml22.Point3dExternalArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
  * @return {Promise<void>}
  */
 export const visitPoint3dValues = async (
   dataspaceUri: string,
-  array: SimpleJson<resqml20.Point3dHdf5Array>,
+  array: SimpleJson<resqml20.Point3dHdf5Array | resqml22.Point3dExternalArray>,
   client: ResqmlClient,
   visitor: DoubleVisitorInput
 ): Promise<void> => {
-  const etpType = new EtpContentType(array.Coordinates.HdfProxy.ContentType)
-    .etpType;
-  const uri = `${dataspaceUri}/${etpType}(${array.Coordinates.HdfProxy.UUID})`;
-  await client.visitDataArrayValues(
-    { uri, pathInResource: array.Coordinates.PathInHdfFile },
-    visitor,
-    0,
-    30000
-  );
+  if (array.$type === "resqml20.Point3dHdf5Array") {
+    const hdfArray = array as SimpleJson<resqml20.Point3dHdf5Array>;
+    const etpType = new EtpContentType(
+      hdfArray.Coordinates.HdfProxy.ContentType
+    ).etpType;
+    const uri = `${dataspaceUri}/${etpType}(${hdfArray.Coordinates.HdfProxy.UUID})`;
+    await client.visitDataArrayValues(
+      { uri, pathInResource: hdfArray.Coordinates.PathInHdfFile },
+      visitor,
+      0,
+      30000
+    );
+  } else if (array.$type === "resqml22.Point3dExternalArray") {
+    const hdfArray = array as SimpleJson<resqml22.Point3dExternalArray>;
+    const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
+    const etpUri = new EtpUri(
+      hdfArray.Coordinates.ExternalDataArrayPart[0].URI
+    );
+
+    const uri = EtpUri.createTypedObjectUri(
+      etpDataspaceUri,
+      etpUri.dataObjectType,
+      etpUri.uuid,
+      etpUri.version
+    ).uri;
+
+    await client.visitDataArrayValues(
+      {
+        uri,
+        pathInResource:
+          hdfArray.Coordinates.ExternalDataArrayPart[0].PathInExternalFile
+      },
+      visitor,
+      0,
+      30000
+    );
+  }
 };
 
 /**
  * Extract the geometries from representations
  *
- * @param {SimpleJson<resqml20.AbstractRepresentation>} xml
- * @return {SimpleJson<resqml20.PointGeometry>[]}
+ * @param {SimpleJson<resqml20.AbstractRepresentation| resqml22.AbstractRepresentation>} xml
+ * @return {SimpleJson<resqml20.PointGeometry| resqml22.PointGeometry>[]}
  */
 export const getGeometries = (
-  xml: SimpleJson<resqml20.AbstractRepresentation>
-): SimpleJson<resqml20.PointGeometry>[] => {
+  xml: SimpleJson<
+    resqml20.AbstractRepresentation | resqml22.AbstractRepresentation
+  >
+): SimpleJson<resqml20.PointGeometry | resqml22.PointGeometry>[] => {
   if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
     const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
     return [grid2d.Grid2dPatch.Geometry];
@@ -322,6 +518,21 @@ export const getGeometries = (
   } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
     const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
     return [line.NodePatch.Geometry];
+  } else if (xml.$type === "resqml22.Grid2dRepresentation") {
+    const grid2d = xml as SimpleJson<resqml22.Grid2dRepresentation>;
+    return [grid2d.Geometry];
+  } else if (xml.$type === "resqml22.TriangulatedSetRepresentation") {
+    const trig = xml as SimpleJson<resqml22.TriangulatedSetRepresentation>;
+    return trig.TrianglePatch.map(p => p.Geometry);
+  } else if (xml.$type === "resqml22.PolylineSetRepresentation") {
+    const polyLine = xml as SimpleJson<resqml22.PolylineSetRepresentation>;
+    return polyLine.LinePatch.map(p => p.Geometry);
+  } else if (xml.$type === "resqml22.PointSetRepresentation") {
+    const points = xml as SimpleJson<resqml22.PointSetRepresentation>;
+    return points.NodePatchGeometry;
+  } else if (xml.$type === "resqml22.PolylineRepresentation") {
+    const line = xml as SimpleJson<resqml22.PolylineRepresentation>;
+    return [line.NodePatchGeometry];
   }
   return [];
 };
@@ -331,7 +542,7 @@ export const getGeometries = (
  *
  * @param {ResqmlClient} client
  * @param {string} dataspaceUri
- * @param {SimpleJson<resqml20.AbstractPoint3dArray>} geo
+ * @param {SimpleJson<resqml20.AbstractPoint3dArray|resqml22.AbstractPoint3dArray>} geo
  * @return {Promise<{
  *   minX: number;
  *   minY: number;
@@ -345,7 +556,7 @@ export const getGeometries = (
 export const getMinMaxPoints = async (
   client: ResqmlClient,
   dataspaceUri: string,
-  geo: SimpleJson<resqml20.AbstractPoint3dArray>
+  geo: SimpleJson<resqml20.AbstractPoint3dArray | resqml22.AbstractPoint3dArray>
 ): Promise<{
   minX: number;
   minY: number;
@@ -455,6 +666,103 @@ export const getMinMaxPoints = async (
       maxY = Math.max(maxY, v.maxY);
       pNodeCount += v.pNodeCount;
     }
+  } else if (geo.$type === "resqml22.Point3dExternalArray") {
+    const hdfArray = geo as SimpleJson<resqml22.Point3dExternalArray>;
+    await visitPoint3dValues(dataspaceUri, hdfArray, client, values => {
+      const val = values as number[];
+      val.forEach((v, index) => {
+        if (!Number.isNaN(v)) {
+          const mod = index % 3;
+          if (mod === 0) {
+            minX = Math.min(v, minX);
+            maxX = Math.max(v, maxX);
+          } else if (mod === 1) {
+            minY = Math.min(v, minY);
+            maxY = Math.max(v, maxY);
+          }
+          pNodeCount++;
+        }
+      });
+    });
+  } else if (geo.$type === "resqml22.Point3dParametricArray") {
+    const param = geo as SimpleJson<resqml22.Point3dParametricArray>;
+    if (param.ParametricLines.$type === "resqml22.ParametricLineArray") {
+      const lineArray =
+        param.ParametricLines as SimpleJson<resqml22.ParametricLineArray>;
+      const v = await getMinMaxPoints(
+        client,
+        dataspaceUri,
+        lineArray.ControlPoints
+      );
+      minX = v.minX;
+      minY = v.minY;
+      maxX = v.maxX;
+      maxY = v.maxY;
+    }
+  } else if (geo.$type === "resqml22.Point3dZValueArray") {
+    const zArray = geo as SimpleJson<resqml22.Point3dZValueArray>;
+    const sup =
+      zArray.SupportingGeometry as SimpleJson<resqml22.Point3dZValueArray>;
+    return await getMinMaxPoints(client, dataspaceUri, sup);
+  } else if (geo.$type === "resqml22.Point3dLatticeArray") {
+    const lArray = geo as SimpleJson<resqml22.Point3dLatticeArray>;
+    const [ox, oy] = [lArray.Origin.Coordinate1, lArray.Origin.Coordinate2];
+    const [u, v] = [lArray.Dimension[0], lArray.Dimension[1]];
+    if (
+      u.Spacing.$type === DBL_CST_ARRAY &&
+      v.Spacing.$type === DBL_CST_ARRAY
+    ) {
+      const uSpacing =
+        u.Spacing as SimpleJson<eml23.FloatingPointConstantArray>;
+      const vSpacing =
+        v.Spacing as SimpleJson<eml23.FloatingPointConstantArray>;
+      const [uLen, vLen] = [uSpacing.Value, vSpacing.Value];
+      const [nu, nv] = [uSpacing.Count + 1, vSpacing.Count + 1];
+
+      const uOffsetLen = Math.sqrt(
+        u.Direction.Coordinate1 * u.Direction.Coordinate1 +
+          u.Direction.Coordinate2 * u.Direction.Coordinate2
+      );
+
+      const vOffsetLen = Math.sqrt(
+        v.Direction.Coordinate1 * v.Direction.Coordinate1 +
+          v.Direction.Coordinate2 * v.Direction.Coordinate2
+      );
+
+      const [ux, uy] = [
+        (uLen * u.Direction.Coordinate1) / uOffsetLen,
+        (uLen * u.Direction.Coordinate2) / uOffsetLen
+      ];
+      const [vx, vy] = [
+        (vLen * v.Direction.Coordinate1) / vOffsetLen,
+        (vLen * v.Direction.Coordinate2) / vOffsetLen
+      ];
+      pNodeCount = nu * nv;
+      for (let vv = 0; vv < nv; vv++) {
+        for (let uu = 0; uu < nu; uu++) {
+          const x = ox + ux * uu + vx * vv;
+          const y = oy + uy * uu + vy * vv;
+          minX = Math.min(x, minX);
+          maxX = Math.max(x, maxX);
+          minY = Math.min(y, minY);
+          maxY = Math.max(y, maxY);
+        }
+      }
+    }
+  } else if (geo.$type === "resqml22.Point3dFromRepresentationLatticeArray") {
+    const lArray =
+      geo as SimpleJson<resqml22.Point3dFromRepresentationLatticeArray>;
+    const rep = lArray.SupportingRepresentation
+      ?._data as SimpleJson<resqml22.AbstractRepresentation>;
+    const geometries = getGeometries(rep);
+    for await (const g of geometries) {
+      const v = await getMinMaxPoints(client, dataspaceUri, g.Points);
+      minX = Math.min(minX, v.minX);
+      minY = Math.min(minY, v.minY);
+      maxX = Math.max(maxX, v.maxX);
+      maxY = Math.max(maxY, v.maxY);
+      pNodeCount += v.pNodeCount;
+    }
   }
   return { minX, minY, maxX, maxY, pNodeCount };
 };
@@ -495,8 +803,8 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     this.ancestry = undefined;
     this.createTime = xml.Citation.Creation;
     this.createUser = xml.Citation.Originator;
-    this.modifyTime = xml.Citation.LastUpdate || this.createTime;
-    this.modifyUser = xml.Citation.Editor || this.createUser;
+    this.modifyTime = xml.Citation.LastUpdate ?? this.createTime;
+    this.modifyUser = xml.Citation.Editor ?? this.createUser;
 
     const kind = osduType.split(".")[0];
 
@@ -504,7 +812,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
       .split(".")
       .slice(1)
       .join(".")}`;
-    const id = OSDUContext.osduId(xml.Uuid, xml.$type || "eml20", xml);
+    const id = OSDUContext.osduId(xml.Uuid, xml);
     this.id = `${this.__context.partition}:${resourceType}--${kind}:${id}`;
     this.version = 1;
 
@@ -539,14 +847,16 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * Convert a Data Object Reference to an OSDU SRN
    *
    * @param {string} uri
-   * @param {(SimpleJson<eml20.DataObjectReference> | undefined)} dor
+   * @param {(SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference> | undefined)} dor
    * @param {ResqmlClient} client
    * @return {Promise<string | undefined>}
    * @memberof WorkProductComponent
    */
   public async dorToSrn(
     uri: string,
-    dor: SimpleJson<eml20.DataObjectReference> | undefined,
+    dor:
+      | SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
+      | undefined,
     client: ResqmlClient
   ): Promise<string | undefined> {
     const xml = dor ? await this.getObjectFromDor(client, uri, dor) : undefined;
@@ -565,17 +875,24 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    *
    * @static
    * @param {string} uri
-   * @param {SimpleJson<eml20.DataObjectReference>} dor
+   * @param {SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference>} dor
    * @return {string}
    * @memberof WorkProductComponent
    */
   public static dorToUri(
     uri: string,
-    dor: SimpleJson<eml20.DataObjectReference>
+    dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
   ): string {
-    const refType = new EtpContentType(dor.ContentType).etpType;
+    const dor20 = dor as SimpleJson<eml20.DataObjectReference>;
+    if (dor20.ContentType !== undefined) {
+      const refType = new EtpContentType(dor20.ContentType).etpType;
+      const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
+      return `${ds}/${refType}(${dor20.UUID})`;
+    }
+    const dor23 = dor as SimpleJson<eml23.DataObjectReference>;
+    const refType = dor23.QualifiedType;
     const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
-    return `${ds}/${refType}(${dor.UUID})`;
+    return `${ds}/${refType}(${dor20.UUID})`;
   }
 
   /**
@@ -623,14 +940,14 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @static
    * @param {ResqmlClient} client
    * @param {string} uri URI of the containing object
-   * @param {SimpleJson<eml20.DataObjectReference>} dor
+   * @param {SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference>} dor
    * @return {(Promise<IResqmlDataObject | undefined>)}
    * @memberof WorkProductComponent
    */
   public async getObjectFromDor(
     client: ResqmlClient,
     uri: string,
-    dor: SimpleJson<eml20.DataObjectReference>
+    dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
   ): Promise<IResqmlDataObject | undefined> {
     if (dor._data) {
       return dor._data;
@@ -641,7 +958,9 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   }
 
   public assignExtraMetaData(
-    extraMetadata?: SimpleJson<resqml20.NameValuePair>[]
+    extraMetadata?: SimpleJson<
+      resqml20.NameValuePair | eml23.ExtensionNameValue
+    >[]
   ): void {
     if (extraMetadata === undefined) {
       return;
@@ -656,7 +975,9 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         let curObj: Record<string, any> = this;
         let pathInObject = true;
-        for (let i = 0; i < path.length - 1; i++) {
+        const lastindex = path.length - 1;
+
+        for (let i = 0; i < lastindex; i++) {
           if (path[i] in curObj) {
             const key = path[i];
             if (curObj[key] === undefined) {
@@ -674,7 +995,17 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
 
         // If path is valid, set the value
         if (pathInObject) {
-          curObj[path[path.length - 1]] = x.Value;
+          let value = x.Value;
+          try {
+            if (typeof x.Value === "object") {
+              value = JSON.parse(x.Value._);
+            } else {
+              value = JSON.parse(x.Value);
+            }
+          } catch (e) {
+            value = x.Value;
+          }
+          curObj[path[lastindex]] = value;
         } else if ("data" in this && typeof this.data === "object") {
           // If path is not valid, set the value in the ExtensionProperties
           const data = this.data as Record<string, any>;
@@ -716,7 +1047,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
  * @template RES_TYPE
  */
 export class ResqmlWorkProductComponent<
-  RES_TYPE extends SimpleJson<resqml20.AbstractResqmlDataObject>
+  RES_TYPE extends IResqmlDataObject
 > extends ResqmlResource<RES_TYPE> {
   constructor(xml: RES_TYPE, context: OSDUContext, osduType: string) {
     super(xml, context, "work-product-component", osduType);
@@ -728,7 +1059,7 @@ export class ResqmlWorkProductComponent<
    * @static
    * @param {ResqmlClient} client
    * @param {string} uri
-   * @param {(SimpleJson<resqml20.AbstractFeatureInterpretation>
+   * @param {(SimpleJson<resqml20.AbstractFeatureInterpretation|resqml22.AbstractFeatureInterpretation>
    *       | undefined)} interpretation
    * @return {(Promise<number | undefined>)}
    * @memberof ResqmlWorkProductComponent
@@ -737,11 +1068,20 @@ export class ResqmlWorkProductComponent<
     client: ResqmlClient,
     uri: string,
     interpretation:
-      | SimpleJson<resqml20.AbstractFeatureInterpretation>
+      | SimpleJson<
+          | resqml20.AbstractFeatureInterpretation
+          | resqml22.AbstractFeatureInterpretation
+        >
       | undefined
   ): Promise<number | undefined> {
     if (interpretation === undefined) {
       return undefined;
+    }
+    const int2 =
+      interpretation as SimpleJson<resqml22.BoundaryFeatureInterpretation>;
+    const a = int2?.AbsoluteAge?.AgeOffsetAttribute;
+    if (a !== undefined) {
+      return a;
     }
     const feat = (await this.getObjectFromDor(
       client,
@@ -827,10 +1167,10 @@ export class ResqmlWorkProductComponent<
   }> {
     const context = this.__context;
     if (context === undefined) {
-      return Promise.reject("No context");
+      return Promise.reject(new Error("Undefined context"));
     }
     if (pointCoordinates.length === 0) {
-      return Promise.reject("No geometry provided");
+      return Promise.reject(new Error("No geometry provided"));
     }
 
     let aMinX: number = Number.POSITIVE_INFINITY;
@@ -858,7 +1198,7 @@ export class ResqmlWorkProductComponent<
 
       CoordinateReferenceSystemID = this.referenceSystemId(epsgCrs, epsgCode);
       persistableReferenceCrs =
-        this.persistableReferenceSystem(epsgCrs, epsgCode) || "";
+        this.persistableReferenceSystem(epsgCrs, epsgCode) ?? "";
 
       try {
         Wgs84Coordinates = await context.convertPointsWGS84(
@@ -964,7 +1304,7 @@ export class ResqmlWorkProductComponent<
    *
    * @param {ResqmlClient} client
    * @param {string} dataspaceUri
-   * @param {SimpleJson<resqml20.PointGeometry>[]} geometries
+   * @param {SimpleJson<resqml20.PointGeometry|resqml22.PointGeometry>[]} geometries
    * @return {Promise<{
    *     SpatialPoint: AbstractSpatialLocation|undefined;
    *     SpatialArea: AbstractSpatialLocation|undefined;
@@ -976,7 +1316,7 @@ export class ResqmlWorkProductComponent<
   public async createSpatialInfo(
     client: ResqmlClient,
     dataspaceUri: string,
-    geometries: SimpleJson<resqml20.PointGeometry>[]
+    geometries: SimpleJson<resqml20.PointGeometry | resqml22.PointGeometry>[]
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
@@ -985,10 +1325,10 @@ export class ResqmlWorkProductComponent<
   }> {
     const context = this.__context;
     if (context === undefined) {
-      return Promise.reject("No context");
+      return Promise.reject(new Error("No context"));
     }
     if (geometries.length < 1) {
-      return Promise.reject("No geometry provided");
+      return Promise.reject(new Error("No geometry provided"));
     }
 
     const crsObj = await this.getObjectFromDor(
@@ -996,9 +1336,17 @@ export class ResqmlWorkProductComponent<
       dataspaceUri,
       geometries[0].LocalCrs
     );
+    if (crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs") {
+      // TODO: Other CRS
+      return Promise.reject(
+        new Error(
+          "Only resqml20.obj_LocalDepth3dCrs are supported to create spatial info"
+        )
+      );
+    }
     const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
     if (!crs) {
-      return Promise.reject("Invalid CRS");
+      return Promise.reject(new Error("Invalid CRS"));
     }
 
     let aMinX: number = Number.POSITIVE_INFINITY;
@@ -1025,7 +1373,7 @@ export class ResqmlWorkProductComponent<
       await this.createSpatialInfoFrom2dPoints(
         [
           [aMinX, aMinY],
-          [aMaxY, aMinY],
+          [aMaxX, aMinY],
           [aMaxX, aMaxY],
           [aMinX, aMaxY]
         ],
@@ -1040,10 +1388,21 @@ export class ResqmlWorkProductComponent<
     };
   }
 
+  public refUuid(
+    dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
+  ): string {
+    const dor20 = dor as SimpleJson<eml20.DataObjectReference>;
+    if (dor20.UUID !== undefined) {
+      return dor20.UUID;
+    }
+    const dor23 = dor as SimpleJson<eml23.DataObjectReference>;
+    return dor23.Uuid;
+  }
+
   /**
    * Get the objects involved in creating an object
    *
-   * @param {ResqmlETPClient} client
+   * @param {ResqmlClient} client
    * @param {string} objectUri
    * @returns {Promise<SimpleJson<eml20.DataObjectReference>[]>}
    * @memberof ResqmlWorkProductComponent
@@ -1051,28 +1410,49 @@ export class ResqmlWorkProductComponent<
   public async getCreatingObjects(
     client: ResqmlClient,
     objectUri: string
-  ): Promise<SimpleJson<eml20.DataObjectReference>[]> {
+  ): Promise<
+    SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>[]
+  > {
     const RESQML20_ACTIVITY_TYPE = "resqml20.obj_Activity";
-    const sources = await client.getSources(objectUri, false, [
+    const sources20 = await client.getSources(objectUri, false, [
       RESQML20_ACTIVITY_TYPE
     ]);
 
-    const matchingDors: SimpleJson<eml20.DataObjectReference>[] = [];
+    const EML23_ACTIVITY_TYPE = "eml23.Activity";
+    const sources23 = await client.getSources(objectUri, false, [
+      EML23_ACTIVITY_TYPE
+    ]);
+
+    const matchingDors: SimpleJson<
+      eml20.DataObjectReference | eml23.DataObjectReference
+    >[] = [];
 
     // Find all activities for which the the object is an output
     const etpUri = new EtpUri(objectUri);
-    const activities: SimpleJson<resqml20.obj_Activity>[] = [];
+    const activities20: SimpleJson<resqml20.obj_Activity>[] = [];
     (
       await this.getObjects(
         client,
-        sources.map(r => r.uri)
+        sources20.map(r => r.uri)
       )
     ).forEach(s => {
-      s && activities.push(s as SimpleJson<resqml20.obj_Activity>);
+      s && activities20.push(s as SimpleJson<resqml20.obj_Activity>);
     });
 
-    const dors: SimpleJson<eml20.DataObjectReference>[] = [];
-    for (const a of activities) {
+    const activities23: SimpleJson<eml23.Activity>[] = [];
+    (
+      await this.getObjects(
+        client,
+        sources23.map(r => r.uri)
+      )
+    ).forEach(s => {
+      s && activities23.push(s as SimpleJson<eml23.Activity>);
+    });
+
+    const dors: SimpleJson<
+      eml20.DataObjectReference | eml23.DataObjectReference
+    >[] = [];
+    for (const a of activities20) {
       const temp = await this.getObjectFromDor(
         client,
         objectUri,
@@ -1081,26 +1461,48 @@ export class ResqmlWorkProductComponent<
       if (temp === undefined) {
         continue;
       }
-      const template = temp as SimpleJson<resqml20.obj_ActivityTemplate>;
-      for (const p of a.Parameter) {
-        if (p.$type !== "resqml20.DataObjectParameter") {
-          continue;
+      if (temp.$type === "resqml20.obj_ActivityTemplate") {
+        const template = temp as SimpleJson<resqml20.obj_ActivityTemplate>;
+        for (const p of a.Parameter) {
+          const dop = p as SimpleJson<resqml20.DataObjectParameter>;
+          if (dop.DataObject?.UUID === etpUri.uuid) {
+            const tp = template.Parameter.find(t => t.Title === dop.Title);
+            if (tp?.IsOutput) {
+              for (const p of a.Parameter) {
+                if (p.$type !== "resqml20.DataObjectParameter") {
+                  continue;
+                }
+                const tp2 = template.Parameter.find(t => t.Title === p.Title);
+                if (tp2?.IsInput !== true) {
+                  continue;
+                }
+                const dop20 = p as SimpleJson<resqml20.DataObjectParameter>;
+                if (this.refUuid(dop20.DataObject) !== etpUri.uuid) {
+                  dors.push(dop20.DataObject);
+                }
+              }
+            }
+          }
         }
-        const dop = p as SimpleJson<resqml20.DataObjectParameter>;
-        if (dop.DataObject.UUID === etpUri.uuid) {
-          const tp = template.Parameter.find(t => t.Title === dop.Title);
-          if (tp !== undefined && tp.IsOutput) {
-            for (const p of a.Parameter) {
-              if (p.$type !== "resqml20.DataObjectParameter") {
-                continue;
-              }
-              const tp2 = template.Parameter.find(t => t.Title === p.Title);
-              if (tp2?.IsInput !== true) {
-                continue;
-              }
-              const dop = p as SimpleJson<resqml20.DataObjectParameter>;
-              if (dop.DataObject.UUID !== etpUri.uuid) {
-                dors.push(dop.DataObject);
+      } else if (temp.$type === "eml23.ActivityTemplate") {
+        const template = temp as SimpleJson<eml23.ActivityTemplate>;
+        for (const p of a.Parameter) {
+          const dop = p as SimpleJson<eml23.DataObjectParameter>;
+          if (dop.DataObject?.Uuid === etpUri.uuid) {
+            const tp = template.Parameter.find(t => t.Title === dop.Title);
+            if (tp?.IsOutput) {
+              for (const p of a.Parameter) {
+                if (p.$type !== "eml23.DataObjectParameter") {
+                  continue;
+                }
+                const tp2 = template.Parameter.find(t => t.Title === p.Title);
+                if (tp2?.IsInput !== true) {
+                  continue;
+                }
+                const dop22 = p as SimpleJson<eml23.DataObjectParameter>;
+                if (this.refUuid(dop22.DataObject) !== etpUri.uuid) {
+                  dors.push(dop22.DataObject);
+                }
               }
             }
           }
@@ -1136,7 +1538,7 @@ export class ResqmlWorkProductComponent<
             );
           })
         ) {
-          if (!matchingDors.some(m => d.UUID === m.UUID)) {
+          if (!matchingDors.some(m => this.refUuid(d) === this.refUuid(m))) {
             matchingDors.push(d);
           }
         }
@@ -1172,13 +1574,13 @@ export class ResqmlWorkProductComponent<
   /**
    * Create the AbstractWorkProductComponent part of WPC Data
    *
-   * @param {SimpleJson<resqml20.AbstractResqmlDataObject>} xml
+   * @param {SimpleJson<resqml20.AbstractResqmlDataObject| eml23.AbstractObject>} xml
    * @param {OSDUContext} context
    * @return {Promise<AbstractWorkProductComponent>}
    * @memberof ResqmlWorkProductComponent
    */
   public async AbstractWorkProductComponent(
-    xml: SimpleJson<resqml20.AbstractResqmlDataObject>,
+    xml: SimpleJson<resqml20.AbstractResqmlDataObject | eml23.AbstractObject>,
     context: OSDUContext
   ): Promise<AbstractWorkProductComponent> {
     return {
@@ -1200,7 +1602,7 @@ export class ResqmlWorkProductComponent<
    * Create the AbstractInterpretation part of WPC Data
    *
    * @param {string} ReservoirDMSUrl
-   * @param {SimpleJson<resqml20.AbstractFeatureInterpretation>} xml
+   * @param {SimpleJson<resqml20.AbstractFeatureInterpretation| resqml22.AbstractFeatureInterpretation>} xml
    * @param {ResqmlClient} client
    * @param {OSDUContext} context
    * @return {Promise<AbstractInterpretation>}
@@ -1208,7 +1610,10 @@ export class ResqmlWorkProductComponent<
    */
   public async AbstractInterpretation(
     ReservoirDMSUrl: string,
-    xml: SimpleJson<resqml20.AbstractFeatureInterpretation>,
+    xml: SimpleJson<
+      | resqml20.AbstractFeatureInterpretation
+      | resqml22.AbstractFeatureInterpretation
+    >,
     client: ResqmlClient,
     context: OSDUContext
   ): Promise<AbstractInterpretation> {
@@ -1216,26 +1621,67 @@ export class ResqmlWorkProductComponent<
       client,
       ReservoirDMSUrl,
       xml.InterpretedFeature
-    )) as SimpleJson<resqml20.AbstractFeature>;
+    )) as SimpleJson<resqml20.AbstractFeature | resqml22.AbstractFeature>;
 
     const strAge = await this.age(client, ReservoirDMSUrl, xml);
     let OlderPossibleAge = strAge;
     let YoungerPossibleAge = strAge;
-    if (xml.HasOccuredDuring?.ChronoBottom !== undefined) {
+    const xml20 = xml as SimpleJson<resqml20.AbstractFeatureInterpretation>;
+    if (xml20.HasOccuredDuring?.ChronoBottom !== undefined) {
       const bot = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml.HasOccuredDuring?.ChronoBottom
-      )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
+        xml20.HasOccuredDuring?.ChronoBottom
+      )) as SimpleJson<
+        | resqml20.obj_StratigraphicUnitInterpretation
+        | resqml22.StratigraphicUnitInterpretation
+      >;
       OlderPossibleAge = await this.age(client, ReservoirDMSUrl, bot);
     }
-    if (xml.HasOccuredDuring?.ChronoTop !== undefined) {
+    if (xml20.HasOccuredDuring?.ChronoTop !== undefined) {
       const top = (await this.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml.HasOccuredDuring?.ChronoTop
-      )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
+        xml20.HasOccuredDuring?.ChronoTop
+      )) as SimpleJson<
+        | resqml20.obj_StratigraphicUnitInterpretation
+        | resqml22.StratigraphicUnitInterpretation
+      >;
       YoungerPossibleAge = await this.age(client, ReservoirDMSUrl, top);
+    }
+
+    const xml22 = xml as SimpleJson<resqml22.AbstractFeatureInterpretation>;
+    if (xml22.HasOccurredDuring !== undefined) {
+      const boundInterval =
+        xml22.HasOccurredDuring as SimpleJson<resqml22.GeneticBoundaryBasedTimeInterval>;
+
+      if (boundInterval.ChronoBottom !== undefined) {
+        const bot = (await this.getObjectFromDor(
+          client,
+          ReservoirDMSUrl,
+          boundInterval.ChronoBottom
+        )) as SimpleJson<
+          | resqml20.obj_StratigraphicUnitInterpretation
+          | resqml22.StratigraphicUnitInterpretation
+        >;
+        OlderPossibleAge = await this.age(client, ReservoirDMSUrl, bot);
+      }
+      if (boundInterval.ChronoTop !== undefined) {
+        const top = (await this.getObjectFromDor(
+          client,
+          ReservoirDMSUrl,
+          boundInterval.ChronoTop
+        )) as SimpleJson<
+          | resqml20.obj_StratigraphicUnitInterpretation
+          | resqml22.StratigraphicUnitInterpretation
+        >;
+        YoungerPossibleAge = await this.age(client, ReservoirDMSUrl, top);
+      }
+
+      const timeInterval =
+        xml22.HasOccurredDuring as SimpleJson<resqml22.GeologicTimeBasedTimeInterval>;
+      OlderPossibleAge = timeInterval.Start.AgeOffsetAttribute;
+      YoungerPossibleAge = timeInterval.End.AgeOffsetAttribute;
     }
 
     return {

@@ -116,14 +116,11 @@ export const createManifest = async (
       if (!currentDataspaces.has(dataspaceId)) {
         // Check if the object dataspace exists on server
         const dataspaceUri = EtpUri.createDataSpaceUri(etpUri.dataSpace).uri;
-        const dataspaces = (await client.getDataspaces())?.filter(
-          d => d.uri === dataspaceUri
+        const dataspace = await client.getDataspaceInfo([dataspaceUri]).then(
+          dataspaces => (dataspaces.length === 1 ? dataspaces[0] : undefined),
+          () => undefined
         );
-        if (
-          manifests.Data === undefined ||
-          dataspaces === undefined ||
-          dataspaces.length !== 1
-        ) {
+        if (manifests.Data === undefined || !dataspace) {
           continue;
         }
 
@@ -135,10 +132,8 @@ export const createManifest = async (
         // manifests.Data.WorkProduct.version = 1;
         currentDataspaces.add(dataspaceId);
 
-        manifests.Data.Datasets = manifests.Data.Datasets || [];
-        manifests.Data.Datasets.push(
-          EtpDataspaceManifest(dataspaces[0], context)
-        );
+        manifests.Data.Datasets = manifests.Data.Datasets ?? [];
+        manifests.Data.Datasets.push(EtpDataspaceManifest(dataspace, context));
       }
 
       // Check that it is an object
@@ -173,7 +168,8 @@ export const createManifest = async (
     manifests.MasterData = [];
     const urisNotFound = [];
     for (let i = 0; i < resolvedObjects.length; i++) {
-      if (resolvedObjects[i] === null) {
+      const resObj = resolvedObjects[i];
+      if (resObj === null) {
         urisNotFound.push(objectUris[i]);
         continue;
       }
@@ -190,10 +186,7 @@ export const createManifest = async (
       );
       if (res !== undefined && res.id) {
         // Check if it is an explicit osdu resource
-        const al = resolvedObjects[i]?.Aliases?.find(
-          a => a.Authority === "osdu"
-        );
-        if (al && al.Identifier) {
+        if (OSDUContext.osduAlias(resObj) !== undefined) {
           //Check that a version exists
           const d = res.id.split(":");
           const version = await context.getOSDUResourceVersion(res.id);

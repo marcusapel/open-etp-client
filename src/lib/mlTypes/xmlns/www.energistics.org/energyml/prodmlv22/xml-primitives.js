@@ -1,8 +1,8 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const cxml = require("../../cxml/cxml");
+/* eslint-disable @typescript-eslint/no-var-requires */
+const cxml = require("../../../../../cxml/cxml");
 
 cxml.register(
-  cxml.context("resqml20"),
+  cxml.context("prodml22"),
   "xml-primitives",
   exports,
   [],

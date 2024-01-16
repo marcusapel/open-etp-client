@@ -10,7 +10,6 @@ import { Namespace } from "../xml/Namespace";
 import { State } from "./State";
 import { HandlerInstance, Rule, RuleClass } from "./Rule";
 
-import { defaultContext } from "../importer/JS";
 import { ItemParsed, parse, PredicateParsed } from "../spinoffs/xpath";
 
 export type ItemParsedKey = keyof ItemParsed;
@@ -19,14 +18,14 @@ export type ItemParsedValue = ItemParsed[ItemParsedKey];
 // TODO can this type definition be improved?
 /*
 {
-	xpathElMatcher(obj): {
- 	  _before: Function,
- 	  _after: Function,
-		xpathElMatcher(obj): {
-			_before: Function,
-			_after: Function,
-		}(Map),
-	}(Map)
+  xpathElMatcher(obj): {
+      _before: Function,
+      _after: Function,
+    xpathElMatcher(obj): {
+      _before: Function,
+      _after: Function,
+    }(Map),
+  }(Map)
 }(Map)
 //*/
 export type AttachmentMethodNames = "_after" | "_before";
@@ -173,7 +172,7 @@ function getAttachmentMethod<T>(
                 op: keyof NonBinaryOpHandlers;
                 right: string | number;
               }
-							//*/
+              //*/
 
   const value = findInMapIter(
     bTree.entries(),
@@ -333,13 +332,11 @@ export class Parser<T> {
                 isRunningMatch &&
                 candidateItemParsed[xpathElMatcherKey] === xpathElMatcherValue
               );
-            },
-            true);
+            }, true);
           }) || [new Map(), xpathElMatcher];
         parentMap.set(currentItemParsed, currentMap);
         return currentMap;
-      },
-      this.bTree);
+      }, this.bTree);
 
       if (_before) {
         finalItem.set(
@@ -367,17 +364,11 @@ export class Parser<T> {
   parse<Output extends HandlerInstance>(
     stream: string | stream.Readable | NodeJS.ReadableStream,
     output: Output,
-    context?: Context
+    context: Context
   ): Promise<Output> {
     return new Promise<Output>(
       (resolve: (item: Output) => void, reject: (err: Error) => void) =>
-        this._parse<Output>(
-          stream,
-          output,
-          context || defaultContext,
-          resolve,
-          reject
-        )
+        this._parse<Output>(stream, output, context, resolve, reject)
     );
   }
 

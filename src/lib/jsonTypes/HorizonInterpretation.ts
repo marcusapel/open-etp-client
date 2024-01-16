@@ -67,6 +67,8 @@ export class HorizonInterpretationOSDU
         "StratigraphicRoleType",
         "Chronostratigraphic"
       ),
+      isConformableAbove,
+      isConformableBelow,
       ExtensionProperties: undefined
     };
 
