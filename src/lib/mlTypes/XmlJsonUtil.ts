@@ -38,7 +38,6 @@ import * as prodml22 from "./xmlns/www.energistics.org/energyml/prodmlv22/prodml
 import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import * as resqml22 from "./xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
 import * as witsml21 from "./xmlns/www.energistics.org/energyml/witsmlv21/witsmlv2";
-import { parse } from "./FastActivityParser";
 
 // Create a new type where the keys of an object to their CamelCase version
 type Camel<T> = T extends any[]
