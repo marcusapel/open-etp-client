@@ -33,7 +33,11 @@ import * as cxml from "../cxml/cxml";
 import { Abstract, Convert } from "./ResqmlTypes";
 
 import * as eml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
+import * as eml23 from "./xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
+import * as prodml22 from "./xmlns/www.energistics.org/energyml/prodmlv22/prodmlv2";
 import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+import * as resqml22 from "./xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
+import * as witsml21 from "./xmlns/www.energistics.org/energyml/witsmlv21/witsmlv2";
 
 // Create a new type where the keys of an object to their CamelCase version
 type Camel<T> = T extends any[]
@@ -161,6 +165,19 @@ export const stringToBigInt = (
   return value;
 };
 
+/* Compute ETP domain from xsi domain */
+const etpDomainFromXsi = (xsi: string, schemaVersion: string): string => {
+  if (xsi.startsWith("resqml")) {
+    return schemaVersion === "2.0" ? "resqml20" : "resqml22";
+  } else if (xsi.startsWith("witsml")) {
+    return "witsml21";
+  } else if (xsi.startsWith("prodml")) {
+    return "prodml22";
+  } else {
+    return schemaVersion === "2.0" ? "eml20" : "eml23";
+  }
+};
+
 /**
  * Replace xsi:type by $type
  *
@@ -169,7 +186,7 @@ export const stringToBigInt = (
  */
 const processXsiType = (
   obj: Record<string, any>,
-  _schemaVersion: string
+  schemaVersion: string
 ): Record<string, any> => {
   if (!("xsi:type" in obj)) {
     return obj;
@@ -178,8 +195,10 @@ const processXsiType = (
   // Convert xsi:type into $type
   const dot = xsiType.indexOf(":");
   if (dot !== -1 && dot < xsiType.length - 1) {
-    let interfaceDomain: string = xsiType.substring(0, dot);
-    interfaceDomain = interfaceDomain.startsWith("eml") ? "eml20" : "resqml20";
+    const interfaceDomain = etpDomainFromXsi(
+      xsiType.substring(0, dot),
+      schemaVersion
+    );
     const interfaceName = xsiType.substring(dot + 1);
     obj["$type"] = `${interfaceDomain}.${interfaceName}`;
   } else {
@@ -204,7 +223,7 @@ export const toPascalCase = (input: string): string => {
 /**
  * Process the keys of an object, creating a simpler JS Object without XML related extras
  *
- * @param {unknown} obj
+ * @param {unknown} resqmlObj
  * @param {string} schemaVersion
  * @returns unknown
  */
@@ -276,27 +295,65 @@ export const checkResqmlObject = (
 };
 
 /**
+ * Return if type is based on eml20 or eml23
+ *
+ * @param {string} dataObjectType
+ * @returns {boolean}
+ */
+export const isEml20 = (dataObjectType: string): boolean => {
+  return (
+    dataObjectType.startsWith("resqml20") || dataObjectType.startsWith("eml20")
+  );
+};
+
+/**
+ * Return xml document corresponding to data type
+ * @param {string} dataObjectType
+ */
+const xmlDocument = (dataObjectType: string) => {
+  return dataObjectType.startsWith("resqml20")
+    ? resqml20.document
+    : dataObjectType.startsWith("prodml22")
+    ? prodml22.document
+    : dataObjectType.startsWith("resqml22")
+    ? resqml22.document
+    : dataObjectType.startsWith("witsml21")
+    ? witsml21.document
+    : dataObjectType.startsWith("eml23")
+    ? eml23.document
+    : eml20.document;
+};
+
+/**
  * Convert a xml string into a JS object
  *
  * @param {string} xml
  * @param {string} dataObjectType
+ * @param {boolean} [_usingSchema=true] allow not to use schema for conversion, which is faster but very dangerous if you have an array in any part of the path when accessing an element.
  * @returns {Promise<SimpleJson<eml20.AbstractCitedDataObject>>}
  */
 export const xml2typescript = async (
   xml: string,
-  dataObjectType: string
-): Promise<SimpleJson<eml20.AbstractCitedDataObject>> => {
+  dataObjectType: string,
+  _usingSchema = true
+): Promise<
+  SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>
+> => {
+  const eml20 = isEml20(dataObjectType);
   try {
     const res = await parser.parse(
       xml,
-      dataObjectType.startsWith("resqml20") ? resqml20.document : eml20.document
+      xmlDocument(dataObjectType),
+      cxml.context(dataObjectType.split(".")[0])
     );
     const keys = Object.keys(res);
     if (keys.length === 0) {
       return Promise.reject("Empty object");
     }
-    const k = simpleJson((res as Record<string, any>)[keys[0]], "");
-    return k as SimpleJson<eml20.AbstractCitedDataObject>;
+    const json = simpleJson((res as Record<string, any>)[keys[0]], "");
+    return eml20
+      ? (json as SimpleJson<eml20.AbstractCitedDataObject>)
+      : (json as SimpleJson<eml23.AbstractObject>);
   } catch (err) {
     return Promise.reject(err);
   }
@@ -823,7 +880,7 @@ export class InterfaceTypeUtils {
       }
     }
     if (t.isUnion()) {
-      const name = t.getAliasSymbol()?.getName() || "";
+      const name = t.getAliasSymbol()?.getName() ?? "";
       let schema = `{\n    "type": "string",\n    "enum": [`;
       schema += t
         .getUnionTypes()
@@ -959,7 +1016,7 @@ export class InterfaceTypeUtils {
             );
           }
           const i = this.computeJSONInterfaceSchema(
-            base.getText() || "",
+            base.getText() ?? "",
             propertyMap,
             dependencies,
             required
@@ -1054,7 +1111,7 @@ const fileDirectory = path.dirname(__filename);
 
 export const getFilePath = (
   fileName: string,
-  subDir: "resqmlv201" | "witsmlv2"
+  subDir: "resqmlv201" | "resqmlv22" | "witsmlv21" | "prodmlv22"
 ): string => {
   return `${fileDirectory}/xmlns/www.energistics.org/energyml/${subDir}/${fileName}`;
 };
@@ -1117,7 +1174,7 @@ export class WitsmlTypeUtils extends InterfaceTypeUtils {
    */
   constructor(allowResolvedReferences = true) {
     super(allowResolvedReferences);
-    const subDir = "witsmlv2";
+    const subDir = "witsmlv21";
     this.project.addSourceFilesAtPaths([
       getFilePath("witsmlv2.d.ts", subDir),
       getFilePath(commonFileName, subDir)
@@ -1125,11 +1182,11 @@ export class WitsmlTypeUtils extends InterfaceTypeUtils {
     const witsmlFile = this.project.getSourceFileOrThrow(
       getFilePath("witsmlv2.d.ts", subDir)
     );
-    this.files.set("witsml20", witsmlFile);
+    this.files.set("witsml21", witsmlFile);
     const emlFile = this.project.getSourceFileOrThrow(
       getFilePath(commonFileName, subDir)
     );
-    this.files.set("eml", emlFile);
+    this.files.set("eml23", emlFile);
   }
 }
 

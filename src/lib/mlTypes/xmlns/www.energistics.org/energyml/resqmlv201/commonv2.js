@@ -3,6 +3,7 @@ const cxml = require("../../../../../cxml/cxml");
 const Primitive = require("../../../xml-primitives");
 
 cxml.register(
+  cxml.context("resqml20"),
   "http://www.energistics.org/energyml/data/commonv2",
   exports,
   [[Primitive, ["Date", "number", "string"], []]],

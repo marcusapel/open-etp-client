@@ -60,12 +60,14 @@ import { StoreNotificationCustomer } from "../protocols/StoreNotificationCustome
 import { SupportedTypesCustomer } from "../protocols/SupportedTypesCustomer";
 import { TransactionCustomer } from "../protocols/TransactionCustomer";
 
-import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
 import { retryOnEtpErrors } from "../common/Util";
 import { DataspaceOSDUCustomer } from "../protocols/DataspaceOSDUCustomer";
+import * as Eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
+import * as Eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
+import * as Resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 
 const socket = websocket.w3cwebsocket;
 
@@ -111,11 +113,14 @@ export * as ODataUtils from "../oDataParser/oDataUtils";
 export * as XmlUtils from "../mlTypes/XmlJsonUtil";
 export { SimpleJson } from "../mlTypes/XmlJsonUtil";
 export * as Resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+export * as Eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/witsmlv21/commonv2";
 
 const authenticationKeyBase =
   process.env.RDMS_AUTHENTICATION_KEY_BASE || "osdu-rddms";
 
-export type IResqmlDataObject = SimpleJson<resqml20.AbstractResqmlDataObject>;
+export type IResqmlDataObject =
+  | SimpleJson<Eml23.AbstractObject>
+  | SimpleJson<Resqml20.AbstractResqmlDataObject>;
 
 export { Convert } from "../mlTypes/ResqmlTypes";
 
@@ -151,7 +156,7 @@ export type NumberArray = Int32Array | Float32Array | Float64Array;
 
 function formattedTypedArray<T extends NumberArray>(
   values: number[],
-  t: { new (arr: number[]): T },
+  t: new (arr: number[]) => T,
   format: ArrayFormat
 ): ArrayOutput | undefined {
   if (format === "base64") {
@@ -1079,11 +1084,13 @@ export class ResqmlClient {
    * If there is a need for resolved objects use {@link getResolvedObjects} instead.
    *
    * @param {URI[]} uris of the objects to get
+   * @param {boolean} [usingSchema=true] allow not to use schema for conversion, which is faster but very dangerous if you have an array in any part of the path when accessing an element.
    * @returns {Promise<Array<IResqmlDataObject|null>} Resulting object in order of query, null if query fail
    * @memberof ResqmlClient
    */
   public async getObjects(
-    uris: URI[]
+    uris: URI[],
+    usingSchema = true
   ): Promise<Array<IResqmlDataObject | null>> {
     if (uris.length === 0) {
       return [];
@@ -1094,7 +1101,8 @@ export class ResqmlClient {
           dob
             ? xml2typescript(
                 byteToString(dob.data),
-                new EtpUri(dob.resource.uri).dataObjectType
+                new EtpUri(dob.resource.uri).dataObjectType,
+                usingSchema
               )
             : null
         )
@@ -1361,7 +1369,7 @@ export class ResqmlClient {
     uris: Set<URI> = new Set<URI>()
   ): void {
     const obj = resqmlObj as Record<string, any>;
-    Object.keys(obj).forEach(async key => {
+    Object.keys(obj).forEach(key => {
       const qualifiedType = new EtpQualifiedType(obj[key]?.$type);
       if (!obj[key] || typeof obj[key] !== "object") {
         return;
@@ -2849,9 +2857,29 @@ export class ResqmlClient {
         } else if (arr) {
           obj[key] = { ...obj[key], _data: simpleJson(arr, "2.0") };
         }
-      } else if (obj[key].$type === "eml20.DataObjectReference") {
-        let nURI = obj[key].EnergisticsUri;
+      } else if (
+        // EML2.3 Array
+        obj[key].$type === "eml23.ExternalDataArrayPart"
+      ) {
+        // Resolve the data arrays
+        const nURI = `${obj[key].URI}${obj[key].PathInHdfFile}`;
+
+        const arr = dataArrays.get(nURI);
+        if (arr?.data) {
+          const arrayData = this.formatArrayData(arr.data.data, "base64");
+          const o = { ...arr, data: { ...arr.data, data: arrayData } };
+          obj[key] = { ...obj[key], _data: simpleJson(o, "2.3") };
+        } else if (arr) {
+          obj[key] = { ...obj[key], _data: simpleJson(arr, "2.3") };
+        }
+      } else if (
+        obj[key].$type === "eml20.DataObjectReference" ||
+        obj[key].$type === "eml23.DataObjectReference"
+      ) {
+        let nURI: EtpUri = new EtpUri("");
+        // TODO: Use of obj[key].EnergisticsUri for external references
         if (obj[key].$type === "eml20.DataObjectReference") {
+          const ref = obj[key] as Eml20.DataObjectReference;
           const dataObjectType: EtpContentType.EtpContentType =
             new EtpContentType.EtpContentType(obj[key].ContentType);
           nURI = EtpUri.createObjectUri(
@@ -2859,33 +2887,47 @@ export class ResqmlClient {
             dataObjectType.domainFamily,
             dataObjectType.domainVersion,
             dataObjectType.dataType,
-            obj[key].UUID,
-            obj[key].VersionString
+            ref.UUID,
+            ref.VersionString
+          );
+        } else {
+          const ref = obj[key] as Eml23.DataObjectReference;
+          const qualifiedType = new EtpQualifiedType(obj[key].QualifiedType);
+          nURI = EtpUri.createObjectUri(
+            etpUri.dataSpace,
+            qualifiedType.domainFamily,
+            qualifiedType.domainVersion,
+            qualifiedType.dataType,
+            ref.Uuid,
+            ref.ObjectVersion
           );
         }
-        // Resolve the object reference
-        let o = objects.get(nURI.uri);
-        if (!o) {
-          o = objects.get(
-            EtpUri.createObjectUri(
-              nURI.dataSpace,
-              nURI.domainFamily,
-              nURI.domainVersion,
-              nURI.objectType,
-              nURI.uuid
-            ).uri
-          );
-        }
-        if (o) {
-          const res = this.resolveReferences(
-            nURI.uri,
-            o,
-            objects,
-            dataArrays,
-            resolved
-          );
-          obj[key] = { ...obj[key], _data: res };
-          resolved.set(nURI.uri, res);
+
+        if (nURI.isValid) {
+          // Resolve the object reference
+          let o = objects.get(nURI.uri);
+          if (!o) {
+            o = objects.get(
+              EtpUri.createObjectUri(
+                nURI.dataSpace,
+                nURI.domainFamily,
+                nURI.domainVersion,
+                nURI.objectType,
+                nURI.uuid
+              ).uri
+            );
+          }
+          if (o) {
+            const res = this.resolveReferences(
+              nURI.uri,
+              o,
+              objects,
+              dataArrays,
+              resolved
+            );
+            obj[key] = { ...obj[key], _data: res };
+            resolved.set(nURI.uri, res);
+          }
         }
       } else {
         obj[key] = this.resolveReferences(

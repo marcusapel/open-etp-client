@@ -1,6 +1,8 @@
 import {
+  Eml23,
   EtpUri,
   IResqmlDataObject,
+  Resqml20,
   ResqmlClient,
   SimpleJson
 } from "../client/ResqmlClient";
@@ -18,10 +20,18 @@ import {
 } from "./Generated/manifest/Manifest.1.0.0";
 
 import { osduUrl } from "../common/config";
-import { AbstractResqmlDataObject } from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
+
+export type OSDUResourceType = {
+  acl: AccessControlList;
+  legal: LegalMetaData;
+  kind: string;
+  id?: string;
+  version?: number;
+  data?: any;
+};
 
 type Converter = (
   uri: string,
@@ -33,15 +43,6 @@ type Converter = (
 type OSDUEntry = {
   osduKind: (obj: IResqmlDataObject) => string;
   convert: Converter;
-};
-
-export type OSDUResourceType = {
-  acl: AccessControlList;
-  legal: LegalMetaData;
-  kind: string;
-  id?: string;
-  version?: number;
-  data?: any;
 };
 
 export class ResqmlOSDUMap {
@@ -374,6 +375,39 @@ export class OSDUContext {
   }
 
   /**
+   * Get the osdu alias
+   *
+   * @static
+   * @param {IResqmlDataObject} dataObject
+   * @return {string|undefined} alias if exists
+   * @memberof OSDUContext
+   */
+  public static osduAlias(dataObject: IResqmlDataObject): string | undefined {
+    const dataObjectType = dataObject.$type;
+    if (dataObjectType === undefined) {
+      return undefined;
+    }
+    if (
+      dataObjectType.startsWith("eml20") ||
+      dataObjectType.startsWith("resqml20")
+    ) {
+      const o = dataObject as SimpleJson<Resqml20.AbstractResqmlDataObject>;
+      const al = o.Aliases?.find(a => a.Authority === "osdu");
+
+      if (al && al.Identifier) {
+        return al.Identifier;
+      }
+    } else {
+      const o = dataObject as SimpleJson<Eml23.AbstractObject>;
+      const al = o.Aliases?.find(a => a.Authority === "osdu");
+      if (al && al.Identifier) {
+        return al.Identifier;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Get the osdu id using the uuid and the alias information
    *
    * @static
@@ -383,23 +417,9 @@ export class OSDUContext {
    * @return {string} id
    * @memberof OSDUContext
    */
-  public static osduId(
-    id: string,
-    dataObjectType: string,
-    dataObject: IResqmlDataObject
-  ): string {
-    if (
-      dataObjectType.startsWith("eml20") ||
-      dataObjectType.startsWith("resqml20")
-    ) {
-      const o = dataObject as SimpleJson<AbstractResqmlDataObject>;
-      const al = o.Aliases?.find(a => a.Authority === "osdu");
-
-      if (al && al.Identifier) {
-        return al.Identifier;
-      }
-    }
-    return id;
+  public static osduId(id: string, dataObject: IResqmlDataObject): string {
+    const alias = this.osduAlias(dataObject);
+    return alias ?? id;
   }
 
   /**
@@ -418,7 +438,7 @@ export class OSDUContext {
     const r: OSDUEntry | undefined = ResqmlOSDU.get(etp.dataObjectType);
     const kind = r?.osduKind(obj);
 
-    const id = OSDUContext.osduId(etp.uuid, etp.dataObjectType, obj);
+    const id = OSDUContext.osduId(etp.uuid, obj);
 
     const srn = r
       ? `${this.partition}:${kind?.split(":")[2]}:${id}`
@@ -434,10 +454,10 @@ export class OSDUContext {
    * Build the dataset Id from an URI
    *
    * @param {string} uri
-   * @return {*}
+   * @return {string}
    * @memberof OSDUContext
    */
-  public datasetId(uri: EtpUri) {
+  public datasetId(uri: EtpUri): string {
     return encodeURIComponent(uri.dataSpace.replace("/", "-")).replace(
       "%",
       "_"
@@ -688,7 +708,7 @@ export class OSDUContext {
   public async pushOSDU<T, R>(url: string, body: T): Promise<R | undefined> {
     try {
       const bodyString = JSON.stringify(body);
-      const found = await this.fetchOSDU<R>(url, {
+      return await this.fetchOSDU<R>(url, {
         method: "POST",
         headers: {
           "Content-Type": `application/json`,
@@ -696,7 +716,6 @@ export class OSDUContext {
         },
         body: bodyString
       });
-      return found;
     } catch (e) {
       return undefined;
     }
