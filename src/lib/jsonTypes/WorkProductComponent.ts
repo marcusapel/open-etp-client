@@ -860,14 +860,17 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     client: ResqmlClient
   ): Promise<string | undefined> {
     const xml = dor ? await this.getObjectFromDor(client, uri, dor) : undefined;
-    return dor === undefined ||
-      this.__context === undefined ||
-      xml === undefined
-      ? undefined
-      : this.__context.uriToSrn(
-          ResqmlWorkProductComponent.dorToUri(uri, dor),
-          xml
-        ) + ":";
+    const dorSrn =
+      dor === undefined || this.__context === undefined || xml === undefined
+        ? undefined
+        : this.__context.uriToSrn(
+            ResqmlWorkProductComponent.dorToUri(uri, dor),
+            xml
+          ) + ":";
+    if (dorSrn !== undefined) {
+      this.__context?.edges.push({ origin: this.id, target: dorSrn });
+    }
+    return dorSrn;
   }
 
   /**
