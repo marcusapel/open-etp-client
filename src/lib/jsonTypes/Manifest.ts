@@ -5,10 +5,11 @@ import type { IResqmlDataObject } from "../client/ResqmlClient";
 import { OSDUContext, OSDUResourceType } from "./OsduContext";
 import ResqmlOSDU, { EtpDataspaceManifest } from "./ResqmlOsdu";
 
+import { ErrorCode, EtpError } from "../common/EtpTypes";
+
 import {
   GenericMasterData,
   GenericReferenceData,
-  GenericWorkProductComponent,
   Manifest
 } from "./Generated/manifest/Manifest.1.0.0";
 import { etpServerPath, osduUrl } from "../common/config";
@@ -233,40 +234,29 @@ export const createManifest = async (
       }
     }
 
+    if (urisNotFound.length > 0) {
+      return Promise.reject(
+        new EtpError(
+          `Uris not found: ${urisNotFound.join(", ")}`,
+          ErrorCode.ENOT_FOUND
+        )
+      );
+    }
+
     manifests.ReferenceData = [];
 
     const generatedSrn = new Map<string, OSDUResourceType>();
-
-    for (const res of context.created) {
-      const id: string = res[0];
-      if (id.includes("master-data")) {
-        manifests.MasterData.push(res[1] as GenericMasterData);
-      } else if (id.includes("reference-data")) {
-        manifests.ReferenceData.push(res[1] as GenericReferenceData);
-      } else {
-        if (
-          context.spatialPoint !== undefined &&
-          res[1].data.SpatialPoint === undefined
-        ) {
-          res[1].data.SpatialPoint = context.spatialPoint;
-        }
-        manifests.Data.WorkProductComponents.push(res[1]);
-        manifests.Data.WorkProduct?.data?.Components?.push(`${res[0]}:`);
-      }
-      generatedSrn.set(res[0], res[1]);
-    }
-
-    if (urisNotFound.length > 0) {
-      return Promise.reject(
-        new Error(`Uris not found: ${urisNotFound.join(", ")}`)
-      );
-    }
+    context.created.forEach((v, k) => {
+      generatedSrn.set(k, v);
+    });
 
     // Find referenced objects not currently part of the manifest and not already in OSDU
     let missingSrn: string[] = Array.from(context.srnToUri.keys()).filter(
       k => generatedSrn.get(k) === undefined
     );
     missingSrn = await context.filterOSDUResources(missingSrn);
+
+    const unknownSrn = new Set<string>();
     if (context.createMissingReferences) {
       while (missingSrn.length > 0) {
         const missingPromises: Promise<void>[] = [];
@@ -275,12 +265,14 @@ export const createManifest = async (
             new Promise<void>((resolve, reject) => {
               const objUri = context.srnToUri.get(k);
               if (objUri === undefined) {
-                return reject(new Error(`Missing reference: ${k}`));
+                unknownSrn.add(k);
+                return resolve();
               }
               const etpUri = new EtpUri(objUri);
               const c = ResqmlOSDU.get(etpUri.dataObjectType);
               if (c === undefined) {
-                reject(new Error(`Missing type for reference: ${k}`));
+                unknownSrn.add(k);
+                return resolve();
               }
 
               const obj1 = objects.get(objUri);
@@ -301,34 +293,62 @@ export const createManifest = async (
                         res === undefined ||
                         res.id === undefined
                       ) {
-                        reject(
-                          new Error(`cannot generate reference for: ${objUri}`)
-                        );
+                        unknownSrn.add(k);
                       } else {
-                        if (res.id.includes("master-data")) {
-                          manifests.MasterData?.push(res as GenericMasterData);
-                        } else if (res.id.includes("reference-data")) {
-                          manifests.ReferenceData?.push(
-                            res as GenericReferenceData
-                          );
-                        } else {
-                          manifests.Data?.WorkProductComponents?.push(
-                            res as GenericWorkProductComponent
-                          );
-                        }
                         generatedSrn.set(`${srn}`, res);
-                        resolve();
                       }
+                      resolve();
                     })
               );
             })
           );
         }
         await Promise.all(missingPromises);
+        // Remove resolved references
         missingSrn = Array.from(context.srnToUri.keys()).filter(
           k => generatedSrn.get(k) === undefined
         );
+        // Remove references that cannot be resolved
+        missingSrn = missingSrn.filter(k => !unknownSrn.has(k));
         missingSrn = await context.filterOSDUResources(missingSrn);
+      }
+    }
+
+    let edges = context.edges.filter(e =>
+      unknownSrn.has(e.target.slice(0, -1))
+    );
+    while (edges.length > 0) {
+      unknownSrn.clear();
+      edges.forEach(e => {
+        if (generatedSrn.delete(e.origin)) {
+          unknownSrn.add(e.origin);
+        }
+      });
+      edges = context.edges.filter(e => unknownSrn.has(e.target.slice(0, -1)));
+    }
+
+    const toRemove: string[] = [];
+    generatedSrn.forEach((v, k) => {
+      if (v === undefined) {
+        toRemove.push(k);
+      }
+    });
+
+    for (const res of generatedSrn) {
+      const id: string = res[0];
+      if (id.includes("master-data")) {
+        manifests.MasterData.push(res[1] as GenericMasterData);
+      } else if (id.includes("reference-data")) {
+        manifests.ReferenceData.push(res[1] as GenericReferenceData);
+      } else {
+        if (
+          context.spatialPoint !== undefined &&
+          res[1].data.SpatialPoint === undefined
+        ) {
+          res[1].data.SpatialPoint = context.spatialPoint;
+        }
+        manifests.Data.WorkProductComponents.push(res[1]);
+        manifests.Data.WorkProduct?.data?.Components?.push(`${res[0]}:`);
       }
     }
 
@@ -360,7 +380,9 @@ export const createManifest = async (
         missing.push(r);
       });
       if (missing.length > 0) {
-        return Promise.reject(new Error(`Missing reference(s): ${missing}`));
+        return Promise.reject(
+          new EtpError(`Missing reference(s): ${missing}`, ErrorCode.ENOT_FOUND)
+        );
       }
     } else {
       const references = await context.filterOSDUReferenceData(
@@ -382,8 +404,22 @@ export const createManifest = async (
       manifests.ReferenceData = undefined;
     }
 
+    // Compute the size in MB of the json representation of manifests
+    const size = Buffer.byteLength(JSON.stringify(manifests)) / 1024 / 1024;
+    if (size > 1) {
+      return Promise.reject(
+        new EtpError(
+          `Manifest size is too large (${size.toFixed(
+            2
+          )} MB). Please reduce the number of objects.`,
+          ErrorCode.EMAXSIZE_EXCEEDED
+        )
+      );
+    }
     return manifests;
   } catch {
-    return Promise.reject(new Error("Manifest creation failed"));
+    return Promise.reject(
+      new EtpError("Manifest creation failed", ErrorCode.EINVALID_STATE)
+    );
   }
 };
