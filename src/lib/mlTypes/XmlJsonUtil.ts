@@ -34,9 +34,9 @@ import { Abstract, Convert } from "./ResqmlTypes";
 
 import * as eml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
 import * as eml23 from "./xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
-import * as prodml22 from "./xmlns/www.energistics.org/energyml/prodmlv22/prodmlv2";
 import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import * as resqml22 from "./xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
+import * as prodml22 from "./xmlns/www.energistics.org/energyml/prodmlv22/prodmlv2";
 import * as witsml21 from "./xmlns/www.energistics.org/energyml/witsmlv21/witsmlv2";
 
 // Create a new type where the keys of an object to their CamelCase version
@@ -329,13 +329,11 @@ const xmlDocument = (dataObjectType: string) => {
  *
  * @param {string} xml
  * @param {string} dataObjectType
- * @param {boolean} [_usingSchema=true] allow not to use schema for conversion, which is faster but very dangerous if you have an array in any part of the path when accessing an element.
  * @returns {Promise<SimpleJson<eml20.AbstractCitedDataObject>>}
  */
 export const xml2typescript = async (
   xml: string,
-  dataObjectType: string,
-  _usingSchema = true
+  dataObjectType: string
 ): Promise<
   SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>
 > => {

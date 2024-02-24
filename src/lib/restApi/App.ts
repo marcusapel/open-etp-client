@@ -25,10 +25,7 @@ import {
   ValidationPipe
 } from "@nestjs/common";
 
-import {
-  ExpressAdapter,
-  NestExpressApplication
-} from "@nestjs/platform-express";
+import { NestExpressApplication } from "@nestjs/platform-express";
 
 import express from "express";
 import { globSync } from "glob";
@@ -109,7 +106,7 @@ export default async function app(): Promise<NestExpressApplication> {
   const config = new DocumentBuilder()
     .setTitle("Reservoir DMS")
     .setDescription("Rest API for OSDU Reservoir DMS")
-    .setVersion("1.0")
+    .setVersion("1.1")
     .setLicense(
       "Apache 2.0",
       "https://www.apache.org/licenses/LICENSE-2.0.html"

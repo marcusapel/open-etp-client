@@ -178,51 +178,56 @@ export const createManifest = async (
       if (c === undefined) {
         continue;
       }
-      let res = await c.convert(
-        objectUris[i],
-        resolvedObjects[i],
-        context,
-        client
-      );
-      if (res !== undefined && res.id) {
-        // Check if it is an explicit osdu resource
-        if (OSDUContext.osduAlias(resObj) !== undefined) {
-          //Check that a version exists
-          const d = res.id.split(":");
-          const version = await context.getOSDUResourceVersion(res.id);
-          if (version) {
-            const stored = await context.fetchOSDU<OSDUResourceType>(
-              `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
-            );
-            if (stored) {
-              // If version exists, just update the DDMSDatasets field in the exiting record
-              if (res && res.data?.DDMSDatasets?.length > 0) {
-                if (!stored.data) {
-                  stored.data = {};
+      try {
+        let res = await c.convert(
+          objectUris[i],
+          resolvedObjects[i],
+          context,
+          client
+        );
+        if (res !== undefined && res.id) {
+          // Check if it is an explicit osdu resource
+          if (OSDUContext.osduAlias(resObj) !== undefined) {
+            //Check that a version exists
+            const d = res.id.split(":");
+            const version = await context.getOSDUResourceVersion(res.id);
+            if (version) {
+              const stored = await context.fetchOSDU<OSDUResourceType>(
+                `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
+              );
+              if (stored) {
+                // If version exists, just update the DDMSDatasets field in the exiting record
+                if (res && res.data?.DDMSDatasets?.length > 0) {
+                  if (!stored.data) {
+                    stored.data = {};
+                  }
+                  if (!stored.data.DDMSDatasets) {
+                    stored.data.DDMSDatasets = [];
+                  } else if (
+                    // If the DDMSDatasets already contain the current grid, skip it
+                    stored.data.DDMSDatasets.findIndex(
+                      (e: string) =>
+                        res?.data?.DDMSDatasets &&
+                        e === res.data.DDMSDatasets[0]
+                    ) !== -1
+                  ) {
+                    continue;
+                  }
+                  stored.data.DDMSDatasets = [
+                    ...stored.data.DDMSDatasets,
+                    ...res.data.DDMSDatasets
+                  ];
                 }
-                if (!stored.data.DDMSDatasets) {
-                  stored.data.DDMSDatasets = [];
-                } else if (
-                  // If the DDMSDatasets already contain the current grid, skip it
-                  stored.data.DDMSDatasets.findIndex(
-                    (e: string) =>
-                      res?.data?.DDMSDatasets && e === res.data.DDMSDatasets[0]
-                  ) !== -1
-                ) {
-                  continue;
-                }
-                stored.data.DDMSDatasets = [
-                  ...stored.data.DDMSDatasets,
-                  ...res.data.DDMSDatasets
-                ];
+                res = stored;
               }
-              res = stored;
             }
           }
+          if (res !== undefined && res.id) {
+            context.created.set(res.id, res);
+          }
         }
-        if (res !== undefined && res.id) {
-          context.created.set(res.id, res);
-        }
+      } catch (e) {
+        return Promise.reject("Manifest creation failed");
       }
     }
 

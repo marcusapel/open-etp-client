@@ -436,6 +436,9 @@ export class OSDUContext {
     }
     const etp = new EtpUri(uri);
     const r: OSDUEntry | undefined = ResqmlOSDU.get(etp.dataObjectType);
+    if (r === undefined) {
+      return undefined;
+    }
     const kind = r?.osduKind(obj);
 
     const id = OSDUContext.osduId(etp.uuid, obj);
