@@ -1101,8 +1101,7 @@ export class ResqmlClient {
           dob
             ? xml2typescript(
                 byteToString(dob.data),
-                new EtpUri(dob.resource.uri).dataObjectType,
-                usingSchema
+                new EtpUri(dob.resource.uri).dataObjectType
               )
             : null
         )
