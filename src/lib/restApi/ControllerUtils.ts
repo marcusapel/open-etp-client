@@ -653,7 +653,8 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
       return new NotFoundException({ description: error.message });
     } else if (
       error.code == ErrorCode.EINVALID_URI ||
-      error.code == ErrorCode.EINVALID_ARGUMENT
+      error.code == ErrorCode.EINVALID_ARGUMENT ||
+      error.code == ErrorCode.EMAXSIZE_EXCEEDED
     ) {
       return new BadRequestException({ description: error.message });
     } else if (
