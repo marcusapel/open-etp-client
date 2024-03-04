@@ -76,6 +76,7 @@ import {
   patternString,
   sliceArray,
   swaggerServers,
+  toDate,
   toJSonCustomData
 } from "../ControllerUtils";
 
@@ -123,6 +124,8 @@ export const dataObjectTypeRegexp = RegExp(dataObjectTypePattern);
 export const uuidPattern =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+export const pathPattern = /^[\w:\/]*$/;
+
 /**
  * Data Transfer Object for Dataspace
  *
@@ -169,7 +172,7 @@ export class DataspaceDto {
     additionalProperties: alphaSpaceSchema,
     description: "Extra meta data associated to dataspace"
   })
-  customData!: Record<string, string>;
+  customData!: Record<string, string | Date>;
 }
 
 /**
@@ -272,7 +275,7 @@ class ResourceDto {
     description: "Extra meta data associated to resource",
     additionalProperties: alphaSpaceSchema
   })
-  customData!: Record<string, string>;
+  customData!: Record<string, string | Date>;
 }
 
 // DTO for ResourceGraph edges
@@ -295,11 +298,23 @@ class EdgeDto {
     example:
       "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
     maxLength: 2048,
-    pattern: patternString(emlUriPattern)
+    pattern: patternString(pathPattern)
   })
   @Matches(emlUriPattern)
   @MaxLength(2048)
   target!: string;
+
+  @ApiProperty({
+    name: "path",
+    description: "Path inside the source referencing the target",
+    example:
+      "rsq22:Geometry/rsq22:Points/rsq22:SupportingGeometry/rsq22:SupportingRepresentation",
+    maxLength: 2048,
+    pattern: patternString(emlUriPattern)
+  })
+  @Matches(emlUriPattern)
+  @MaxLength(2048)
+  path?: string;
 }
 
 // DTO for ResourceGraph
@@ -333,14 +348,6 @@ const resourceResponse: ApiResponseOptions = {
     items: getSchemasForType(ResourceDto)
   }
 };
-
-/**
- * Convert from bigint to Date
- *
- * @param {bigint} b
- * @returns {Date}
- */
-const toDate = (b: bigint): Date => new Date(Number(b / BigInt(1000)));
 
 /**
  * Convert from Avro type to JSON presentation type
@@ -421,7 +428,11 @@ const sendGraph = (
   const edges = graph.edges.filter(e => uris.includes(e.sourceUri));
   return {
     resources: resources.map(r => toJSonResource(r)),
-    links: edges.map(e => ({ source: e.sourceUri, target: e.targetUri }))
+    links: edges.map(e => ({
+      source: e.sourceUri,
+      target: e.targetUri,
+      path: e.path
+    }))
   };
 };
 

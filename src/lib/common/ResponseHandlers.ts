@@ -344,6 +344,7 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
 export type Edge = {
   targetUri: string;
   sourceUri: string;
+  path?: string;
 };
 
 /**
@@ -554,7 +555,11 @@ export class GraphResponseHandler extends ResponseHandler<{
     if (request.graph.edges !== undefined) {
       //Cannot use request.results.push(...value) with large arrays
       value.forEach(v => {
-        request.graph.edges[request.graph.edges.length] = v;
+        request.graph.edges[request.graph.edges.length] = {
+          targetUri: v.targetUri,
+          sourceUri: v.sourceUri,
+          path: v.customData?.get("path")?.item?._string
+        };
       });
     }
     if (BaseHandler.isFinalMessage(header)) {
