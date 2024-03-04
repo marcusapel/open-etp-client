@@ -341,7 +341,6 @@ const xmlDocument = (dataObjectType: string) => {
 export const xml2typescript = async (
   xml: string,
   dataObjectType: string,
-  // eslint-disable-next-line no-console
   _usingSchema = true
 ): Promise<
   SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>
