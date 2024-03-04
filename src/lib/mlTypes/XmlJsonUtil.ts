@@ -194,18 +194,24 @@ const processXsiType = (
   const xsiType = obj["xsi:type"] as string;
   // Convert xsi:type into $type
   const dot = xsiType.indexOf(":");
+  const reOrdered: Record<string | number | symbol, any> = {};
   if (dot !== -1 && dot < xsiType.length - 1) {
     const interfaceDomain = etpDomainFromXsi(
       xsiType.substring(0, dot),
       schemaVersion
     );
     const interfaceName = xsiType.substring(dot + 1);
-    obj["$type"] = `${interfaceDomain}.${interfaceName}`;
+    reOrdered["$type"] = `${interfaceDomain}.${interfaceName}`;
   } else {
-    obj["$type"] = xsiType;
+    reOrdered["$type"] = xsiType;
   }
   delete obj["xsi:type"];
-  return obj;
+  Object.keys(obj).forEach(key => {
+    if (key !== "$type") {
+      reOrdered[key] = obj[key as keyof typeof obj];
+    }
+  });
+  return reOrdered;
 };
 
 /**
@@ -335,6 +341,7 @@ const xmlDocument = (dataObjectType: string) => {
 export const xml2typescript = async (
   xml: string,
   dataObjectType: string,
+  // eslint-disable-next-line no-console
   _usingSchema = true
 ): Promise<
   SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>

@@ -184,5 +184,22 @@
       "disableOptimisticBPs": true,
       "outputCapture": "std"
     },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Create JSON documents from XML",
+      "args": [
+        "${workspaceRoot}/src/certification/CreateJsonFromXML.ts",
+        "${workspaceRoot}/data/examples"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
   ]
 }

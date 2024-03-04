@@ -69,3 +69,13 @@ This requires the installation in your native OS (See above)
 
 - Build the executable using `npm run build`
 - Run `npm run docker:build:certification` in the root directory of the repository
+
+## Generating JSON example files
+
+In order to generate the JSON example files from XML files, you can use the following command:
+
+```bash
+npm run certification:examples
+```
+
+This will generate the JSON files from the XML files in `data/examples` directory. These files will be generated in the `data/examples/json` directory.
