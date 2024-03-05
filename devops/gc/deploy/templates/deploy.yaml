@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: {{ .Values.conf.appName | quote }}
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    type: ddms
+    source: typescript
 spec:
   replicas: {{ .Values.conf.replicas }}
   selector:
