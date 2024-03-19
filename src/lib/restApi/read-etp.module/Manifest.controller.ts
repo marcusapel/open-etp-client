@@ -447,6 +447,17 @@ export default class ObjectsManifestAPI {
     res.set("Content-Type", "application/json");
     let c = undefined;
     try {
+      let maxManifestSize = 1000;
+
+      // Reduce the manifest size for browsers
+      const userAgent = request.headers["user-agent"];
+      if (
+        userAgent?.includes("Mozilla") ||
+        userAgent?.includes("Chrome") ||
+        userAgent?.includes("Safari")
+      ) {
+        maxManifestSize = 1;
+      }
       const bearer = extractToken(request);
       const jwt = bearer ? (decode(bearer) as JwtPayload) : {};
       const partition = extractDataPartitionId(request);
@@ -479,7 +490,13 @@ export default class ObjectsManifestAPI {
       await context.checkLegalTags();
 
       c = await createSession(bearer, partition);
-      const b = await createManifest(c, body.uris, context, body.typePatterns);
+      const b = await createManifest(
+        c,
+        body.uris,
+        context,
+        body.typePatterns,
+        maxManifestSize
+      );
       await c.closeSession();
       c = undefined;
       res.send(b);

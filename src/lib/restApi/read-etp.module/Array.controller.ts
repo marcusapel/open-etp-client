@@ -240,7 +240,7 @@ export class DataArrayMetadataDto {
     type: "object",
     additionalProperties: alphaSpaceSchema
   })
-  customData?: Record<string, string>;
+  customData?: Record<string, string | Date>;
 }
 
 export class DataArrayDataDto {

@@ -73,11 +73,18 @@ const DBL_LAT_ARRAY = "resqml20.DoubleLatticeArray";
 const INT_CST_ARRAY = "resqml20.IntegerConstantArray";
 const INT_HDF_ARRAY = "resqml20.IntegerHdf5Array";
 
-const DBL_CST_ARRAY22 = "eml23.DoubleConstantArray";
-const DBL_HDF_ARRAY22 = "eml23.DoubleExternalArray";
-const DBL_LAT_ARRAY22 = "eml23.DoubleLatticeArray";
+const DBL_CST_ARRAY22 = "eml23.FloatingPointConstantArray";
+const DBL_HDF_ARRAY22 = "eml23.FloatingPointExternalArray";
+const DBL_LAT_ARRAY22 = "eml23.FloatingPointLatticeArray";
+const DBL_XML_ARRAY22 = "eml23.FloatingPointXmlArray";
 const INT_CST_ARRAY22 = "eml23.IntegerConstantArray";
 const INT_HDF_ARRAY22 = "eml23.IntegerExternalArray";
+const INT_LAT_ARRAY22 = "eml23.IntegerLatticeArray";
+const INT_XML_ARRAY22 = "eml23.IntegerXmlArray";
+const INT_JAG_ARRAY22 = "eml23.JaggedArray";
+const BOO_CST_ARRAY22 = "eml23.BooleanConstantArray";
+const BOO_HDF_ARRAY22 = "eml23.BooleanExternalArray";
+const BOO_XML_ARRAY22 = "eml23.BooleanXmlArray";
 
 /**
  * Extract an array of integer values from a generic AbstractIntegerArray
@@ -108,6 +115,34 @@ export const getIntegerValues = async (
   } else if (array.$type === INT_CST_ARRAY) {
     const constArray = array as resqml20.IntegerConstantArray;
     return new Array(constArray.Count).fill(constArray.Value);
+  } else if (array.$type === INT_XML_ARRAY22) {
+    const xmlArray = array as eml23.IntegerXmlArray;
+    return xmlArray.Values;
+  } else if (array.$type === INT_JAG_ARRAY22) {
+    const jagArray = array as eml23.JaggedArray;
+    const jaggedValues: number[] = [];
+    const length = await getIntegerValues(
+      dataspaceUri,
+      jagArray.CumulativeLength,
+      client
+    );
+    const elements = await getIntegerValues(
+      dataspaceUri,
+      jagArray.Elements,
+      client
+    );
+    if (length.length !== elements.length) {
+      return Promise.reject(
+        new Error(
+          "Cannot get integer values from Jagged array: Array length mismatch"
+        )
+      );
+    }
+    for (let i = 0; i < length.length; i++) {
+      for (let j = 0; j < length[i]; j++) {
+        jaggedValues.push(elements[i]);
+      }
+    }
   } else if (array.$type === INT_HDF_ARRAY22) {
     const hdfArray = array as eml23.IntegerExternalArray;
     const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
@@ -167,7 +202,7 @@ export const getBooleanValues = async (
   } else if (array.$type === "resqml20.BooleanConstantArray") {
     const constArray = array as resqml20.BooleanConstantArray;
     return new Array(constArray.Count).fill(constArray.Value);
-  } else if (array.$type === "eml23.BooleanExternalArray") {
+  } else if (array.$type === BOO_HDF_ARRAY22) {
     const hdfArray = array as eml23.BooleanExternalArray;
     const etpDataspaceUri = new EtpUri(dataspaceUri).dataSpace;
     const etpUri = new EtpUri(hdfArray.Values.ExternalDataArrayPart[0].URI);
@@ -189,7 +224,7 @@ export const getBooleanValues = async (
       );
     }
     return values;
-  } else if (array.$type === "eml23.BooleanConstantArray") {
+  } else if (array.$type === BOO_CST_ARRAY22) {
     const constArray = array as eml23.BooleanConstantArray;
     return new Array(constArray.Count).fill(constArray.Value);
   }
@@ -330,6 +365,25 @@ export const visitIntegerValues = async (
       starts: [0],
       counts: [constArray.Count]
     });
+  } else if (array.$type === INT_XML_ARRAY22) {
+    const xmlArray = array as eml23.IntegerXmlArray;
+    visitor(undefined, xmlArray.Values, {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [xmlArray.CountPerValue]
+    });
+  } else if (array.$type === INT_JAG_ARRAY22) {
+    const jagArray = array as eml23.JaggedArray;
+    const jaggedValues: number[] = await getIntegerValues(
+      dataspaceUri,
+      jagArray,
+      client
+    );
+    visitor(undefined, jaggedValues, {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [jaggedValues.length]
+    });
   } else {
     return Promise.reject(new Error(`Unsupported array type ${array.$type}`));
   }
@@ -433,9 +487,15 @@ export const visitDoubleValues = async (
       starts: latticeArray.Offset.map(() => 0),
       counts
     });
-
-    // return Promise.reject("Not supported type yet");
+  } else if (array.$type === DBL_XML_ARRAY22) {
+    const xmlArray = array as eml23.FloatingPointXmlArray;
+    await visitor(xmlArray.Values, {
+      uid: { uri: "", pathInResource: "" },
+      starts: [0],
+      counts: [xmlArray.CountPerValue]
+    });
   }
+  // return Promise.reject("Not supported type yet");
 };
 
 /**
@@ -860,17 +920,14 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     client: ResqmlClient
   ): Promise<string | undefined> {
     const xml = dor ? await this.getObjectFromDor(client, uri, dor) : undefined;
-    const dorSrn =
+    const srn =
       dor === undefined || this.__context === undefined || xml === undefined
         ? undefined
         : this.__context.uriToSrn(
             ResqmlWorkProductComponent.dorToUri(uri, dor),
             xml
-          ) + ":";
-    if (dorSrn !== undefined) {
-      this.__context?.edges.push({ origin: this.id, target: dorSrn });
-    }
-    return dorSrn;
+          );
+    return srn === undefined ? undefined : srn + ":";
   }
 
   /**
@@ -895,7 +952,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     const dor23 = dor as SimpleJson<eml23.DataObjectReference>;
     const refType = dor23.QualifiedType;
     const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
-    return `${ds}/${refType}(${dor20.UUID})`;
+    return `${ds}/${refType}(${dor23.Uuid})`;
   }
 
   /**
@@ -1150,8 +1207,10 @@ export class ResqmlWorkProductComponent<
   /**
    * Create the OSDU spatial information from an array of points
    *
+   * @param {ResqmlClient} client
+   * @param {string} dataspaceUri
    * @param {[number, number][]} pointCoordinates
-   * @param {SimpleJson<resqml20.obj_LocalDepth3dCrs>} crs
+   * @param {SimpleJson<resqml20.obj_LocalDepth3dCrs>| SimpleJson<eml23.LocalEngineeringCompoundCrs>} crs
    * @return {(Promise<{
    *     SpatialPoint: AbstractSpatialLocation | undefined;
    *     SpatialArea: AbstractSpatialLocation | undefined;
@@ -1160,8 +1219,12 @@ export class ResqmlWorkProductComponent<
    * @memberof ResqmlWorkProductComponent
    */
   public async createSpatialInfoFrom2dPoints(
+    client: ResqmlClient,
+    dataspaceUri: string,
     pointCoordinates: [number, number][],
-    crs: SimpleJson<resqml20.obj_LocalDepth3dCrs>
+    crs:
+      | SimpleJson<resqml20.obj_LocalDepth3dCrs>
+      | SimpleJson<eml23.LocalEngineeringCompoundCrs>
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
@@ -1191,19 +1254,49 @@ export class ResqmlWorkProductComponent<
     let CoordinateReferenceSystemID = undefined;
     let persistableReferenceCrs = "";
     let Wgs84Coordinates = undefined;
+    let epsgCode = -1;
+    let epsgCrs: CoordinateReferenceSystem | undefined = undefined;
 
-    if (crs.ProjectedCrs.$type === "eml20.ProjectedCrsEpsgCode") {
-      const epsgCode = (
-        crs.ProjectedCrs as SimpleJson<eml20.ProjectedCrsEpsgCode>
-      ).EpsgCode;
+    let XOffset = 0;
+    let YOffset = 0;
 
-      const epsgCrs = await context.findProjectedEPSGCrs(epsgCode);
-
-      CoordinateReferenceSystemID = this.referenceSystemId(epsgCrs, epsgCode);
-      persistableReferenceCrs =
-        this.persistableReferenceSystem(epsgCrs, epsgCode) ?? "";
-
+    if (crs.$type === "eml23.LocalEngineeringCompoundCrs") {
+      const crs23 = crs as SimpleJson<eml23.LocalEngineeringCompoundCrs>;
+      const projectedCrs = (await this.getObjectFromDor(
+        client,
+        dataspaceUri,
+        crs23.LocalEngineering2dCrs
+      )) as SimpleJson<eml23.LocalEngineering2dCrs>;
+      if (projectedCrs) {
+        if (
+          projectedCrs.OriginProjectedCrs.AbstractProjectedCrs.$type ===
+          "eml23.ProjectedEpsgCrs"
+        ) {
+          epsgCode = (
+            projectedCrs.OriginProjectedCrs
+              .AbstractProjectedCrs as SimpleJson<eml23.ProjectedEpsgCrs>
+          ).EpsgCode;
+        }
+        XOffset = projectedCrs.OriginProjectedCoordinate1;
+        YOffset = projectedCrs.OriginProjectedCoordinate2;
+      }
+    } else {
+      const crs20 = crs as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
+      if (crs20.ProjectedCrs.$type === "eml20.ProjectedCrsEpsgCode") {
+        epsgCode = (
+          crs20.ProjectedCrs as SimpleJson<eml20.ProjectedCrsEpsgCode>
+        ).EpsgCode;
+      }
+      XOffset = crs20.XOffset;
+      YOffset = crs20.YOffset;
+    }
+    if (epsgCode !== -1) {
       try {
+        epsgCrs = await context.findProjectedEPSGCrs(epsgCode);
+
+        CoordinateReferenceSystemID = this.referenceSystemId(epsgCrs, epsgCode);
+        persistableReferenceCrs =
+          this.persistableReferenceSystem(epsgCrs, epsgCode) ?? "";
         Wgs84Coordinates = await context.convertPointsWGS84(
           pointCoordinates,
           epsgCode
@@ -1256,10 +1349,10 @@ export class ResqmlWorkProductComponent<
       AsIngestedCoordinates: {
         CoordinateReferenceSystemID,
         bbox: [
-          aMinX + crs.XOffset,
-          aMinY + crs.YOffset,
-          aMaxX + crs.XOffset,
-          aMaxY + crs.YOffset
+          aMinX + XOffset,
+          aMinY + YOffset,
+          aMaxX + XOffset,
+          aMaxY + YOffset
         ],
         features: [
           {
@@ -1267,10 +1360,7 @@ export class ResqmlWorkProductComponent<
             geometry: {
               type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
               coordinates: [
-                pointCoordinates.map(p => [
-                  p[0] + crs.XOffset,
-                  p[1] + crs.YOffset
-                ])
+                pointCoordinates.map(p => [p[0] + XOffset, p[1] + YOffset])
               ]
             },
             properties: {}
@@ -1339,15 +1429,21 @@ export class ResqmlWorkProductComponent<
       dataspaceUri,
       geometries[0].LocalCrs
     );
-    if (crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs") {
+    if (
+      crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs" &&
+      crsObj?.$type !== "eml23.LocalEngineeringCompoundCrs"
+    ) {
       // TODO: Other CRS
       return Promise.reject(
         new Error(
-          "Only resqml20.obj_LocalDepth3dCrs are supported to create spatial info"
+          "Only resqml20.obj_LocalDepth3dCrs or eml23.LocalEngineeringCompoundCrs are supported to create spatial info"
         )
       );
     }
-    const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
+    const crs =
+      crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs"
+        ? (crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>)
+        : (crsObj as SimpleJson<eml23.LocalEngineeringCompoundCrs>);
     if (!crs) {
       return Promise.reject(new Error("Invalid CRS"));
     }
@@ -1374,6 +1470,8 @@ export class ResqmlWorkProductComponent<
 
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
       await this.createSpatialInfoFrom2dPoints(
+        client,
+        dataspaceUri,
         [
           [aMinX, aMinY],
           [aMaxX, aMinY],
@@ -1389,6 +1487,91 @@ export class ResqmlWorkProductComponent<
       FrameOfReferenceCRS,
       NodeCount
     };
+  }
+
+  /**
+   * Get the array information
+   * @param array to evaluate
+   * @returns {rowCount?: number, valuePerRow?: number, valueType?: string}
+   */
+  public arrayInfos(array: SimpleJson<eml23.AbstractValueArray>): {
+    rowCount?: number;
+    valuePerRow?: number;
+    valueType?: string;
+  } {
+    switch (array.$type) {
+      case BOO_CST_ARRAY22: {
+        const dbc = array as SimpleJson<eml23.BooleanConstantArray>;
+        return { rowCount: dbc.Count, valuePerRow: 1, valueType: "boolean" };
+      }
+      case BOO_HDF_ARRAY22: {
+        const dbe = array as SimpleJson<eml23.BooleanExternalArray>;
+        const dbeRowCount = dbe.Values.ExternalDataArrayPart.reduce(
+          (prev, part) => prev + part.Count.reduce((p, c) => p * c, 1),
+          0
+        );
+        return { rowCount: dbeRowCount, valuePerRow: 1, valueType: "boolean" };
+      }
+      case BOO_XML_ARRAY22: {
+        const dbx = array as SimpleJson<eml23.BooleanXmlArray>;
+        return {
+          rowCount: dbx.Values.length,
+          valuePerRow: dbx.CountPerValue,
+          valueType: "boolean"
+        };
+      }
+      case INT_CST_ARRAY22: {
+        const dic = array as SimpleJson<eml23.IntegerConstantArray>;
+        return { rowCount: dic.Count, valuePerRow: 1, valueType: "integer" };
+      }
+      case INT_HDF_ARRAY22: {
+        const die = array as SimpleJson<eml23.IntegerExternalArray>;
+        const dieRowCount = die.Values.ExternalDataArrayPart.reduce(
+          (prev, part) => prev + part.Count.reduce((p, c) => p * c, 1),
+          0
+        );
+        return { rowCount: dieRowCount, valuePerRow: 1, valueType: "integer" };
+      }
+      case INT_XML_ARRAY22: {
+        const dix = array as SimpleJson<eml23.IntegerXmlArray>;
+        return {
+          rowCount: dix.Values.length,
+          valuePerRow: dix.CountPerValue,
+          valueType: "integer"
+        };
+      }
+      case INT_JAG_ARRAY22:
+        return { valuePerRow: 1, valueType: "integer" };
+      case INT_LAT_ARRAY22:
+        return { valuePerRow: 1, valueType: "integer" };
+      case DBL_CST_ARRAY22: {
+        const dfc = array as SimpleJson<eml23.FloatingPointConstantArray>;
+        return { rowCount: dfc.Count, valuePerRow: 1, valueType: "number" };
+      }
+      case DBL_HDF_ARRAY22: {
+        const dfe = array as SimpleJson<eml23.FloatingPointExternalArray>;
+        const dfeRowCount = dfe.Values.ExternalDataArrayPart.reduce(
+          (prev, part) => prev + part.Count.reduce((p, c) => p * c, 1),
+          0
+        );
+        return {
+          rowCount: dfeRowCount,
+          valuePerRow: dfe.CountPerValue,
+          valueType: "number"
+        };
+      }
+      case DBL_XML_ARRAY22: {
+        const dfx = array as SimpleJson<eml23.FloatingPointXmlArray>;
+        return {
+          rowCount: dfx.Values.length,
+          valuePerRow: dfx.CountPerValue,
+          valueType: "number"
+        };
+      }
+      case DBL_LAT_ARRAY22:
+        return { valuePerRow: 1, valueType: "number" };
+    }
+    return { valuePerRow: 1 };
   }
 
   public refUuid(
@@ -1416,12 +1599,12 @@ export class ResqmlWorkProductComponent<
   ): Promise<
     SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>[]
   > {
-    const RESQML20_ACTIVITY_TYPE = "resqml20.obj_Activity";
+    const RESQML20_ACTIVITY_TYPE = `resqml20.obj_Activity`;
     const sources20 = await client.getSources(objectUri, false, [
       RESQML20_ACTIVITY_TYPE
     ]);
 
-    const EML23_ACTIVITY_TYPE = "eml23.Activity";
+    const EML23_ACTIVITY_TYPE = `eml23.Activity`;
     const sources23 = await client.getSources(objectUri, false, [
       EML23_ACTIVITY_TYPE
     ]);

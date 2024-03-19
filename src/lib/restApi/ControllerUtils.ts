@@ -97,24 +97,36 @@ export function sliceArray<T>(
 }
 
 /**
+ * Convert from bigint to Date
+ *
+ * @param {bigint} b
+ * @returns {Date}
+ */
+export const toDate = (b: bigint): Date => new Date(Number(b / BigInt(1000)));
+
+/**
  * Convert from Values so String
  *
  * @param {Energistics.Etp.v12.Datatypes.Object.Resource} d
- * @returns {Record<string, string> | undefined}
+ * @returns {Record<string, string|Date> | undefined}
  */
 export const toJSonCustomData = (
   d: Map<string, Energistics.Etp.v12.Datatypes.DataValue> | undefined
-): Record<string, string> | undefined => {
+): Record<string, string | Date> | undefined => {
   if (!d) {
     return undefined;
   }
-  const o: Record<string, string> = {};
+  const o: Record<string, string | Date> = {};
   return Array.from(d.keys()).reduce((obj, key: string) => {
     const val = d.get(key);
     if (val?.item?.__keyName) {
       const v = val.item[val.item.__keyName];
       if (v !== undefined) {
-        obj[key] = v.toString();
+        if (key === "created") {
+          obj[key] = toDate(v as bigint);
+        } else {
+          obj[key] = v.toString();
+        }
       }
     }
     return obj;

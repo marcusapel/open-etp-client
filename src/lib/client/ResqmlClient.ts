@@ -1101,8 +1101,7 @@ export class ResqmlClient {
           dob
             ? xml2typescript(
                 byteToString(dob.data),
-                new EtpUri(dob.resource.uri).dataObjectType,
-                usingSchema
+                new EtpUri(dob.resource.uri).dataObjectType
               )
             : null
         )
@@ -1370,31 +1369,35 @@ export class ResqmlClient {
   ): void {
     const obj = resqmlObj as Record<string, any>;
     Object.keys(obj).forEach(key => {
-      const qualifiedType = new EtpQualifiedType(obj[key]?.$type);
       if (!obj[key] || typeof obj[key] !== "object") {
         return;
       } else if (Array.isArray(obj[key])) {
         obj[key].map((o: IResqmlDataObject) =>
           this.getObjectTargets(dataSpace, o, uris)
         );
-      } else if (qualifiedType.dataType.endsWith("DataObjectReference")) {
-        const is20 = qualifiedType.domainVersion === "2.0";
-        // Resolve the object reference
-        const dataObjectType: EtpQualifiedType = is20
-          ? new EtpContentType.EtpContentType(obj[key].ContentType)
-              .qualifiedType
-          : new EtpQualifiedType(obj[key].QualifiedType);
-        const nURI = EtpUri.createObjectUri(
-          dataSpace,
-          dataObjectType.domainFamily,
-          dataObjectType.domainVersion,
-          dataObjectType.dataType,
-          is20 ? obj[key].UUID : obj[key].Uuid,
-          is20 ? obj[key].Version : obj[key].objectVersion
-        );
-        uris.add(nURI.uri);
       } else {
-        this.getObjectTargets(dataSpace, obj[key], uris);
+        const qualifiedType = new EtpQualifiedType(obj[key]?.$type);
+        if (qualifiedType.dataType.endsWith("DataObjectReference")) {
+          const is20 = qualifiedType.domainVersion.startsWith("2.0");
+          // Resolve the object reference
+          const dataObjectType: EtpQualifiedType = is20
+            ? new EtpContentType.EtpContentType(obj[key].ContentType)
+                .qualifiedType
+            : new EtpQualifiedType(obj[key].QualifiedType);
+          const nURI = EtpUri.createObjectUri(
+            dataSpace,
+            dataObjectType.domainFamily,
+            dataObjectType.domainVersion,
+            dataObjectType.dataType,
+            is20 ? obj[key].UUID : obj[key].Uuid,
+            is20 ? obj[key].Version : obj[key].objectVersion
+          );
+          if (nURI.isValid) {
+            uris.add(nURI.uri);
+          }
+        } else {
+          this.getObjectTargets(dataSpace, obj[key], uris);
+        }
       }
     });
   }

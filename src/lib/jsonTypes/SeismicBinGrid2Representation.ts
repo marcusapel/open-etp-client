@@ -167,7 +167,12 @@ export class SeismicBinGridOSDU
     const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
 
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates } =
-      await this.createSpatialInfoFrom2dPoints([A, B, C, D], crs);
+      await this.createSpatialInfoFrom2dPoints(
+        client,
+        dataspaceUri.uri,
+        [A, B, C, D],
+        crs
+      );
 
     const { easting, northing } = this.eastingNorthing(Wgs84Coordinates, crs);
 
