@@ -152,11 +152,10 @@ export class EtpContentType {
    * @memberof EtpContentType
    */
   get etpType(): string {
-    return this.valid
-      ? `${this.domainFamily}${this.domainVersion.replace(".", "")}.${
-          this.dataType
-        }`
-      : "";
+    if (!this.valid) return "";
+    const v = this.domainVersion.split(".");
+    if (v.length < 2) return "";
+    return `${this.domainFamily}${v[0]}${v[1]}.${this.dataType}`;
   }
 
   /**

@@ -168,13 +168,13 @@ export const stringToBigInt = (
 /* Compute ETP domain from xsi domain */
 const etpDomainFromXsi = (xsi: string, schemaVersion: string): string => {
   if (xsi.startsWith("resqml")) {
-    return schemaVersion === "2.0" ? "resqml20" : "resqml22";
+    return schemaVersion.startsWith("2.0") ? "resqml20" : "resqml22";
   } else if (xsi.startsWith("witsml")) {
     return "witsml21";
   } else if (xsi.startsWith("prodml")) {
     return "prodml22";
   } else {
-    return schemaVersion === "2.0" ? "eml20" : "eml23";
+    return schemaVersion.startsWith("2.0") ? "eml20" : "eml23";
   }
 };
 

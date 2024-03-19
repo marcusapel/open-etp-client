@@ -56,13 +56,16 @@ const registerDMS = async (context: OSDUContext) => {
  * @param {ResqmlClient} client linked to ETP server
  * @param {URI[]} uris List of URIS to add as work product components
  * @param {OSDUContext} context OSDU related information
+ * @param {string[]} [typePatterns] Optional list of type patterns to filter the URIs
+ * @param {number} [maxManifestSize] Optional maximum size of the manifest in MB, default is 1000
  * @return {Promise<Manifest>}
  */
 export const createManifest = async (
   client: ResqmlClient,
   uris: URI[],
   context: OSDUContext,
-  typePatterns?: string[]
+  typePatterns?: string[],
+  maxManifestSize: number = 1000
 ): Promise<Manifest> => {
   if (uris.length === 0) {
     return Promise.reject("No URI provided");
@@ -76,7 +79,7 @@ export const createManifest = async (
       Data: {}
     };
 
-    const objectUris = [];
+    const objectUris: string[] = [];
     const currentDataspaces = new Set<string>();
 
     const allUris = new Set<string>();
@@ -146,99 +149,112 @@ export const createManifest = async (
     if (manifests.Data === undefined) {
       return Promise.reject("Manifest creation failed");
     }
+    manifests.Data.WorkProductComponents = [];
+    manifests.MasterData = [];
+
+    const dataspaceObjects: Record<string, string[]> = {};
+
+    for (const uri of objectUris) {
+      const etpUri = new EtpUri(uri);
+      if (dataspaceObjects[etpUri.dataSpace] === undefined) {
+        dataspaceObjects[etpUri.dataSpace] = [];
+      }
+      dataspaceObjects[etpUri.dataSpace].push(uri);
+    }
 
     // Get objects infos
     const objects: Map<URI, IResqmlDataObject> = new Map<
       URI,
       IResqmlDataObject
     >();
-    const tmpUris = [...objectUris];
-    let resolvedObjects: (IResqmlDataObject | null)[] = [];
+    for (const dataspace in dataspaceObjects) {
+      const tmpUris = [...dataspaceObjects[dataspace]];
+      let resolvedObjects: (IResqmlDataObject | null)[] = [];
 
-    // slice objectUris to avoid "too many arguments" error
-    while (tmpUris.length > 0) {
-      const arr = await client.getResolvedObjects(
-        tmpUris.splice(0, 5),
-        objects,
-        false
-      );
-      resolvedObjects = resolvedObjects.concat(arr);
-    }
-
-    manifests.Data.WorkProductComponents = [];
-    manifests.MasterData = [];
-    const urisNotFound = [];
-    for (let i = 0; i < resolvedObjects.length; i++) {
-      const resObj = resolvedObjects[i];
-      if (resObj === null) {
-        urisNotFound.push(objectUris[i]);
-        continue;
-      }
-      const etpUri = new EtpUri(objectUris[i]);
-      const c = ResqmlOSDU.get(etpUri.dataObjectType);
-      if (c === undefined) {
-        continue;
-      }
-      try {
-        let res = await c.convert(
-          objectUris[i],
-          resolvedObjects[i],
-          context,
-          client
+      // slice objectUris to avoid "too many arguments" error
+      while (tmpUris.length > 0) {
+        const arr = await client.getResolvedObjects(
+          tmpUris.splice(0, 5),
+          objects,
+          false
         );
-        if (res !== undefined && res.id) {
-          // Check if it is an explicit osdu resource
-          if (OSDUContext.osduAlias(resObj) !== undefined) {
-            //Check that a version exists
-            const d = res.id.split(":");
-            const version = await context.getOSDUResourceVersion(res.id);
-            if (version) {
-              const stored = await context.fetchOSDU<OSDUResourceType>(
-                `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
-              );
-              if (stored) {
-                // If version exists, just update the DDMSDatasets field in the exiting record
-                if (res && res.data?.DDMSDatasets?.length > 0) {
-                  if (!stored.data) {
-                    stored.data = {};
+        resolvedObjects = resolvedObjects.concat(arr);
+      }
+
+      for (let i = 0; i < resolvedObjects.length; i++) {
+        const resObj = resolvedObjects[i];
+        if (resObj?.$type === undefined) {
+          continue;
+        }
+
+        const m = resObj.$type.match(
+          /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
+        );
+        const etpUri = EtpUri.createObjectUri(
+          dataspace,
+          m?.groups?.domainFamily ?? "",
+          m?.groups?.domainVersion ?? "",
+          m?.groups?.dataType ?? "",
+          resObj.Uuid,
+          resObj.ObjectVersion
+        );
+
+        const c = ResqmlOSDU.get(etpUri.dataObjectType);
+        if (c === undefined) {
+          continue;
+        }
+        try {
+          let res = await c.convert(
+            etpUri.uri,
+            resolvedObjects[i],
+            context,
+            client
+          );
+          if (res !== undefined && res.id) {
+            // Check if it is an explicit osdu resource
+            if (OSDUContext.osduAlias(resObj) !== undefined) {
+              //Check that a version exists
+              const d = res.id.split(":");
+              const version = await context.getOSDUResourceVersion(res.id);
+              if (version) {
+                const stored = await context.fetchOSDU<OSDUResourceType>(
+                  `/api/storage/v2/records/${d[0]}:${d[1]}:${d[2]}`
+                );
+                if (stored) {
+                  // If version exists, just update the DDMSDatasets field in the exiting record
+                  if (res && res.data?.DDMSDatasets?.length > 0) {
+                    if (!stored.data) {
+                      stored.data = {};
+                    }
+                    if (!stored.data.DDMSDatasets) {
+                      stored.data.DDMSDatasets = [];
+                    } else if (
+                      // If the DDMSDatasets already contain the current grid, skip it
+                      stored.data.DDMSDatasets.findIndex(
+                        (e: string) =>
+                          res?.data?.DDMSDatasets &&
+                          e === res.data.DDMSDatasets[0]
+                      ) !== -1
+                    ) {
+                      continue;
+                    }
+                    stored.data.DDMSDatasets = [
+                      ...stored.data.DDMSDatasets,
+                      ...res.data.DDMSDatasets
+                    ];
                   }
-                  if (!stored.data.DDMSDatasets) {
-                    stored.data.DDMSDatasets = [];
-                  } else if (
-                    // If the DDMSDatasets already contain the current grid, skip it
-                    stored.data.DDMSDatasets.findIndex(
-                      (e: string) =>
-                        res?.data?.DDMSDatasets &&
-                        e === res.data.DDMSDatasets[0]
-                    ) !== -1
-                  ) {
-                    continue;
-                  }
-                  stored.data.DDMSDatasets = [
-                    ...stored.data.DDMSDatasets,
-                    ...res.data.DDMSDatasets
-                  ];
+                  res = stored;
                 }
-                res = stored;
               }
             }
+            if (res !== undefined && res.id) {
+              context.created.set(res.id, res);
+            }
           }
-          if (res !== undefined && res.id) {
-            context.created.set(res.id, res);
-          }
+        } catch (e) {
+          return Promise.reject("Manifest creation failed");
         }
-      } catch (e) {
-        return Promise.reject("Manifest creation failed");
       }
-    }
-
-    if (urisNotFound.length > 0) {
-      return Promise.reject(
-        new EtpError(
-          `Uris not found: ${urisNotFound.join(", ")}`,
-          ErrorCode.ENOT_FOUND
-        )
-      );
     }
 
     manifests.ReferenceData = [];
@@ -404,12 +420,12 @@ export const createManifest = async (
 
     // Compute the size in MB of the json representation of manifests
     const size = Buffer.byteLength(JSON.stringify(manifests)) / 1024 / 1024;
-    if (size > 1) {
+    if (size > maxManifestSize) {
       return Promise.reject(
         new EtpError(
           `Manifest size is too large (${size.toFixed(
             2
-          )} MB). Please reduce the number of objects.`,
+          )} MB). Please reduce the number of objects to fit in ${maxManifestSize}MB.`,
           ErrorCode.EMAXSIZE_EXCEEDED
         )
       );
