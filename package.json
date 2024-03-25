@@ -53,7 +53,8 @@
     "git:hooks:disable": "husky uninstall",
     "prepare": "husky install devops/osdu/husky",
     "docker:build:certification": "npm run env:set -- docker build -t etp-certification -f devops/osdu/docker/Dockerfile.certification --pull --build-arg NPM_TOKEN .",
-    "certification": "node dist/src/certification/TestServer.js"
+    "certification": "node dist/src/certification/TestServer.js",
+    "certification:examples": "node dist/src/certification/CreateJsonFromXML.js data/examples"
   },
   "config": {
     "commitizen": {
