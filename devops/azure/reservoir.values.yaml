@@ -47,7 +47,7 @@ configuration:
     config:
       RDMS_ETP_HOST: "oetp-service"
       RDMS_ETP_PORT: "80"
-      RDMS_REST_ROOT_PATH: "/"
+      RDMS_REST_ROOT_PATH: "/api/reservoir-ddms/v2/"
       RDMS_REST_MAIN_URL: https://{{ .Values.ingress.dns }}
       RDMS_OSDU_URL: https://{{ .Values.ingress.dns }}
       RDMS_REST_PORT: "8003"
