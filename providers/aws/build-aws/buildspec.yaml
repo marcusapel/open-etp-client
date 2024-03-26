@@ -60,8 +60,8 @@ phases:
       - echo "Placeholder" >> ${OUTPUT_DIR}/build-info.json # touched so that the output directory has some content incase the build fails so that testing reports are uploaded
       - echo "Building open-etp-client"
       - npm run build:quick && npm run openAPI
-      - npm run test Common providers/TestAws ResponseHandlers
-      - tar -czvf dist.tgz dist node_modules package*
+      - npm run test:cov Common providers/TestAws ResponseHandlers
+      - tar -czf dist.tgz dist node_modules package*
       - |
         java -jar sonar-scanner-4.6.2.2472/lib/sonar-scanner-cli-4.6.2.2472.jar \
           -Dsonar.projectKey=os-open-etp-client \
@@ -71,7 +71,8 @@ phases:
           -Dsonar.branch.name=${BRANCH_NAME} \
           -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info \
           -Dsonar.sources=./src/lib/providers/aws \
-          -Dsonar.coverage.exclusions=**/examples/*,**/__tests__/*,**/__azure__/*,**/__google__/*
+          -Dsonar.coverage.exclusions=**/examples/*,**/__tests__/*,**/__azure__/*,**/__google__/* \
+          -Dsonar.typescript.tsconfigPath=./providers/aws/build-aws/tsconfig.json
 
       - echo "Building docker image..."
       - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} .
