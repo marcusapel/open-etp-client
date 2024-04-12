@@ -197,10 +197,10 @@ describeif(config.supportApplicationAuthentication)(
   }
 );
 
-describe("VE403-7", () => {
+describeif(config.runExperimental) ("VE403-7", () => {
     const restUrl = config.etpServerUrl.replace("ws", "http");
 
-    it.only("VE403-7: Server supports HTTP/1.1", done => {
+    it("VE403-7: Server supports HTTP/1.1", done => {
         const http = require('https');
         const req = http.get(restUrl + "/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org", (res: IncomingMessage) => {
             expect(res.statusCode).toBe(200);
