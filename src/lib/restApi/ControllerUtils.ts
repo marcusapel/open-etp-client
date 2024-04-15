@@ -56,15 +56,16 @@ import {
   restApiMainUrl,
   restApiPort,
   restApiRoutePath,
+  restApiServerPath,
   openApiPort
 } from "../common/config";
 import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
-export { restApiMainUrl, restApiPort, restApiRoutePath };
+export { restApiMainUrl, restApiPort, restApiRoutePath, restApiServerPath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
 
-export const serverUIUrl = `${restApiMainUrl}:${openApiPort}${restApiRoutePath}`;
+export const serverUIUrl = `${restApiMainUrl}:${openApiPort}${restApiServerPath}`;
 
 export const swaggerServers = [{ url: serverUIUrl, description: "API server" }];
 
