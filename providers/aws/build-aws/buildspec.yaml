@@ -34,6 +34,8 @@ phases:
       - export AWS_ACCOUNT_ID=`aws sts get-caller-identity | grep Account | cut -d':' -f 2 | cut -d'"' -f 2`
       - aws codeartifact login --tool npm --domain osdu-dev --domain-owner ${AWS_ACCOUNT_ID} --repository osdu-npm
       - export REPO_NAME=${PWD##*/}
+      - n 18
+      - npm install -g npm@9
       - npm install
       - wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472.zip
       - unzip -q ./sonar-scanner-cli-4.6.2.2472.zip
