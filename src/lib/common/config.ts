@@ -51,6 +51,8 @@ export const restApiMainUrl =
   (process.env.RDMS_REST_MAIN_URL as string) ??
   `${restApiProtocol}://${etpServerHost}`;
 export const restApiRoutePath = process.env.RDMS_REST_ROOT_PATH as string;
+export const restApiServerPath =
+  (process.env.RDMS_REST_SERVER_PATH as string) ?? `${restApiRoutePath}`;
 export const restApiPort = parseInt(process.env.RDMS_REST_PORT as string);
 export const openApiPort =
   parseInt(process.env.OPEN_API_PORT as string) || restApiPort;
