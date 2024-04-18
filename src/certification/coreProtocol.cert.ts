@@ -251,7 +251,7 @@ describe("VE403-13", () => {
     })
 });
 
-describe.only("VE403-18", () => {
+describe("VE403-18", () => {
     it("VE403-18: Server accepts valid protocols", async (): Promise<any> => {
         const WebSocketClient = require('websocket').client;
 
