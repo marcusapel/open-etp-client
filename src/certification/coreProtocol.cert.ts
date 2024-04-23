@@ -200,7 +200,7 @@ describeif(config.supportApplicationAuthentication)(
 describeif(config.runExperimental) ("VE403-7", () => {
     const restUrl = config.etpServerUrl.replace("ws", "http");
 
-    it.only("VE403-7: Server supports HTTP/1.1", done => {
+    it("VE403-7: Server supports HTTP/1.1", done => {
         var httpClient;
         if (restUrl.startsWith("https:")) {
             httpClient = require('https');
