@@ -33,12 +33,12 @@ import { ResqmlClient as ETPValidationClient } from "../index";
 import { ErrorCode } from "../lib/common/EtpTypes";
 
 import config, {
-    describeif,
-    failIfNoError,
-    failIfError,
-    itif,
-    logger,
-    successIfError
+  describeif,
+  failIfNoError,
+  failIfError,
+  itif,
+  logger,
+  successIfError
 } from "./testConfig";
 
 if (!config.etpServerUrl.startsWith("ws")) {
