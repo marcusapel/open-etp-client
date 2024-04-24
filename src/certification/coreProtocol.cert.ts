@@ -215,6 +215,7 @@ describeif(config.runExperimental) ("VE403-7", () => {
 
         }).on('error', (e: any) => {
             console.error(e);
+            done(e);
         });
 
         req.end();
