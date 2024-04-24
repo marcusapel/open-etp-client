@@ -3,5 +3,6 @@
   "jwtToken": "value of a JWT token",
   "supportTransportAuthentication": true,
   "supportApplicationAuthentication": true,
-  "serverRequiresAuthorization": false
+  "serverRequiresAuthorization": false,
+  "runExperimental": false
 }

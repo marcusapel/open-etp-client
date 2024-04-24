@@ -22,8 +22,10 @@
  */
 
 import "jest";
-
+import "http";
+import "https";
 import request from "supertest";
+import {IncomingMessage} from "http";
 
 import { ResqmlClient as ETPValidationClient } from "../index";
 
@@ -194,3 +196,28 @@ describeif(config.supportApplicationAuthentication)(
     );
   }
 );
+
+describeif(config.runExperimental) ("VE403-7", () => {
+    const restUrl = config.etpServerUrl.replace("ws", "http");
+
+    it("VE403-7: Server supports HTTP/1.1", done => {
+        var httpClient;
+        if (restUrl.startsWith("https:")) {
+            httpClient = require('https');
+        } else {
+            httpClient = require('http');
+        }
+
+        const req = httpClient.get(restUrl + "/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org", (res: IncomingMessage) => {
+            expect(res.statusCode).toBe(200);
+            expect(res.httpVersion).toBe('1.1');
+            done();
+
+        }).on('error', (e: any) => {
+            console.error(e);
+            done(e);
+        });
+
+        req.end();
+    });
+});
