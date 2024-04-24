@@ -252,40 +252,43 @@ describe("VE403-13", () => {
 });
 
 describe("VE403-18", () => {
-    it("VE403-18: Server accepts valid protocols", async (): Promise<any> => {
+    it("VE403-18: Server accepts valid protocols", done => {
         const WebSocketClient = require('websocket').client;
 
         // should connect successfully
         const client = new WebSocketClient();
         client.on("connect", function (connection: connection) {
             expect(connection.connected).toBe(true);
+            connection.close()
+            done();
         });
         client.on("connectFailed", function (error: Error) {
-            throw new Error('Connection should succeed')
+            done(error)
         });
 
-        return await client.connect(config.etpServerUrl, 'etp12.energistics.org', undefined, {
+        client.connect(config.etpServerUrl, 'etp12.energistics.org', undefined, {
             'Authorization': `${config.jwtToken}`
         });
 
     });
 
-    it("VE403-18: Server rejects invalid protocols", async (): Promise<any> => {
+    it("VE403-18: Server rejects invalid protocols", done => {
         const WebSocketClient = require('websocket').client;
 
         // should connect successfully
         const client = new WebSocketClient();
         client.on("connect", function (connection: connection) {
-            throw new Error('Connection should fail')
+            connection.close()
+            done(new Error('Connection should fail'))
         });
-        client.on("connectFailed", function (error: Error) {
-            expect(error.message).toMatch(/400 Bad Request/);
+        client.on("httpResponse", function (response: any) {
+            expect(response.statusCode).toBe(400);
+            done()
         });
 
-        return await client.connect(config.etpServerUrl, 'fake', undefined, {
+        client.connect(config.etpServerUrl, 'fake', undefined, {
             'Authorization': `${config.jwtToken}`
         });
     });
-
 
 });
