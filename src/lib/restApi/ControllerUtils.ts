@@ -425,7 +425,10 @@ export const createSession = async (
     if (c1 && c1.sha256 === getSHA256(jwt)) {
       return c1.client;
     }
-    throw new Error(`Transaction ${id} does not exists`);
+    throw new EtpError(
+      `Transaction ${id} does not exists`,
+      ErrorCode.ENOT_FOUND
+    );
   } else {
     try {
       const c = new ResqmlClient(options);
