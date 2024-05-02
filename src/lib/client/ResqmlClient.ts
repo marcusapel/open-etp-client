@@ -1507,7 +1507,7 @@ export class ResqmlClient {
           dataArrays,
           alreadyResolved,
           arrayFormat
-        );
+        ) as IResqmlDataObject;
         objects.set(uri, resolved);
         return resolved;
       });
@@ -2830,18 +2830,17 @@ export class ResqmlClient {
    */
   private resolveReferences(
     uri: URI,
-    resqmlObj: IResqmlDataObject,
+    obj: Record<string, any>,
     objects: Map<URI, IResqmlDataObject>,
     dataArrays: Map<URI, IDataArray>,
     resolved: Map<URI, IResqmlDataObject>,
     arrayFormat: ArrayFormat
-  ): IResqmlDataObject {
+  ): Record<string, any> {
     const etpUri = new EtpUri(uri);
     const r = resolved.get(etpUri.uriPath);
     if (r) {
       return r;
     }
-    const obj = resqmlObj as Record<string, any>;
 
     if (
       // EML2.3 Array
@@ -2855,14 +2854,14 @@ export class ResqmlClient {
         const arrayData = this.formatArrayData(arr.data.data, arrayFormat);
         const o = { ...arr, data: { ...arr.data, data: arrayData } };
         return {
-          ...resqmlObj,
+          ...obj,
           _data: simpleJson(o, "2.3")
-        } as SimpleJson<Eml23.AbstractObject>;
+        };
       } else if (arr) {
         return {
-          ...resqmlObj,
+          ...obj,
           _data: simpleJson(arr, "2.3")
-        } as SimpleJson<Eml23.AbstractObject>;
+        };
       }
     } else {
       Object.keys(obj).forEach((key: string) => {
@@ -2942,7 +2941,7 @@ export class ResqmlClient {
 
           if (nURI.isValid) {
             // Resolve the object reference
-            let o = objects.get(nURI.uri);
+            let o = objects.get(nURI.uri) as IResqmlDataObject | undefined;
             if (!o) {
               o = objects.get(
                 EtpUri.createObjectUri(
@@ -2962,7 +2961,7 @@ export class ResqmlClient {
                 dataArrays,
                 resolved,
                 arrayFormat
-              );
+              ) as IResqmlDataObject;
               obj[key] = { ...obj[key], _data: res };
               resolved.set(nURI.uri, res);
             }
@@ -2979,7 +2978,7 @@ export class ResqmlClient {
         }
       });
     }
-    return resqmlObj;
+    return obj;
   }
 
   /**
