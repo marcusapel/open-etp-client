@@ -2855,12 +2855,12 @@ export class ResqmlClient {
         const arrayData = this.formatArrayData(arr.data.data, arrayFormat);
         const o = { ...arr, data: { ...arr.data, data: arrayData } };
         return {
-          ...obj,
+          ...resqmlObj,
           _data: simpleJson(o, "2.3")
         } as SimpleJson<Eml23.AbstractObject>;
       } else if (arr) {
         return {
-          ...obj,
+          ...resqmlObj,
           _data: simpleJson(arr, "2.3")
         } as SimpleJson<Eml23.AbstractObject>;
       }
