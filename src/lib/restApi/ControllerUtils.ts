@@ -60,6 +60,8 @@ import {
 } from "../common/config";
 import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
+import { ApiProperty, ApiQueryOptions } from "@nestjs/swagger";
+import { IsUUID, Matches, MaxLength } from "@nestjs/class-validator";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
@@ -392,6 +394,96 @@ export class OptionalParseDatePipe
   }
 }
 
+export const dataspaceNamePattern = /^[^/]+\/[^/]+$/;
+
+/*
+ * Describe parameters to find resources in a dataspace
+ *
+ * @export
+ * @class FindInDataSpaceParams
+ */
+export class FindInDataSpaceParams {
+  @ApiProperty({
+    name: "dataspaceId",
+    description: "Name of dataspace",
+    example: "demo/Volve",
+    maxLength: 2048,
+    pattern: patternString(dataspaceNamePattern)
+  })
+  @MaxLength(2048)
+  @Matches(dataspaceNamePattern)
+  dataspaceId!: string;
+}
+
+// Define the pattern for the data object type
+export const dataObjectTypesPattern =
+  /^((witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?\w+,?)*$/;
+
+// Define the pattern for capturing data object type components
+export const dataObjectTypePattern =
+  /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>\d+).(?<dataType>(obj_)?\w+)$/;
+export const dataObjectTypeRegexp = RegExp(dataObjectTypePattern);
+
+// Define the pattern for the UUID
+export const uuidPattern =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/**
+ * Describe to parameters to look inside a given type
+ *
+ * @export
+ * @class FindInTypeParams
+ * @extends {FindInDataSpaceParams}
+ */
+export class FindInTypeParams extends FindInDataSpaceParams {
+  @ApiProperty({
+    name: "dataObjectType",
+    description: "Energistics type of the object",
+    example: "resqml20.obj_ContinuousProperty",
+    maxLength: 2048,
+    pattern: patternString(dataObjectTypePattern)
+  })
+  @Matches(dataObjectTypePattern)
+  @MaxLength(256)
+  dataObjectType!: string;
+}
+
+/**
+ * Describe to parameters to look inside a given object
+ *
+ * @export
+ * @class FindInObjectParams
+ * @extends {FindInTypeParams}
+ */
+export class FindInObjectParams extends FindInTypeParams {
+  @ApiProperty({
+    name: "guid",
+    description: "Unique Id of the object",
+    example: "1615d8d2-2a2d-482c-885e-14225b89e90c",
+    maxLength: 2048,
+    pattern: patternString(uuidPattern)
+  })
+  @IsUUID()
+  guid!: string;
+}
+
+/**
+ * Describe parameter to identify transaction
+ *
+ * @export
+ */
+export const transactionIdQueryParam: ApiQueryOptions = {
+  name: "transactionId",
+  required: false,
+  description: "Identify current transaction",
+  example: "1615d8d2-2a2d-482c-885e-14225b89e90c",
+  schema: {
+    type: "string",
+    maxLength: 2048,
+    pattern: patternString(uuidPattern)
+  }
+};
+
 const modelPropertiesAccessor = new ModelPropertiesAccessor();
 const swaggerTypesMapper = new SwaggerTypesMapper();
 const schemaObjectFactory = new SchemaObjectFactory(
@@ -399,6 +491,13 @@ const schemaObjectFactory = new SchemaObjectFactory(
   swaggerTypesMapper
 );
 
+/**
+ * Get the schema for a given type
+ *
+ * @param {Type<unknown>} type
+ * @param {boolean} [additionalProperties=false] Identify if additional properties are allowed
+ * @returns {SchemaObject}
+ */
 export const getSchemasForType = (
   type: Type<unknown>,
   additionalProperties = false
@@ -413,19 +512,27 @@ export const getSchemasForType = (
 
 /*!
  * Create and open a session, and return the client
+ *
+ * @param {string} jwt JSON web token
+ * @param {string} [dataPartitionId] optional data partition
+ * @param {IOptions} [options] Options for creating the client
+ * @param {string} [transactionId] optional transaction identifier
  */
 export const createSession = async (
   jwt: string,
   dataPartitionId?: string,
   options?: IOptions,
-  id?: string
+  transactionId?: string
 ) => {
-  if (id) {
-    const c1 = etpClients.get(id);
+  if (transactionId) {
+    const c1 = etpClients.get(transactionId);
     if (c1 && c1.sha256 === getSHA256(jwt)) {
       return c1.client;
     }
-    throw new Error(`Transaction ${id} does not exists`);
+    throw new EtpError(
+      `Transaction ${transactionId} does not exists`,
+      ErrorCode.ENOT_FOUND
+    );
   } else {
     try {
       const c = new ResqmlClient(options);
@@ -494,6 +601,33 @@ export const commitTransaction = async (
     await t.client.commitTransaction(
       EtpUri.uuidStringToByteArray(transactionId)
     );
+    await t.client.closeSession();
+    return etpClients.delete(transactionId);
+  } catch (err) {
+    throw new Error(`Cannot create session with ETP server: ${err}`);
+  }
+};
+
+/**
+ * Rollback the transaction
+ *
+ * @param {string} jwt JSON web token
+ * @param {string} transactionId Transaction identifier
+ * @returns
+ */
+export const rollbackTransaction = async (
+  jwt: string,
+  transactionId: string
+): Promise<boolean> => {
+  const t = etpClients.get(transactionId);
+  if (t?.sha256 !== getSHA256(jwt)) {
+    throw new Error(`Invalid token`);
+  }
+  try {
+    await t.client.rollbackTransaction(
+      EtpUri.uuidStringToByteArray(transactionId)
+    );
+    await t.client.closeSession();
     return etpClients.delete(transactionId);
   } catch (err) {
     throw new Error(`Cannot create session with ETP server: ${err}`);

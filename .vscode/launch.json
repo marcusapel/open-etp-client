@@ -7,6 +7,22 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Run Current File",
+      "args": [
+        "${fileBasename}"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "RESQML Example1",
       "args": [
         "${workspaceRoot}/src/examples/Example1.ts"
@@ -58,6 +74,20 @@
       "name": "Generate Message file",
       "args": [
         "${workspaceFolder}/src/build/Generator.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Generate JSON Schema",
+      "args": [
+        "${workspaceFolder}/src/examples/CreateJsonSchema.ts"
       ],
       "runtimeArgs": [
         "-r",

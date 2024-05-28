@@ -769,8 +769,8 @@ export const getMinMaxPoints = async (
     const [ox, oy] = [lArray.Origin.Coordinate1, lArray.Origin.Coordinate2];
     const [u, v] = [lArray.Dimension[0], lArray.Dimension[1]];
     if (
-      u.Spacing.$type === DBL_CST_ARRAY &&
-      v.Spacing.$type === DBL_CST_ARRAY
+      u.Spacing.$type === DBL_CST_ARRAY22 &&
+      v.Spacing.$type === DBL_CST_ARRAY22
     ) {
       const uSpacing =
         u.Spacing as SimpleJson<eml23.FloatingPointConstantArray>;
@@ -1431,6 +1431,7 @@ export class ResqmlWorkProductComponent<
     );
     if (
       crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs" &&
+      crsObj?.$type !== "resqml20.obj_LocalTime3dCrs" &&
       crsObj?.$type !== "eml23.LocalEngineeringCompoundCrs"
     ) {
       // TODO: Other CRS
@@ -1441,8 +1442,10 @@ export class ResqmlWorkProductComponent<
       );
     }
     const crs =
-      crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs"
+      crsObj?.$type === "resqml20.obj_LocalDepth3dCrs"
         ? (crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>)
+        : crsObj?.$type === "resqml20.obj_LocalTime3dCrs"
+        ? (crsObj as SimpleJson<resqml20.obj_LocalTime3dCrs>)
         : (crsObj as SimpleJson<eml23.LocalEngineeringCompoundCrs>);
     if (!crs) {
       return Promise.reject(new Error("Invalid CRS"));

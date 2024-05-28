@@ -106,7 +106,7 @@ export default async function app(): Promise<NestExpressApplication> {
   const config = new DocumentBuilder()
     .setTitle("Reservoir DMS")
     .setDescription("Rest API for OSDU Reservoir DMS")
-    .setVersion("1.1")
+    .setVersion("1.2")
     .setLicense(
       "Apache 2.0",
       "https://www.apache.org/licenses/LICENSE-2.0.html"
@@ -140,6 +140,22 @@ export default async function app(): Promise<NestExpressApplication> {
   nestApp.use(helmet.hidePoweredBy());
   nestApp.use(helmet.noSniff());
   nestApp.use(helmet.contentSecurityPolicy());
+
+  // Set REST allowed methods to add security
+  const allowedMethods = ["POST", "GET", "DELETE", "PUT"];
+  nestApp.use(
+    (
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction
+    ) => {
+      if (!allowedMethods.includes(req.method)) {
+        res.status(405).send("Method Not Allowed");
+        return;
+      }
+      return next();
+    }
+  );
 
   const adapt = nestApp.getHttpAdapter().getInstance();
   adapt.get("/swagger-ui/index.html", function (req, res) {

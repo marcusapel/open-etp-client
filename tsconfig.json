@@ -11,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "jsx": "react",
-    "lib": ["es6", "dom", "esnext"],
+    "lib": ["es2022", "esnext.disposable", "dom"],
     "module": "commonjs",
     "moduleResolution": "node",
     // kept for now
@@ -20,7 +20,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "strict": true,
-    "target": "es6",
+    "target": "es2022",
     "typeRoots": ["./node_modules/@types", "./@types"]
   },
   "exclude": [

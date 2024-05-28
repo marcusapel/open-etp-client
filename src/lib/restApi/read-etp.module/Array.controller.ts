@@ -64,11 +64,15 @@ import { Type } from "@nestjs/class-transformer";
 import { IsDate, IsUUID, Matches, MaxLength } from "@nestjs/class-validator";
 
 import {
+  FindInDataSpaceParams,
+  FindInObjectParams,
   HasBearerGuard,
   HasDataPartitionGuard,
   OptionalParseIntArrayPipe,
   alphaSpaceSchema,
   createSession,
+  dataObjectTypePattern,
+  dataObjectTypeRegexp,
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
@@ -77,18 +81,12 @@ import {
   partitionPattern,
   patternString,
   swaggerServers,
-  toJSonCustomData
+  toJSonCustomData,
+  transactionIdQueryParam,
+  uuidPattern
 } from "../ControllerUtils";
 
-import {
-  FindInDataSpaceParams,
-  FindInObjectParams,
-  dataObjectTypePattern,
-  dataObjectTypeRegexp,
-  uriPattern,
-  uuidPattern,
-  versionQueryParam
-} from "./Resource.controller";
+import { uriPattern, versionQueryParam } from "./Resource.controller";
 
 import { EtpUri } from "../../common/EtpUri";
 
@@ -563,6 +561,7 @@ export default class DataArrayReadAPI {
     servers: swaggerServers
   })
   @ApiQuery(versionQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse({
     description: "Success",
     schema: getSchemasForType(DataArrayMetadataDto)
@@ -570,6 +569,7 @@ export default class DataArrayReadAPI {
   public async GetArrayMetaData(
     @Param() params: DataArrayParams,
     @Query("version") version?: string,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<DataArrayMetadataDto | null> {
     const m = dataObjectTypeRegexp.exec(params.dataObjectType);
@@ -585,10 +585,14 @@ export default class DataArrayReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const d = await c.getDataArrayMetadata(uri, params.pathInResource);
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return d
         ? {
@@ -597,7 +601,9 @@ export default class DataArrayReadAPI {
           }
         : null;
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -620,6 +626,7 @@ export default class DataArrayReadAPI {
   @ApiQuery(startsQueryParam)
   @ApiQuery(countsQueryParam)
   @ApiQuery(formatQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiBadRequestResponse(
     errorMessageSchema(
       `starts and counts dimensions not compatible with array dimensions`
@@ -636,6 +643,7 @@ export default class DataArrayReadAPI {
     @Query("starts", OptionalParseIntArrayPipe) starts?: Index32[],
     @Query("counts", OptionalParseIntArrayPipe) counts?: Integer32[],
     @Query("format") format?: ArrayFormat,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<DataArrayDto> {
     const m = dataObjectTypeRegexp.exec(params.dataObjectType);
@@ -651,7 +659,9 @@ export default class DataArrayReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const metadata = await c.getDataArrayMetadata(uri, params.pathInResource);
       if (!metadata) {
@@ -698,7 +708,9 @@ export default class DataArrayReadAPI {
             dimensions: subArray.data.dimensions.map(Number)
           }
         };
-        await c.closeSession();
+        if (!transactionId) {
+          await c.closeSession();
+        }
         c = undefined;
         return res;
       }
@@ -719,11 +731,15 @@ export default class DataArrayReadAPI {
           dimensions: a.data.dimensions.map(Number)
         }
       };
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return res;
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }

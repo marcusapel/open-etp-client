@@ -54,10 +54,12 @@ import {
 import type { IResqmlDataObject } from "../../client/ResqmlClient";
 
 import {
+  FindInObjectParams,
   HasBearerGuard,
   HasDataPartitionGuard,
   OptionalParseBoolPipe,
   createSession,
+  dataObjectTypePattern,
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
@@ -66,14 +68,12 @@ import {
   partitionPattern,
   patternString,
   sliceArray,
-  swaggerServers
+  swaggerServers,
+  uuidPattern
 } from "../ControllerUtils";
 
 import {
-  FindInObjectParams,
-  dataObjectTypePattern,
   datePattern,
-  uuidPattern,
   validNamePattern,
   versionQueryParam
 } from "./Resource.controller";
@@ -133,34 +133,30 @@ export const sendObjects = async (
   if (uris.length === 0) {
     return Promise.resolve([]);
   }
-  try {
-    if (!format || format === "xml") {
-      const dataObjects = await client.getDataObjects(uris);
-      const xml = dataObjects
-        .map(o =>
-          o && o.data.length > 0
-            ? byteToString(o.data).replace(
-                `<?xml version="1.0" encoding="UTF-8"?>`,
-                ""
-              )
-            : ""
-        )
-        .join("");
-      return `<?xml version="1.0" encoding="UTF-8"?><DataObjects>${xml}</DataObjects>`;
-    } else if (referencedContent || arrayValues || arrayMetadata) {
-      const resolvedObjects = await client.getResolvedObjects(
-        uris,
-        objects,
-        arrayValues,
-        arrayMetadata
-      );
-      return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
-    } else {
-      const json = await client.getObjects(uris);
-      return sortResponse(query, json.filter(notEmptyFilter));
-    }
-  } catch (err) {
-    throw new Error(`Unknown Error`);
+  if (!format || format === "xml") {
+    const dataObjects = await client.getDataObjects(uris);
+    const xml = dataObjects
+      .map(o =>
+        o && o.data.length > 0
+          ? byteToString(o.data).replace(
+              `<?xml version="1.0" encoding="UTF-8"?>`,
+              ""
+            )
+          : ""
+      )
+      .join("");
+    return `<?xml version="1.0" encoding="UTF-8"?><DataObjects>${xml}</DataObjects>`;
+  } else if (referencedContent || arrayValues || arrayMetadata) {
+    const resolvedObjects = await client.getResolvedObjects(
+      uris,
+      objects,
+      arrayValues,
+      arrayMetadata
+    );
+    return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
+  } else {
+    const json = await client.getObjects(uris);
+    return sortResponse(query, json.filter(notEmptyFilter));
   }
 };
 

@@ -285,7 +285,7 @@ ResqmlOSDU.add(
   StratigraphicColumnManifest
 );
 ResqmlOSDU.add(
-  "resqml22.obj_StratigraphicColumn",
+  "resqml22.StratigraphicColumn",
   () => "osdu:wks:work-product-component--StratigraphicColumn:1.1.0",
   StratigraphicColumn22Manifest
 );

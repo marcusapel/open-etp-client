@@ -52,21 +52,24 @@ fs.readdirSync(xmlSchemaDir).forEach(file => {
       xml.indexOf("http://www.energistics.org/energyml/data/") + 41;
     const substr = xml.substring(mlIndex);
 
+    let xsType = xml.substring(xml.indexOf(`xsi:type="`) + 19);
+    xsType = xsType.substring(0, xsType.indexOf(`"`));
+
     const schemaIndex = xml.indexOf(`schemaVersion="`) + 15;
     const schema = xml.substring(schemaIndex, schemaIndex + 3);
 
     const mlType = substr.startsWith("resqmlv2")
       ? schema === "2.2"
-        ? "resqml22.ContinuousProperty"
-        : "resqml20.obj_ContinuousProperty"
+        ? `resqml22.${xsType}`
+        : `resqml20.${xsType}`
       : substr.startsWith("witsmlv2")
-      ? "witsml21.Well"
+      ? `witsml21.${xsType}`
       : substr.startsWith("prodmlv2")
-      ? "prodml22.FluidCharacterization"
+      ? `prodml22.${xsType}`
       : substr.startsWith("commonv2")
       ? schema === "2.3"
-        ? "eml23.Activity"
-        : "eml20.obj_EpcExternalPartReference"
+        ? `eml23.${xsType}`
+        : `eml20.${xsType}`
       : null;
 
     if (!mlType) {

@@ -14,6 +14,10 @@
 // limitations under the License.
 // ============================================================================
 
+export const qualifiedTypeRegex = RegExp(
+  /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>\d+)\.(?<dataType>\w+)$/i
+);
+
 /**
  * Parse a standard qualified type for an energistics data object.
  *
@@ -45,11 +49,7 @@ export class EtpQualifiedType {
   }
 
   constructor(qualifiedType: string) {
-    this._m = qualifiedType
-      ? qualifiedType.match(
-          /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+)\.(?<dataType>[\w]+)$/i
-        )
-      : null;
+    this._m = qualifiedType ? qualifiedTypeRegex.exec(qualifiedType) : null;
   }
 
   /**
@@ -61,7 +61,7 @@ export class EtpQualifiedType {
    */
   get hasPlural(): boolean {
     return this.domainVersion
-      ? this.domainVersion[0] === "1" && this.domainFamily !== "resqml"
+      ? this.domainVersion.startsWith("1") && this.domainFamily !== "resqml"
       : false;
   }
 
@@ -73,7 +73,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get domainFamily(): string {
-    return this._m?.groups?.domainFamily || "";
+    return this._m?.groups?.domainFamily ?? "";
   }
 
   /**
@@ -84,7 +84,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get domainVersion(): string {
-    return this._m?.groups?.domainVersion.split("").join(".") || "";
+    return this._m?.groups?.domainVersion.split("").join(".") ?? "";
   }
 
   /**
@@ -95,7 +95,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get dataType(): string {
-    return this._m?.groups?.dataType || "";
+    return this._m?.groups?.dataType ?? "";
   }
 
   /**
@@ -106,7 +106,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get pluralName(): string {
-    return this.dataType ? `${this.dataType.substr(4)}s` : "";
+    return this.dataType ? `${this.dataType.slice(4)}s` : "";
   }
 
   /**
@@ -117,7 +117,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get singularName(): string {
-    return this.dataType ? this.dataType.substr(4) : "";
+    return this.dataType ? this.dataType.slice(4) : "";
   }
 
   /**
@@ -139,7 +139,7 @@ export class EtpQualifiedType {
    * @memberof EtpQualifiedType
    */
   get qualifiedType(): string {
-    return this._m?.input || "";
+    return this._m?.input ?? "";
   }
 
   /**
