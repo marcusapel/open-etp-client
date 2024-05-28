@@ -94,7 +94,7 @@ import {
   IsInt,
   Matches,
   MaxLength
-} from "@nestjs/class-validator";
+} from "class-validator";
 
 import { ResourceGraph } from "../../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../../common/EtpTypes";

@@ -38,7 +38,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID } from "@nestjs/class-validator";
+import { IsUUID } from "class-validator";
 
 import express from "express";
 

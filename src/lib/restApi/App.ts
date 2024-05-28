@@ -96,7 +96,7 @@ export default async function app(): Promise<NestExpressApplication> {
       transform: true,
       skipUndefinedProperties: true,
       transformerPackage: require("@nestjs/class-transformer"),
-      validatorPackage: require("@nestjs/class-validator")
+      validatorPackage: require("class-validator")
     })
   );
 

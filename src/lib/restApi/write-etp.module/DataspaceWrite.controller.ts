@@ -41,7 +41,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { Matches, MaxLength } from "@nestjs/class-validator";
+import { Matches, MaxLength } from "class-validator";
 
 import express from "express";
 

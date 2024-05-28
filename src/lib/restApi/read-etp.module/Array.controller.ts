@@ -61,7 +61,7 @@ import { Integer32 } from "../../common/Etp12";
 
 import { Type } from "@nestjs/class-transformer";
 
-import { IsDate, IsUUID, Matches, MaxLength } from "@nestjs/class-validator";
+import { IsDate, IsUUID, Matches, MaxLength } from "class-validator";
 
 import {
   FindInDataSpaceParams,

@@ -62,7 +62,7 @@ import {
 import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
 import { ApiProperty, ApiQueryOptions } from "@nestjs/swagger";
-import { IsUUID, Matches, MaxLength } from "@nestjs/class-validator";
+import { IsUUID, Matches, MaxLength } from "class-validator";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
