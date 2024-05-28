@@ -1223,7 +1223,7 @@ export class ResqmlWorkProductComponent<
     dataspaceUri: string,
     pointCoordinates: [number, number][],
     crs:
-      | SimpleJson<resqml20.obj_LocalDepth3dCrs>
+      | SimpleJson<resqml20.AbstractLocal3dCrs>
       | SimpleJson<eml23.LocalEngineeringCompoundCrs>
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
@@ -1281,7 +1281,7 @@ export class ResqmlWorkProductComponent<
         YOffset = projectedCrs.OriginProjectedCoordinate2;
       }
     } else {
-      const crs20 = crs as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
+      const crs20 = crs as SimpleJson<resqml20.AbstractLocal3dCrs>;
       if (crs20.ProjectedCrs.$type === "eml20.ProjectedCrsEpsgCode") {
         epsgCode = (
           crs20.ProjectedCrs as SimpleJson<eml20.ProjectedCrsEpsgCode>
@@ -1432,12 +1432,13 @@ export class ResqmlWorkProductComponent<
     if (
       crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs" &&
       crsObj?.$type !== "resqml20.obj_LocalTime3dCrs" &&
+      crsObj?.$type !== "resqml20.obj_LocalTime3dCrs" &&
       crsObj?.$type !== "eml23.LocalEngineeringCompoundCrs"
     ) {
       // TODO: Other CRS
       return Promise.reject(
         new Error(
-          "Only resqml20.obj_LocalDepth3dCrs or eml23.LocalEngineeringCompoundCrs are supported to create spatial info"
+          "Only resqml20.obj_LocalDepth3dCrs or resqml20.obj_LocalTime3dCrs or eml23.LocalEngineeringCompoundCrs are supported to create spatial info"
         )
       );
     }

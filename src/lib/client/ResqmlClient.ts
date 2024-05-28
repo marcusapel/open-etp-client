@@ -1141,12 +1141,20 @@ export class ResqmlClient {
    */
   public async addArrayValues(
     uri: URI,
-    obj: IResqmlDataObject
+    obj: IResqmlDataObject,
+    arrayFormat: ArrayFormat = "base64"
   ): Promise<IResqmlDataObject> {
     const dataArrays = new Map<URI, IDataArray>(); // Map URI=>DataArray
     this.findDataArrays(uri, obj, dataArrays);
     return this.getArraysContent(dataArrays).then(() => {
-      this.resolveReferences(uri, obj, new Map(), dataArrays, new Map());
+      this.resolveReferences(
+        uri,
+        obj,
+        new Map(),
+        dataArrays,
+        new Map(),
+        arrayFormat
+      );
       return obj;
     });
   }
@@ -1412,6 +1420,7 @@ export class ResqmlClient {
    * @param {Map<URI, IResqmlDataObject>} [objects=new Map<URI, IResqmlDataObject>()] map of existing objects URI=>object
    * @param {boolean} [includeArrayValues=false]
    * @param {boolean} [includeArrayMetadata=false]
+   * @param {ArrayFormat} [arrayFormat="base64"] Format of the array values
    * @returns {Promise<Array<IResqmlDataObject|null>>} resolved objects in order or query, null for failed queries
    * @memberof ResqmlClient
    */
@@ -1419,7 +1428,8 @@ export class ResqmlClient {
     uris: URI[],
     objects: Map<URI, IResqmlDataObject> = new Map<URI, IResqmlDataObject>(),
     includeArrayValues = false,
-    includeArrayMetadata = false
+    includeArrayMetadata = false,
+    arrayFormat: ArrayFormat = "base64"
   ): Promise<Array<IResqmlDataObject | null>> {
     if (uris.length === 0) {
       throw new Error("Empty uris");
@@ -1497,8 +1507,9 @@ export class ResqmlClient {
           iu,
           objects,
           dataArrays,
-          alreadyResolved
-        );
+          alreadyResolved,
+          arrayFormat
+        ) as IResqmlDataObject;
         objects.set(uri, resolved);
         return resolved;
       });
@@ -2519,43 +2530,50 @@ export class ResqmlClient {
     dataArrays: Map<string, IDataArray>
   ): void {
     const etpUri = new EtpUri(uri);
-    for (const key of Object.keys(obj)) {
-      if (Array.isArray(obj[key])) {
-        for (const e of obj[key]) {
-          this.findDataArrays(etpUri.uriPath, e, dataArrays);
-        }
-      } else if (obj[key] && typeof obj[key] === "object") {
-        if (
-          obj[key].$type &&
-          obj[key].$type.lastIndexOf("Hdf5Dataset") !== -1
-        ) {
-          let contentType = "obj_EpcExternalPartReference";
-          if (obj[key].HdfProxy?.ContentType) {
-            contentType = obj[key].HdfProxy.ContentType.substring(
-              obj[key].HdfProxy.ContentType.indexOf("type=") + 5
-            );
-          }
 
-          const nURI = EtpUri.createObjectUri(
-            etpUri.dataSpace,
-            "eml",
-            "20",
-            contentType,
-            obj[key].HdfProxy.UUID,
-            obj[key].HdfProxy.Version
-          ).uriPath;
-          dataArrays.set(nURI + obj[key].PathInHdfFile, {
-            uid: {
-              pathInResource: obj[key].PathInHdfFile,
-              uri: nURI
-            }
-          });
-        } else if (
-          obj[key].$type &&
-          obj[key].$type.lastIndexOf("DataObjectReference") === -1 &&
-          typeof obj[key] === "object"
-        ) {
-          this.findDataArrays(etpUri.uriPath, obj[key], dataArrays);
+    if (obj.$type && obj.$type.lastIndexOf("Hdf5Dataset") !== -1) {
+      let contentType = "obj_EpcExternalPartReference";
+      if (obj.HdfProxy?.ContentType) {
+        contentType = obj.HdfProxy.ContentType.substring(
+          obj.HdfProxy.ContentType.indexOf("type=") + 5
+        );
+      }
+
+      const nURI = EtpUri.createObjectUri(
+        etpUri.dataSpace,
+        "eml",
+        "20",
+        contentType,
+        obj.HdfProxy.UUID,
+        obj.HdfProxy.Version
+      ).uriPath;
+      dataArrays.set(nURI + obj.PathInHdfFile, {
+        uid: {
+          pathInResource: obj.PathInHdfFile,
+          uri: nURI
+        }
+      });
+    } else if (obj.$type && obj.$type === "eml23.ExternalDataArrayPart") {
+      dataArrays.set(uri + obj.PathInExternalFile, {
+        uid: {
+          pathInResource: obj.PathInExternalFile,
+          uri
+        }
+      });
+    } else {
+      for (const key of Object.keys(obj)) {
+        if (Array.isArray(obj[key])) {
+          for (const e of obj[key]) {
+            this.findDataArrays(etpUri.uriPath, e, dataArrays);
+          }
+        } else if (obj[key] && typeof obj[key] === "object") {
+          if (
+            obj[key].$type &&
+            obj[key].$type.lastIndexOf("DataObjectReference") === -1 &&
+            typeof obj[key] === "object"
+          ) {
+            this.findDataArrays(etpUri.uriPath, obj[key], dataArrays);
+          }
         }
       }
     }
@@ -2814,137 +2832,155 @@ export class ResqmlClient {
    */
   private resolveReferences(
     uri: URI,
-    resqmlObj: IResqmlDataObject,
+    obj: Record<string, any>,
     objects: Map<URI, IResqmlDataObject>,
     dataArrays: Map<URI, IDataArray>,
-    resolved: Map<URI, IResqmlDataObject>
-  ): IResqmlDataObject {
+    resolved: Map<URI, IResqmlDataObject>,
+    arrayFormat: ArrayFormat
+  ): Record<string, any> {
     const etpUri = new EtpUri(uri);
     const r = resolved.get(etpUri.uriPath);
     if (r) {
       return r;
     }
-    const obj = resqmlObj as Record<string, any>;
-    Object.keys(obj).forEach((key: string) => {
-      if (!obj[key] || typeof obj[key] !== "object") {
-        return;
-      } else if (Array.isArray(obj[key])) {
-        obj[key] = obj[key].map((o: IResqmlDataObject) =>
-          this.resolveReferences(uri, o, objects, dataArrays, resolved)
-        );
-      } else if (
-        // EML2.0 Array
-        obj[key].$type === "eml20.Hdf5Dataset"
-      ) {
-        // Resolve the data arrays
-        let contentType = "obj_EpcExternalPartReference";
-        if (obj[key].HdfProxy?.ContentType) {
-          contentType = obj[key].HdfProxy.ContentType.substring(
-            obj[key].HdfProxy.ContentType.indexOf("type=") + 5
-          );
-        }
-        const nURI = `${
-          EtpUri.createObjectUri(
-            etpUri.dataSpace,
-            "eml",
-            "2.0",
-            contentType,
-            obj[key].HdfProxy.UUID,
-            obj[key].HdfProxy.Version
-          ).uri
-        }${obj[key].PathInHdfFile}`;
 
-        const arr = dataArrays.get(nURI);
-        if (arr?.data) {
-          const arrayData = this.formatArrayData(arr.data.data, "base64");
-          const o = { ...arr, data: { ...arr.data, data: arrayData } };
-          obj[key] = { ...obj[key], _data: simpleJson(o, "2.0") };
-        } else if (arr) {
-          obj[key] = { ...obj[key], _data: simpleJson(arr, "2.0") };
-        }
-      } else if (
-        // EML2.3 Array
-        obj[key].$type === "eml23.ExternalDataArrayPart"
-      ) {
-        // Resolve the data arrays
-        const nURI = `${obj[key].URI}${obj[key].PathInHdfFile}`;
+    if (
+      // EML2.3 Array
+      obj.$type === "eml23.ExternalDataArrayPart"
+    ) {
+      // Resolve the data arrays
+      const nURI = `${obj.URI}${obj.PathInExternalFile}`;
 
-        const arr = dataArrays.get(nURI);
-        if (arr?.data) {
-          const arrayData = this.formatArrayData(arr.data.data, "base64");
-          const o = { ...arr, data: { ...arr.data, data: arrayData } };
-          obj[key] = { ...obj[key], _data: simpleJson(o, "2.3") };
-        } else if (arr) {
-          obj[key] = { ...obj[key], _data: simpleJson(arr, "2.3") };
-        }
-      } else if (
-        obj[key].$type === "eml20.DataObjectReference" ||
-        obj[key].$type === "eml23.DataObjectReference"
-      ) {
-        let nURI: EtpUri = new EtpUri("");
-        // TODO: Use of obj[key].EnergisticsUri for external references
-        if (obj[key].$type === "eml20.DataObjectReference") {
-          const ref = obj[key] as Eml20.DataObjectReference;
-          const dataObjectType: EtpContentType.EtpContentType =
-            new EtpContentType.EtpContentType(obj[key].ContentType);
-          nURI = EtpUri.createObjectUri(
-            etpUri.dataSpace,
-            dataObjectType.domainFamily,
-            dataObjectType.domainVersion,
-            dataObjectType.dataType,
-            ref.UUID,
-            ref.VersionString
-          );
-        } else {
-          const ref = obj[key] as Eml23.DataObjectReference;
-          const qualifiedType = new EtpQualifiedType(obj[key].QualifiedType);
-          nURI = EtpUri.createObjectUri(
-            etpUri.dataSpace,
-            qualifiedType.domainFamily,
-            qualifiedType.domainVersion,
-            qualifiedType.dataType,
-            ref.Uuid,
-            ref.ObjectVersion
-          );
-        }
-
-        if (nURI.isValid) {
-          // Resolve the object reference
-          let o = objects.get(nURI.uri);
-          if (!o) {
-            o = objects.get(
-              EtpUri.createObjectUri(
-                nURI.dataSpace,
-                nURI.domainFamily,
-                nURI.domainVersion,
-                nURI.objectType,
-                nURI.uuid
-              ).uri
-            );
-          }
-          if (o) {
-            const res = this.resolveReferences(
-              nURI.uri,
+      const arr = dataArrays.get(nURI);
+      if (arr?.data) {
+        const arrayData = this.formatArrayData(arr.data.data, arrayFormat);
+        const o = { ...arr, data: { ...arr.data, data: arrayData } };
+        return {
+          ...obj,
+          _data: simpleJson(o, "2.3")
+        };
+      } else if (arr) {
+        return {
+          ...obj,
+          _data: simpleJson(arr, "2.3")
+        };
+      }
+    } else {
+      Object.keys(obj).forEach((key: string) => {
+        if (!obj[key] || typeof obj[key] !== "object") {
+          return;
+        } else if (Array.isArray(obj[key])) {
+          obj[key] = obj[key].map((o: IResqmlDataObject) =>
+            this.resolveReferences(
+              uri,
               o,
               objects,
               dataArrays,
-              resolved
+              resolved,
+              arrayFormat
+            )
+          );
+        } else if (
+          // EML2.0 Array
+          obj[key].$type === "eml20.Hdf5Dataset"
+        ) {
+          // Resolve the data arrays
+          let contentType = "obj_EpcExternalPartReference";
+          if (obj[key].HdfProxy?.ContentType) {
+            contentType = obj[key].HdfProxy.ContentType.substring(
+              obj[key].HdfProxy.ContentType.indexOf("type=") + 5
             );
-            obj[key] = { ...obj[key], _data: res };
-            resolved.set(nURI.uri, res);
           }
+          const nURI = `${
+            EtpUri.createObjectUri(
+              etpUri.dataSpace,
+              "eml",
+              "2.0",
+              contentType,
+              obj[key].HdfProxy.UUID,
+              obj[key].HdfProxy.Version
+            ).uri
+          }${obj[key].PathInHdfFile}`;
+
+          const arr = dataArrays.get(nURI);
+          if (arr?.data) {
+            const arrayData = this.formatArrayData(arr.data.data, arrayFormat);
+            const o = { ...arr, data: { ...arr.data, data: arrayData } };
+            obj[key] = { ...obj[key], _data: simpleJson(o, "2.0") };
+          } else if (arr) {
+            obj[key] = { ...obj[key], _data: simpleJson(arr, "2.0") };
+          }
+        } else if (
+          obj[key].$type === "eml20.DataObjectReference" ||
+          obj[key].$type === "eml23.DataObjectReference"
+        ) {
+          let nURI: EtpUri = new EtpUri("");
+          // TODO: Use of obj[key].EnergisticsUri for external references
+          if (obj[key].$type === "eml20.DataObjectReference") {
+            const ref = obj[key] as Eml20.DataObjectReference;
+            const dataObjectType: EtpContentType.EtpContentType =
+              new EtpContentType.EtpContentType(obj[key].ContentType);
+            nURI = EtpUri.createObjectUri(
+              etpUri.dataSpace,
+              dataObjectType.domainFamily,
+              dataObjectType.domainVersion,
+              dataObjectType.dataType,
+              ref.UUID,
+              ref.VersionString
+            );
+          } else {
+            const ref = obj[key] as Eml23.DataObjectReference;
+            const qualifiedType = new EtpQualifiedType(obj[key].QualifiedType);
+            nURI = EtpUri.createObjectUri(
+              etpUri.dataSpace,
+              qualifiedType.domainFamily,
+              qualifiedType.domainVersion,
+              qualifiedType.dataType,
+              ref.Uuid,
+              ref.ObjectVersion
+            );
+          }
+
+          if (nURI.isValid) {
+            // Resolve the object reference
+            let o = objects.get(nURI.uri) as IResqmlDataObject | undefined;
+            if (!o) {
+              o = objects.get(
+                EtpUri.createObjectUri(
+                  nURI.dataSpace,
+                  nURI.domainFamily,
+                  nURI.domainVersion,
+                  nURI.objectType,
+                  nURI.uuid
+                ).uri
+              );
+            }
+            if (o) {
+              const res = this.resolveReferences(
+                nURI.uri,
+                o,
+                objects,
+                dataArrays,
+                resolved,
+                arrayFormat
+              ) as IResqmlDataObject;
+              obj[key] = { ...obj[key], _data: res };
+              resolved.set(nURI.uri, res);
+            }
+          }
+        } else {
+          obj[key] = this.resolveReferences(
+            etpUri.uriPath,
+            obj[key],
+            objects,
+            dataArrays,
+            resolved,
+            arrayFormat
+          );
         }
-      } else {
-        obj[key] = this.resolveReferences(
-          etpUri.uriPath,
-          obj[key],
-          objects,
-          dataArrays,
-          resolved
-        );
-      }
-    });
-    return resqmlObj;
+      });
+    }
+    return obj;
   }
 
   /**

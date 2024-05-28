@@ -2,10 +2,12 @@ import fs from "fs";
 
 import Logger from "bunyan";
 
+export const logger = Logger.createLogger({ name: "Certification" });
+
 // Read configuration from json file provided as argument
 const fileName = process.argv[2];
 if (!fileName || !fs.existsSync(fileName)) {
-  console.log("Usage: npm run certification <config_file>");
+  logger.error("Usage: npm run certification <config_file>");
   process.exit(1);
 }
 
@@ -17,6 +19,7 @@ const config: {
   supportApplicationAuthentication?: boolean;
   supportTransportAuthentication?: boolean;
   serverRequiresAuthorization?: boolean;
+  runExperimental?: boolean;
 } = JSON.parse(fs.readFileSync(fileName, "utf8"));
 
 export const itif = (condition?: boolean) => (condition ? it : it.skip);
@@ -62,7 +65,5 @@ config.serverRequiresAuthorization =
     : config.serverRequiresAuthorization;
 
 jest.setTimeout(300000);
-
-export const logger = Logger.createLogger({ name: "Certitication" });
 
 export default config;

@@ -22,8 +22,11 @@
  */
 
 import "jest";
-
+import "http";
+import "https";
 import request from "supertest";
+import { IncomingMessage } from "http";
+import { client as WebSocketClient, connection } from "websocket";
 
 import { ResqmlClient as ETPValidationClient } from "../index";
 
@@ -194,3 +197,97 @@ describeif(config.supportApplicationAuthentication)(
     );
   }
 );
+
+describeif(config.runExperimental)("VE403-7", () => {
+  const restUrl = config.etpServerUrl.replace("ws", "http");
+
+  it("VE403-7: Server supports HTTP/1.1", done => {
+    let httpClient;
+    if (restUrl.startsWith("https:")) {
+      httpClient = require("https");
+    } else {
+      httpClient = require("http");
+    }
+
+    const req = httpClient
+      .get(
+        restUrl +
+          "/.well-known/etp-server-capabilities?GetVersion=etp12.energistics.org",
+        (res: IncomingMessage) => {
+          expect(res.statusCode).toBe(200);
+          expect(res.httpVersion).toBe("1.1");
+          done();
+        }
+      )
+      .on("error", (e: any) => {
+        logger.error(e);
+        done(e);
+      });
+
+    req.end();
+  });
+});
+
+describe("VE403-13", () => {
+  const restUrl = config.etpServerUrl.replace("ws", "http");
+
+  it("VE403-13: Server supports Energistics protocol", async (): Promise<any> => {
+    const httpTest = request(`${restUrl}`);
+    await httpTest
+      .get(`/.well-known/etp-server-capabilities?GetVersions=true`)
+      .send()
+      .expect(200)
+      .then(response => {
+        const supportedProtocols = response.body as Array<string>;
+        expect(
+          supportedProtocols.includes("etp12.energistics.org")
+        ).toBeTruthy();
+      });
+
+    const client = new ETPValidationClient();
+    try {
+      return client
+        .connect(config.etpServerUrl, config.jwtToken, config.dataPartition)
+        .then(async () => client.requestSession())
+        .then(async () => client.closeSession());
+    } catch (err: any) {
+      return failIfError(err);
+    }
+  });
+});
+
+describe("VE403-18", () => {
+  it("VE403-18: Server accepts valid protocols", done => {
+    // should connect successfully
+    const client = new WebSocketClient();
+    client.on("connect", function (connection: connection) {
+      expect(connection.connected).toBe(true);
+      connection.close();
+      done();
+    });
+    client.on("connectFailed", function (error: Error) {
+      done(error);
+    });
+
+    client.connect(config.etpServerUrl, "etp12.energistics.org", undefined, {
+      Authorization: `${config.jwtToken}`
+    });
+  });
+
+  it("VE403-18: Server rejects invalid protocols", done => {
+    // should connect successfully
+    const client = new WebSocketClient();
+    client.on("connect", function (connection: connection) {
+      connection.close();
+      done(new Error("Connection should fail"));
+    });
+    client.on("httpResponse", function (response: any) {
+      expect(response.statusCode).toBe(400);
+      done();
+    });
+
+    client.connect(config.etpServerUrl, "fake", undefined, {
+      Authorization: `${config.jwtToken}`
+    });
+  });
+});

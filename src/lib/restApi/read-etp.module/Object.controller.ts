@@ -370,6 +370,9 @@ export default class ObjectsReadAPI {
         version
       ).uri
     ];
+    if (request.headers["accept"]?.includes("application/x-resqml+json")) {
+      format = "json";
+    }
     if (!format || format === "xml") {
       res.contentType("application/x-resqml+xml");
     } else {

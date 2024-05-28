@@ -51,7 +51,7 @@ import {
   etpServerUrl,
   restApiMainUrl,
   restApiPort,
-  restApiRoutePath
+  restApiServerPath
 } from "../lib/common/config";
 import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
 import { ResourceGraph } from "src/lib/common/ResponseHandlers";
@@ -233,7 +233,7 @@ const testServers: TServer = {};
 
 // declare servers we want to test
 const serverData: string[] = [
-  // "http", // http server: e.g. docker container image,
+  "http", // http server: e.g. docker container image,
   "app" // NestJS app
 ];
 
@@ -249,7 +249,7 @@ try {
     if (serverData.includes("http")) {
       // http server: e.g. docker container image
       const httpServerTest = request(`${restApiMainUrl}:${restApiPort}`);
-      httpServerTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      httpServerTest.get(`${restApiServerPath}/health/readiness`).expect(200);
       testServers["http"] = httpServerTest;
     }
 
@@ -258,12 +258,14 @@ try {
       nestApp = await restApp();
       const nestAppServer = (await nestApp.init()).getHttpServer();
       const nestAppTest = request(nestAppServer);
-      nestAppTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      nestAppTest.get(`${restApiServerPath}/health/readiness`).expect(200);
       testServers["app"] = nestAppTest;
+
+      const path = `${restApiServerPath}/auth/token`;
 
       // initialize token for
       const res = await nestAppTest
-        .get(`${restApiRoutePath}/auth/token`)
+        .get(`${restApiServerPath}/auth/token`)
         .expect("Content-Type", /json/)
         .expect(200);
       token = res.body.token;
@@ -1236,12 +1238,12 @@ describe("OSDU Dataspaces", () => {
 describe("Rest server health", () => {
   it.each(serverData)("Check API readiness probe %s", async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/health/readiness`)
+      .get(`${restApiServerPath}/health/readiness`)
       .expect(200);
   });
   it.each(serverData)("Check API liveness probe %s", async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/health/liveness`)
+      .get(`${restApiServerPath}/health/liveness`)
       .expect(200);
   });
 });
@@ -1251,7 +1253,7 @@ describe("Large number of API access", () => {
   it.each(serverData)(`Get Dataspace Ok %s`, async type => {
     for (let i = 0; i < 200; i++) {
       await testServers[type]
-        .get(`${restApiRoutePath}/dataspaces`)
+        .get(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(`Content-Type`, /json/)
         .expect(200);
@@ -1303,7 +1305,7 @@ describe("Rest API tools", () => {
   );
 });
 
-describe("Rest API Transaction 2.0.1 Workflow", () => {
+describe.only("Rest API Transaction 2.0.1 Workflow", () => {
   it.each(serverData)(
     "Full Workflow",
     async type => {
@@ -1419,7 +1421,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       const dataSpace = "projectA/ScenarioTest1";
       await testServers[type]
-        .post(`${restApiRoutePath}/dataspaces`)
+        .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .send([
           {
@@ -1434,7 +1436,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
         .expect(201);
 
       const res = await testServers[type]
-        .get(`${restApiRoutePath}/dataspaces`)
+        .get(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(`Content-Type`, /json/)
         .expect(200);
@@ -1445,7 +1447,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       const trans = await testServers[type]
         .post(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/transactions`
         )
@@ -1455,7 +1457,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       await testServers[type]
         .put(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources?transactionId=${transId}`
         )
@@ -1465,7 +1467,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       await testServers[type]
         .put(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources/arrays?transactionId=${transId}`
         )
@@ -1476,7 +1478,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
       // Visible Inside transaction
       const res2 = await testServers[type]
         .get(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources?transactionId=${transId}`
         )
@@ -1486,7 +1488,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
       // Invisible outside transaction
       const res3 = await testServers[type]
         .get(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources`
         )
@@ -1495,7 +1497,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       await testServers[type]
         .put(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/transactions/${transId}`
         )
@@ -1505,7 +1507,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
       // Visible after transaction
       const res4 = await testServers[type]
         .get(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources`
         )
@@ -1514,7 +1516,7 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
 
       await testServers[type]
         .delete(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(dataSpace)}`
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(dataSpace)}`
         )
         .set(`Authorization`, `Bearer ${token}`)
         .expect(204);
@@ -1855,7 +1857,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 
       const dataSpace = "projectA/seismic22";
       await testServers[type]
-        .post(`${restApiRoutePath}/dataspaces`)
+        .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .send([
           {
@@ -1870,7 +1872,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
         .expect(201);
 
       const res = await testServers[type]
-        .get(`${restApiRoutePath}/dataspaces`)
+        .get(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(`Content-Type`, /json/)
         .expect(200);
@@ -1881,7 +1883,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 
       await testServers[type]
         .put(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources`
         )
@@ -1898,7 +1900,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 
       await testServers[type]
         .put(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources`
         )
@@ -1908,7 +1910,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 
       const res4 = await testServers[type]
         .get(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
           )}/resources/all`
         )
@@ -1917,7 +1919,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 
       await testServers[type]
         .delete(
-          `${restApiRoutePath}/dataspaces/${encodeURIComponent(dataSpace)}`
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(dataSpace)}`
         )
         .set(`Authorization`, `Bearer ${token}`)
         .expect(204);
@@ -1929,14 +1931,14 @@ describe("Rest API Transaction 2.2 Workflow", () => {
 describe(`Dataspace`, () => {
   it.each(serverData)(`Get Dataspace Unauthorized %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .expect(`Content-Type`, /json/)
       .expect(403);
   });
 
   it.each(serverData)(`Bad Bearer Format %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `${token}`)
       .expect(`Content-Type`, /json/)
       .expect(403);
@@ -1944,7 +1946,7 @@ describe(`Dataspace`, () => {
 
   it.each(serverData)(`Get Dataspace Ok %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -1953,13 +1955,13 @@ describe(`Dataspace`, () => {
 describe(`Auth`, () => {
   it.each(serverData)(`No token %s`, async type => {
     const uris = [
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
     ];
     for (const u of uris) {
       await testServers[type].get(u).expect(403);
@@ -1968,15 +1970,15 @@ describe(`Auth`, () => {
 
   it.each(serverData)(`Wrong dataspace %s`, async type => {
     const uris = [
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/all`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/sources`
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/all`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/sources`
     ];
     for (const u of uris) {
       await testServers[type]
@@ -2001,7 +2003,7 @@ describe(`Resources`, () => {
   const jsonMime = "application/json; charset=utf-8";
   it.each(serverData)(`Dataspaces %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -2010,7 +2012,7 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Dataspaces Info %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/info`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/info`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -2018,17 +2020,17 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Dataspaces Lock/unlock %s`, async type => {
     await testServers[type]
-      .post(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+      .post(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(201);
     await testServers[type]
-      .delete(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+      .delete(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
   });
   it.each(serverData)(`Types %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -2037,7 +2039,7 @@ describe(`Resources`, () => {
 
   it.each(serverData)(`Wrong dataspacesTypes %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
+      .get(`${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(404);
@@ -2046,7 +2048,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Resource by Types %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -2054,7 +2056,7 @@ describe(`Resources`, () => {
     expect(res.body).toHaveLength(3);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -2063,7 +2065,7 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Find Resources %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`)
 
       .query(`$filter=startswith(SurfaceRole,'map') eq true`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -2074,7 +2076,7 @@ describe(`Resources`, () => {
 
   it.each(serverData)(`Find Resources %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`)
 
       .query(`$filter=endswith(SurfaceRole,'map') eq true`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -2086,7 +2088,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects JSON %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -2097,7 +2099,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects JSON Resolved %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -2108,7 +2110,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects XML %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -2121,14 +2123,14 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Targets %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -2138,14 +2140,14 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Sources %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -2155,7 +2157,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Arrays %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -2169,7 +2171,7 @@ describe(`Resources`, () => {
     );
     await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -2182,7 +2184,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -2196,7 +2198,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query(`format=base64`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -2216,7 +2218,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=10")
       .query("starts=1")
@@ -2234,7 +2236,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=12")
       .query("starts=1")
@@ -2279,7 +2281,7 @@ describe(`Manifest`, () => {
         createMissingReferences: true
       };
       const res = await testServers[type]
-        .post(`${restApiRoutePath}/manifests/build`)
+        .post(`${restApiServerPath}/manifests/build`)
         .set(`Authorization`, `Bearer ${token}`)
         .send(manifestInput)
         .expect(`Content-Type`, /json/)
