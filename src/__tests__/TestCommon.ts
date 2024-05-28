@@ -28,8 +28,6 @@ import {
 } from "../index";
 
 import * as Util from "../lib/common/Util";
-import { parseJSON } from "../lib/mlTypes/XmlJsonUtil";
-import { Resqml201Converter } from "..//lib/mlTypes/Resqml201Converter";
 
 describe("Schemas", () => {
   const gridType = "resqml20.obj_IjkGridRepresentation";
@@ -51,16 +49,6 @@ describe("Schemas", () => {
   it("Create WITSML JSON schema", () => {
     const s = new XmlUtils.WitsmlTypeUtils().createJSONSchemas("witsml21.Log");
     expect(s).toContain("#/definitions/Citation");
-  });
-});
-
-describe.only("resqml201 conversion", () => {
-  it("Interpretations22", async () => {
-    const xUtils = new XmlUtils.ResqmlTypeUtils();
-    const o01 = parseJSON(fs.readFileSync("test.json", "utf-8"));
-    const oo = new Resqml201Converter("test/test").convert(o01);
-    const ro = oo.map(d => d && xUtils.checkInterface(d, d?.$type));
-    expect(ro).toBeTruthy();
   });
 });
 
