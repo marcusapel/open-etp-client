@@ -37,6 +37,7 @@ import * as eml23 from "./xmlns/www.energistics.org/energyml/resqmlv22/commonv2"
 import * as resqml20 from "./xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import * as resqml22 from "./xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
 import * as prodml22 from "./xmlns/www.energistics.org/energyml/prodmlv22/prodmlv2";
+import * as prodml23 from "./xmlns/www.energistics.org/energyml/prodmlv23/prodmlv2";
 import * as witsml21 from "./xmlns/www.energistics.org/energyml/witsmlv21/witsmlv2";
 
 // Create a new type where the keys of an object to their CamelCase version
@@ -321,6 +322,8 @@ const xmlDocument = (dataObjectType: string) => {
     ? resqml20.document
     : dataObjectType.startsWith("prodml22")
     ? prodml22.document
+    : dataObjectType.startsWith("prodml23")
+    ? prodml23.document
     : dataObjectType.startsWith("resqml22")
     ? resqml22.document
     : dataObjectType.startsWith("witsml21")
@@ -350,7 +353,7 @@ export const xml2typescript = async (
       xmlDocument(dataObjectType),
       cxml.context(dataObjectType.split(".")[0])
     );
-    const keys = Object.keys(res);
+    const keys = Object.keys(res).filter(r => !r.startsWith("_"));
     if (keys.length === 0) {
       return Promise.reject("Empty object");
     }
@@ -633,13 +636,18 @@ export class InterfaceTypeUtils {
     const pn = toPascalCase(n);
     // Check for presence of mandatory properties
     if (!Object.keys(o).includes(n) && !Object.keys(o).includes(pn)) {
-      return p.getQuestionTokenNode() !== undefined;
+      const ok = p.getQuestionTokenNode() !== undefined;
+      if (!ok) {
+        return false;
+      }
+      return ok;
     }
     const t = p.getType();
     const val = Object.keys(o).includes(n) ? o[n] : o[pn];
     // For readability, prefer no single return statement
     /* eslint-disable-next-line */
     if (!t || !this.checkValueType(val, t, interfaceName)) {
+      this.checkValueType(val, t, interfaceName);
       return false;
     }
 
@@ -670,7 +678,15 @@ export class InterfaceTypeUtils {
           !base.getText().endsWith("BaseType") &&
           !this.checkInterface(o, base.getText(), interfaceName)
         ) {
-          return false;
+          for (const m of base.getType().getProperties()) {
+            if (m.getName() !== "_" && m.getName().startsWith("_")) {
+              continue;
+            }
+            const p = m.getDeclarations()[0] as PropertySignature;
+            if (!this.checkProperty(o, p, interfaceName)) {
+              return false;
+            }
+          }
         }
       }
     }
@@ -1038,7 +1054,7 @@ export class InterfaceTypeUtils {
 
               const propertyName = toPascalCase(m.getName());
 
-              const mn = m.getDeclarations()[0];
+              const mn = m.getDeclarations()[0] as PropertySignature;
 
               const pm = `      "${propertyName}": {\n        ${this.getJSONType(
                 mn.getType(),
@@ -1047,7 +1063,11 @@ export class InterfaceTypeUtils {
               )}\n      }`;
 
               propertyMap.set(propertyName, pm);
-              required.add(propertyName);
+
+              const isQuestion = mn.getQuestionTokenNode() !== undefined;
+              if (!isQuestion) {
+                required.add(propertyName);
+              }
             }
           }
         }
@@ -1115,7 +1135,7 @@ const fileDirectory = path.dirname(__filename);
 
 export const getFilePath = (
   fileName: string,
-  subDir: "resqmlv201" | "resqmlv22" | "witsmlv21" | "prodmlv22"
+  subDir: "resqmlv201" | "resqmlv22" | "witsmlv21" | "prodmlv22" | "prodmlv23"
 ): string => {
   return `${fileDirectory}/xmlns/www.energistics.org/energyml/${subDir}/${fileName}`;
 };
@@ -1154,6 +1174,84 @@ export class ResqmlTypeUtils extends InterfaceTypeUtils {
       getFilePath(commonFileName, subDir)
     );
     this.files.set("eml20", emlFile);
+  }
+}
+
+export class Resqml22TypeUtils extends InterfaceTypeUtils {
+  /**
+   * Creates an instance of ResqmlInterfaceValidator.
+   *
+   * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
+   * @memberof ResqmlInterfaceValidator
+   */
+  constructor(allowResolvedReferences = true) {
+    super(allowResolvedReferences);
+    const subDir = "resqmlv22";
+    this.project.addSourceFilesAtPaths([
+      getFilePath("resqmlv2.d.ts", subDir),
+      getFilePath(commonFileName, subDir)
+    ]);
+    const resqmlFile = this.project.getSourceFileOrThrow(
+      getFilePath("resqmlv2.d.ts", subDir)
+    );
+    this.files.set("resqml22", resqmlFile);
+    const emlFile = this.project.getSourceFileOrThrow(
+      getFilePath(commonFileName, subDir)
+    );
+    this.files.set("eml23", emlFile);
+    this.files.set("eml", emlFile);
+  }
+}
+
+export class Prodml22TypeUtils extends InterfaceTypeUtils {
+  /**
+   * Creates an instance of ResqmlInterfaceValidator.
+   *
+   * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
+   * @memberof ResqmlInterfaceValidator
+   */
+  constructor(allowResolvedReferences = true) {
+    super(allowResolvedReferences);
+    const subDir = "prodmlv22";
+    this.project.addSourceFilesAtPaths([
+      getFilePath("prodmlv2.d.ts", subDir),
+      getFilePath(commonFileName, subDir)
+    ]);
+    const prodmlFile = this.project.getSourceFileOrThrow(
+      getFilePath("prodmlv2.d.ts", subDir)
+    );
+    this.files.set("prodml22", prodmlFile);
+    const emlFile = this.project.getSourceFileOrThrow(
+      getFilePath(commonFileName, subDir)
+    );
+    this.files.set("eml23", emlFile);
+    this.files.set("eml", emlFile);
+  }
+}
+
+export class Prodml23TypeUtils extends InterfaceTypeUtils {
+  /**
+   * Creates an instance of ResqmlInterfaceValidator.
+   *
+   * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
+   * @memberof ResqmlInterfaceValidator
+   */
+  constructor(allowResolvedReferences = true) {
+    super(allowResolvedReferences);
+    const subDir = "prodmlv23";
+    this.project.addSourceFilesAtPaths([
+      getFilePath("prodmlv2.d.ts", subDir),
+      getFilePath(commonFileName, subDir)
+    ]);
+    const prodmlFile = this.project.getSourceFileOrThrow(
+      getFilePath("prodmlv2.d.ts", subDir)
+    );
+    this.files.set("prodml23", prodmlFile);
+    const emlFile = this.project.getSourceFileOrThrow(
+      getFilePath(commonFileName, subDir)
+    );
+    this.files.set("eml23", emlFile);
+    this.files.set("eml", emlFile);
   }
 }
 

@@ -54,10 +54,12 @@ import {
 import type { IResqmlDataObject } from "../../client/ResqmlClient";
 
 import {
+  FindInObjectParams,
   HasBearerGuard,
   HasDataPartitionGuard,
   OptionalParseBoolPipe,
   createSession,
+  dataObjectTypePattern,
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
@@ -66,14 +68,12 @@ import {
   partitionPattern,
   patternString,
   sliceArray,
-  swaggerServers
+  swaggerServers,
+  uuidPattern
 } from "../ControllerUtils";
 
 import {
-  FindInObjectParams,
-  dataObjectTypePattern,
   datePattern,
-  uuidPattern,
   validNamePattern,
   versionQueryParam
 } from "./Resource.controller";

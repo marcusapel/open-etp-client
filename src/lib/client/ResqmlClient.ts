@@ -113,6 +113,8 @@ export * as ODataUtils from "../oDataParser/oDataUtils";
 export * as XmlUtils from "../mlTypes/XmlJsonUtil";
 export { SimpleJson } from "../mlTypes/XmlJsonUtil";
 export * as Resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
+export * as Resqml22 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
+export * as Eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
 export * as Eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/witsmlv21/commonv2";
 
 const authenticationKeyBase =
@@ -1084,13 +1086,13 @@ export class ResqmlClient {
    * If there is a need for resolved objects use {@link getResolvedObjects} instead.
    *
    * @param {URI[]} uris of the objects to get
-   * @param {boolean} [usingSchema=true] allow not to use schema for conversion, which is faster but very dangerous if you have an array in any part of the path when accessing an element.
+   * @param {boolean} [_usingSchema=true] allow not to use schema for conversion, which is faster but very dangerous if you have an array in any part of the path when accessing an element.
    * @returns {Promise<Array<IResqmlDataObject|null>} Resulting object in order of query, null if query fail
    * @memberof ResqmlClient
    */
   public async getObjects(
     uris: URI[],
-    usingSchema = true
+    _usingSchema = true
   ): Promise<Array<IResqmlDataObject | null>> {
     if (uris.length === 0) {
       return [];

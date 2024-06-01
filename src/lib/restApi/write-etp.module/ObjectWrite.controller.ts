@@ -1,0 +1,733 @@
+// ============================================================================
+// Copyright 2019-2022 Emerson Paradigm Holding LLC. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ============================================================================
+
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  InternalServerErrorException,
+  Param,
+  Put,
+  Query,
+  Req,
+  UseGuards
+} from "@nestjs/common";
+
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiDefaultResponse,
+  ApiForbiddenResponse,
+  ApiHeader,
+  ApiInternalServerErrorResponse,
+  ApiNotAcceptableResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiQuery,
+  ApiTags,
+  ApiTooManyRequestsResponse
+} from "@nestjs/swagger";
+
+import { IsUUID } from "class-validator";
+
+import express from "express";
+
+import {
+  DataObject,
+  Energistics,
+  EtpUri,
+  IArrayId,
+  ResqmlClient
+} from "../../client/ResqmlClient";
+
+import {
+  FindInDataSpaceParams,
+  FindInObjectParams,
+  HasBearerGuard,
+  HasDataPartitionGuard,
+  createSession,
+  dataObjectTypePattern,
+  errorMessageSchema,
+  extractDataPartitionId,
+  extractToken,
+  getSchemasForType,
+  httpErrorFromEtpError,
+  partitionPattern,
+  patternString,
+  swaggerServers,
+  transactionIdQueryParam,
+  uuidPattern
+} from "../ControllerUtils";
+
+import { Integer32 } from "../../common/Etp12";
+
+import { XMLBuilder } from "../../mlTypes/Json2Xml";
+import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
+
+import { AnyTypedArray } from "../../protocols/ArrayCustomer";
+import { EmlObjectDto } from "../read-etp.module/Object.controller";
+import {
+  AnyTypedArrayString,
+  arrayPathPattern,
+  arrayTypeString
+} from "../read-etp.module/Array.controller";
+import { versionQueryParam } from "../read-etp.module/Resource.controller";
+
+import { qualifiedTypeRegex } from "../../common/EtpQualifiedType";
+
+import logging from "../../common/Logging";
+const logger = logging.getLogger("EtpClient");
+
+const base64Pattern =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+export class DataArrayDto {
+  @ApiProperty({
+    name: "ContainerType",
+    description: "Type of the array container",
+    pattern: patternString(dataObjectTypePattern),
+    example: `eml20.obj_EpcExternalPartReference`,
+    maxLength: 256
+  })
+  ContainerType!: string;
+  @ApiProperty({
+    name: "ContainerUuid",
+    description: "Type of the array container",
+    pattern: patternString(uuidPattern),
+    maxLength: 256
+  })
+  @IsUUID()
+  ContainerUuid!: string;
+  @ApiProperty({
+    name: "PathInResource",
+    description: "Path of the data array in the container",
+    pattern: patternString(arrayPathPattern),
+    maxLength: 256
+  })
+  PathInResource!: string;
+
+  @ApiProperty({
+    name: "Dimensions",
+    description: "Overall size of the array (One value per dimension)",
+    required: true,
+    isArray: true,
+    maxItems: 256,
+    type: "integer",
+    format: "int32",
+    minimum: 1,
+    maximum: 1000000
+  })
+  Dimensions!: Integer32[];
+
+  @ApiProperty({
+    name: "PreferredSubarrayDimensions",
+    description: "Preferred size of an array size(One value per dimension)",
+    required: false,
+    isArray: true,
+    maxItems: 256,
+    type: "integer",
+    format: "int32",
+    minimum: 1,
+    maximum: 1000000
+  })
+  PreferredSubarrayDimensions?: Integer32[];
+
+  @ApiProperty({
+    name: "Data",
+    description:
+      "Data of the array (as an array of number or base64 encoded), if starts and counts are present data of the subarray",
+    required: false,
+    oneOf: [
+      {
+        type: "array",
+        maxItems: 1000,
+        additionalProperties: false,
+        items: {
+          type: "number",
+          format: "integer",
+          minimum: 0,
+          maximum: 1000000
+        }
+      },
+      {
+        type: "string",
+        format: "base64",
+        maxLength: 10000000,
+        pattern: patternString(base64Pattern)
+      }
+    ]
+  })
+  Data?: number[] | string;
+
+  @ApiProperty({
+    name: "Starts",
+    description: "First index of a subarray (One value per dimension)",
+    required: false,
+    isArray: true,
+    maxItems: 256,
+    type: "number",
+    format: "integer",
+    minimum: 0,
+    maximum: 1000000,
+    additionalProperties: false
+  })
+  Starts?: Integer32[];
+
+  @ApiProperty({
+    name: "Counts",
+    description: "Number of index in a subarray (One value per dimension)",
+    required: false,
+    isArray: true,
+    maxItems: 256,
+    type: "number",
+    format: "integer",
+    minimum: 0,
+    maximum: 1000000,
+    additionalProperties: false
+  })
+  Counts?: Integer32[];
+
+  @ApiProperty({
+    name: "ArrayType",
+    description: "Type of arrays",
+    enum: arrayTypeString,
+    example: "Int32Array"
+  })
+  ArrayType!: AnyTypedArrayString;
+}
+
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
+
+/**
+ * Creation, edition and deletion of resources
+ *
+ * @export
+ * @class MutationsAPI
+ */
+@ApiBearerAuth("access-token")
+@UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({
+  name: "data-partition-id",
+  description: "Data partition id (ex. 'osdu')",
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
+})
+@UseGuards(HasDataPartitionGuard())
+@ApiTags("Write")
+@ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
+@ApiNotFoundResponse(errorMessageSchema("Not found", 404))
+@ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
+@ApiTooManyRequestsResponse(errorMessageSchema("Too many request", 429))
+@ApiInternalServerErrorResponse(errorMessageSchema(`Unknown Error`, 500))
+@ApiDefaultResponse(errorMessageSchema(`Unknown Error`, 500))
+@Controller("dataspaces/:dataspaceId/resources")
+export default class MutationsAPI {
+  /**
+   * Put a new data object or replace existing object formatted as json
+   *
+   * @memberof MutationsAPI
+   */
+  @Put()
+  @ApiBody({
+    description: "JSON array of resqml objects",
+    schema: {
+      type: "array",
+      maxItems: 10000,
+      items: getSchemasForType(EmlObjectDto)
+    },
+    examples: {
+      "PointSet And Associates": {
+        value: [
+          {
+            Citation: {
+              Title: "CustomTestCrs",
+              Originator: "dalsaab",
+              Creation: "2021-09-02T07:57:28.000Z",
+              Format:
+                "Paradigm SKUA-GOCAD 22 Alpha 1 Build:20210830-0200 (id: origin/master|56050|1fb1cf919c2|20210827-1108) for Linux_x64_2.17_gcc91",
+              Editor: "dalsaab",
+              LastUpdate: "2021-09-06T13:30:24.000Z"
+            },
+            YOffset: 6470000,
+            ZOffset: 0,
+            ArealRotation: {
+              _: 0,
+              $type: "eml20.PlaneAngleMeasure",
+              Uom: "rad"
+            },
+            ProjectedAxisOrder: "easting northing",
+            ProjectedUom: "m",
+            VerticalUom: "m",
+            XOffset: 420000,
+            ZIncreasingDownward: true,
+            VerticalCrs: {
+              EpsgCode: 6230,
+              $type: "eml20.VerticalCrsEpsgCode"
+            },
+            ProjectedCrs: {
+              EpsgCode: 23031,
+              $type: "eml20.ProjectedCrsEpsgCode"
+            },
+            $type: "resqml20.obj_LocalDepth3dCrs",
+            SchemaVersion: "2.0",
+            Uuid: "7c7d7987-b7b9-4215-9014-cb7d6fb62173"
+          },
+          {
+            Citation: {
+              $type: "eml20.Citation",
+              Title: "Hdf Proxy",
+              Originator: "Mathieu",
+              Creation: "2014-09-09T15:33:25Z",
+              Format: "[F2I-CONSULTING:resqml2CppApi]"
+            },
+            MimeType: "application/x-hdf5",
+            $type: "eml20.obj_EpcExternalPartReference",
+            SchemaVersion: "2.0.0.20140822",
+            Uuid: `68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23`
+          },
+          {
+            Citation: {
+              Title: "Pointset 1",
+              Originator: "user1",
+              Creation: "2019-01-08T13:41:25.000Z",
+              Format:
+                "Paradigm SKUA-GOCAD 22 Alpha 1 Build:20210830-0200 (id: origin/master|56050|1fb1cf919c2|20210827-1108) for Linux_x64_2.17_gcc91",
+              $type: "eml20.Citation"
+            },
+            ExtraMetadata: [
+              {
+                Name: "pdgm/dx/resqml/creatorGroup",
+                Value: "Interpreters",
+                $type: "resqml20.NameValuePair"
+              }
+            ],
+            NodePatch: [
+              {
+                PatchIndex: 0,
+                Count: 6,
+                Geometry: {
+                  $type: "resqml20.PointGeometry",
+                  LocalCrs: {
+                    $type: "eml20.DataObjectReference",
+                    ContentType:
+                      "application/x-resqml+xml;version=2.0;type=obj_LocalDepth3dCrs",
+                    Title: "CustomTestCrs",
+                    UUID: "7c7d7987-b7b9-4215-9014-cb7d6fb62173"
+                  },
+                  Points: {
+                    $type: "resqml20.Point3dHdf5Array",
+                    Coordinates: {
+                      $type: "eml20.Hdf5Dataset",
+                      PathInHdfFile:
+                        "/RESQML/5d27775e-5c7f-4786-a048-9a303fa1165a/points_patch0",
+                      HdfProxy: {
+                        $type: "eml20.DataObjectReference",
+                        ContentType:
+                          "application/x-resqml+xml;version=2.0;type=obj_EpcExternalPartReference",
+                        UUID: "68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23",
+                        DescriptionString: "Hdf Proxy",
+                        VersionString: "1410276805"
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            $type: "resqml20.obj_PointSetRepresentation",
+            SchemaVersion: "2.0.0.20140822",
+            Uuid: "5d27775e-5c7f-4786-a048-9a303fa1165a"
+          }
+        ]
+      }
+    }
+  })
+  @ApiQuery(transactionIdQueryParam)
+  @ApiOkResponse({
+    description: "Success",
+    schema: {
+      type: "boolean"
+    }
+  })
+  @ApiOperation({
+    summary: "Create or update objects.",
+    description: `Create new objects by providing their data inside a JSON array.
+    Should be done within a transaction.`,
+    servers: swaggerServers
+  })
+  public async PutDataObject(
+    @Body() requestBody: EmlObjectDto[],
+    @Param() params: FindInDataSpaceParams,
+    @Query("transactionId") transactionId?: string,
+    @Req() request?: express.Request
+  ): Promise<boolean> {
+    let c: ResqmlClient | undefined = undefined;
+    try {
+      // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
+      );
+      const builder = new XMLBuilder();
+      const dataObjects = requestBody.map(b => {
+        if (!b.$type) {
+          logger.error(
+            `Validation Failed: Invalid Object: Missing $type field in ${b.Uuid}`
+          );
+          throw new BadRequestException({
+            description: `Validation Failed: Invalid Object: Missing $type field in ${b.Uuid}`
+          });
+        }
+        const m: RegExpMatchArray | null = b.$type.match(qualifiedTypeRegex);
+        if (!m?.groups) {
+          logger.error(
+            `Validation Failed: Invalid Object: Invalid $type ${b.$type} in ${b.Uuid}`
+          );
+          throw new BadRequestException({
+            description: `Validation Failed: Invalid Object: Invalid $type ${b.$type} in ${b.Uuid}`
+          });
+        }
+        const uri = EtpUri.createObjectUri(
+          params.dataspaceId,
+          m?.groups?.domainFamily ?? "",
+          m?.groups?.domainVersion ?? "",
+          m?.groups?.dataType ?? "",
+          b.Uuid
+        ).uri;
+        const xml = builder.JSONtoEnergistics(
+          JSON.stringify(b, bigIntToString)
+        );
+        return {
+          resource: {
+            uri,
+            name: b.Citation.Title,
+            alternateUris: [],
+            sourceCount: null,
+            targetCount: null,
+            lastChanged: BigInt(0),
+            storeCreated: BigInt(0),
+            storeLastWrite: BigInt(0),
+            activeStatus:
+              Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
+            customData: new Map()
+          },
+          data: Buffer.from(xml),
+          format: "xml",
+          blobId: null
+        };
+      });
+      const r = await c.putDataObjects(dataObjects as DataObject[]);
+      if (!transactionId) {
+        await c.closeSession();
+      }
+      return r;
+    } catch (err) {
+      if (!transactionId) {
+        await c?.closeSession();
+      }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Delete a data object
+   *
+   * @memberof MutationsAPI
+   */
+  @Delete(":dataObjectType/:guid")
+  @ApiQuery(versionQueryParam)
+  @ApiQuery(transactionIdQueryParam)
+  @HttpCode(204)
+  @ApiOperation({
+    summary: "Delete existing object.",
+    description: `Delete existing object.`,
+    servers: swaggerServers
+  })
+  public async DeleteDataObject(
+    @Param() params: FindInObjectParams,
+    @Query("version") version?: string,
+    @Query("transactionId") transactionId?: string,
+    @Req() request?: express.Request
+  ): Promise<void> {
+    const m = qualifiedTypeRegex.exec(params.dataObjectType);
+    const uris = [
+      EtpUri.createObjectUri(
+        params.dataspaceId,
+        m?.groups?.domainFamily ?? "",
+        m?.groups?.domainVersion ?? "",
+        m?.groups?.dataType ?? "",
+        params.guid,
+        version
+      ).uri
+    ];
+    let c: ResqmlClient | undefined = undefined;
+    try {
+      // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
+      );
+      await c.deleteObjects(uris);
+      if (!transactionId) {
+        await c.closeSession();
+      }
+    } catch (err) {
+      if (!transactionId) {
+        await c?.closeSession();
+      }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+
+  /**
+   * Convert from array of number or base64 string to javascript typed array
+   *
+   * @private
+   * @memberof MutationsAPI
+   */
+  private toTypeArray(
+    data: number[] | bigint | string,
+    arrayType: string
+  ): AnyTypedArray {
+    if (typeof data === "string") {
+      // Convert from base64 string to array
+      const buf = Buffer.from(data, "base64");
+      const int8 = new Int8Array(buf);
+      if (arrayType === "Int8Array") {
+        return int8;
+      } else if (arrayType === "Uint8Array") {
+        return new Uint8Array(int8.buffer);
+      } else if (arrayType === "Uint8ClampedArray") {
+        return new Uint8ClampedArray(int8.buffer);
+      } else if (arrayType === "Uint16Array") {
+        return new Uint16Array(int8.buffer);
+      } else if (arrayType === "Int16Array") {
+        return new Int16Array(int8.buffer);
+      } else if (arrayType === "Uint32Array") {
+        return new Uint32Array(int8.buffer);
+      } else if (arrayType === "Int32Array") {
+        return new Int32Array(int8.buffer);
+      } else if (arrayType === "Float32Array") {
+        return new Float32Array(int8.buffer);
+      } else if (arrayType === "Float64Array") {
+        return new Float64Array(int8.buffer);
+      } else if (arrayType === "BigInt64Array") {
+        return new BigInt64Array(int8.buffer);
+      } else if (arrayType === "BigUint64Array") {
+        return new BigUint64Array(int8.buffer);
+      } else {
+        return data;
+      }
+    } else if (Array.isArray(data) && data.every(v => typeof v === "number")) {
+      if (arrayType === "Int8Array") {
+        return new Int8Array(data);
+      } else if (arrayType === "Uint8Array") {
+        return new Uint8Array(data);
+      } else if (arrayType === "Uint8ClampedArray") {
+        return new Uint8ClampedArray(data);
+      } else if (arrayType === "Uint16Array") {
+        return new Uint16Array(data);
+      } else if (arrayType === "Int16Array") {
+        return new Int16Array(data);
+      } else if (arrayType === "Uint32Array") {
+        return new Uint32Array(data);
+      } else if (arrayType === "Int32Array") {
+        return new Int32Array(data);
+      } else if (arrayType === "Float32Array") {
+        return new Float32Array(data);
+      } else if (arrayType === "Float64Array") {
+        return new Float64Array(data);
+      }
+    } else if (Array.isArray(data) && data.every(v => typeof v === "bigint")) {
+      if (arrayType === "BigInt64Array") {
+        return new BigInt64Array(data as unknown as bigint[]);
+      } else if (arrayType === "BigUint64Array") {
+        return new BigUint64Array(data as unknown as bigint[]);
+      }
+    }
+    return data as unknown as string;
+  }
+
+  /**
+   * Put a new data array or replace existing array or part of the array formatted as json
+   *
+   * @memberof MutationsAPI
+   */
+  @Put("arrays")
+  @ApiQuery(transactionIdQueryParam)
+  @ApiBody({
+    description: "JSON array of array information",
+    schema: {
+      type: "array",
+      maxItems: 10000,
+      items: getSchemasForType(DataArrayDto)
+    },
+    examples: {
+      externalPartReference: {
+        value: [
+          {
+            ContainerType: "eml20.obj_EpcExternalPartReference",
+            ContainerUuid: "68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23",
+            PathInResource:
+              "/RESQML/5d27775e-5c7f-4786-a048-9a303fa1165a/points_patch0",
+            Dimensions: [3, 3],
+            PreferredSubarrayDimensions: [3, 1],
+            Data: [0, 0, 0, 1, 1, 1, 2, 2, 2],
+            ArrayType: "Float32Array"
+          }
+        ]
+      }
+    }
+  })
+  @ApiOkResponse({
+    description: "Success",
+    schema: {
+      type: "boolean"
+    }
+  })
+  @ApiBadRequestResponse(
+    errorMessageSchema(
+      `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`
+    )
+  )
+  @ApiOperation({
+    summary: "Create new data array.",
+    description: `Create new data array to attach to existing object.
+    Should be done within a transaction.`,
+    servers: swaggerServers
+  })
+  public async PutDataArray(
+    @Body() requestBody: DataArrayDto[],
+    @Param() params: FindInDataSpaceParams,
+    @Query("transactionId") transactionId?: string,
+    @Req() request?: express.Request
+  ): Promise<boolean[]> | never {
+    let c: ResqmlClient | undefined = undefined;
+    try {
+      // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      c = await createSession(
+        extractToken(request),
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
+      );
+      if (!c) {
+        throw new InternalServerErrorException("Failed to create session");
+      }
+      const r = await Promise.all(
+        requestBody.map(async a => {
+          const m = qualifiedTypeRegex.exec(a.ContainerType);
+          const uri = EtpUri.createObjectUri(
+            params.dataspaceId,
+            m?.groups?.domainFamily ?? "",
+            m?.groups?.domainVersion ?? "",
+            m?.groups?.dataType ?? "",
+            a.ContainerUuid
+          ).uri;
+          const dataArray: IArrayId = {
+            uri,
+            pathInResource: a.PathInResource
+          };
+
+          if (!a.Data) {
+            return c!.putEmptyDataArray(
+              dataArray,
+              this.toTypeArray("", a.ArrayType),
+              a.Dimensions,
+              a.PreferredSubarrayDimensions
+            );
+          }
+
+          if (a.Starts || a.Counts) {
+            if (!a.Starts || !a.Counts) {
+              throw new BadRequestException({
+                description: `Validation Failed: Invalid Range: Starts or Counts required`
+              });
+            }
+            if (
+              a.Starts.length !== a.Counts.length ||
+              a.Starts.length !== a.Dimensions.length
+            ) {
+              throw new BadRequestException({
+                description: `Validation Failed: Invalid Range: Starts and Counts must have the same size than Dimensions`
+              });
+            }
+            for (let d = 0; d < a.Dimensions.length; d++) {
+              if (a.Starts[d] + a.Counts[d] > a.Dimensions[d]) {
+                throw new BadRequestException({
+                  description: `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`
+                });
+              }
+            }
+            if (
+              a.Counts.reduce((prev, cur) => prev * cur, 1) !== a.Data.length
+            ) {
+              throw new BadRequestException({
+                description: `Validation Failed: Invalid Range: Data length must be the product of Counts`
+              });
+            }
+            try {
+              return c!.putDataSubArray(
+                dataArray,
+                a.Starts,
+                a.Counts,
+                this.toTypeArray(a.Data, a.ArrayType)
+              );
+            } catch (err) {
+              logger.error(err);
+              throw new InternalServerErrorException(err);
+            }
+          }
+          if (
+            a.Data &&
+            typeof a.Data !== "string" &&
+            a.Dimensions.reduce((prev, cur) => prev * cur, 1) !== a.Data.length
+          ) {
+            throw new BadRequestException({
+              description: `Validation Failed: Invalid Range: Data length must be the product of Dimensions`
+            });
+          }
+          return c!.putDataArray(
+            dataArray,
+            a.Dimensions,
+            this.toTypeArray(a.Data, a.ArrayType)
+          );
+        })
+      );
+      if (!transactionId) {
+        await c?.closeSession();
+      }
+      return r;
+    } catch (err) {
+      if (!transactionId) {
+        await c?.closeSession();
+      }
+      throw httpErrorFromEtpError(err);
+    }
+  }
+}

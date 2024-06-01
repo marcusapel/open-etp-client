@@ -14,6 +14,7 @@ contexts.set("resqml22", new Context());
 contexts.set("eml23", contexts.get("resqml22")!);
 contexts.set("witsml21", new Context());
 contexts.set("prodml22", new Context());
+contexts.set("prodml23", new Context());
 const defaultContext = new Context();
 
 export const context = (ml: string): Context => {

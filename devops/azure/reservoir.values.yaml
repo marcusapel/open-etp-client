@@ -32,7 +32,7 @@ configuration:
     container:
       image: open-etp-client
       containerPort: 8003
-    path: /api/reservoir-ddms/v2/
+    path: /api/reservoir-ddms/v2
     pathRewrite: "/"
     probe:
       readiness:

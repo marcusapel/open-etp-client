@@ -1,27 +1,27 @@
 import * as Primitive from "../../../xml-primitives";
 
 // Source files:
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Abstract.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Activities.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Aggregate.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Attachment.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/BaseTypes.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/BusinessAssociate.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/CRS.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Collection.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/ColumnBasedTable.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/CommonEnumerations.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/CommonTypes.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/DataAssurance.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/Datum.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/EmlAllObjects.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/GraphicalInformation.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/LegacyUnitsOfMeasure.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/MeasureType.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/OSDUIntegration.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/ObjectReference.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/QuantityClass.xsd
-// http://172.21.32.1:3000/common/v2.3/xsd_schemas/ValueTypes.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Abstract.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Activities.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Aggregate.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Attachment.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/BaseTypes.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/BusinessAssociate.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/CRS.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Collection.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/ColumnBasedTable.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/CommonEnumerations.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/CommonTypes.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/DataAssurance.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/Datum.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/EmlAllObjects.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/GraphicalInformation.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/LegacyUnitsOfMeasure.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/MeasureType.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/OSDUIntegration.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/ObjectReference.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/QuantityClass.xsd
+// http://lp-hou-ldenyhp.local:3001/common/v2.3/xsd_schemas/ValueTypes.xsd
 
 interface BaseType {
   _exists: boolean;
@@ -287,12 +287,9 @@ interface _AbstractObject extends BaseType {
   /** A lifecycle state like actual, required, planned, predicted, etc. This is used to qualify any top-level element (from Epicentre 2.1). */
   Existence?: ExistenceKindExt;
   ExtensionNameValue?: ExtensionNameValue[];
-  /** An optional, human-readable reason why this version of the object was created. */
+  /** An optiona, human-readable reason why this version of the object was created. */
   ObjectVersionReason?: String2000;
   OSDUIntegration?: OSDUIntegration;
-
-  /** The data content of the object. */
-  _data?: any;
 }
 export interface AbstractObject extends _AbstractObject {}
 
@@ -1429,8 +1426,6 @@ interface _DataObjectReference extends BaseType {
   Title: String2000;
   /** Universally unique identifier (UUID) of the referenced data object. For rules and guidelines about the format of UUIDs with the current version of Energistics standards, see the Energistics Identifier Specification v5.0. */
   Uuid: UuidString;
-  /** Actual object referenced */
-  _data?: AbstractObject;
 }
 export interface DataObjectReference extends _DataObjectReference {}
 

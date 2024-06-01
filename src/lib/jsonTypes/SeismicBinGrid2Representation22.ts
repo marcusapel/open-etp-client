@@ -20,7 +20,7 @@ import { GenericRepresentation22OSDU } from "./GenericRepresentation22";
 
 import { SeismicHorizon22OSDU } from "./SeismicHorizon22";
 
-const DBL_CST_ARRAY = "resqml22.DoubleConstantArray";
+const DBL_CST_ARRAY = "eml23.FloatingPointConstantArray";
 
 /**
  * Extract SeismicBinGrid information from a 2D grid

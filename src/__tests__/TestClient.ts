@@ -24,9 +24,12 @@ import https from "https";
 import request from "supertest";
 
 import {
+  Eml20,
+  Eml23,
   Energistics,
   EtpUri,
   Resqml20,
+  Resqml22,
   ResqmlClient,
   XmlUtils
 } from "../index";
@@ -48,7 +51,7 @@ import {
   etpServerUrl,
   restApiMainUrl,
   restApiPort,
-  restApiRoutePath
+  restApiServerPath
 } from "../lib/common/config";
 import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
 import { ResourceGraph } from "src/lib/common/ResponseHandlers";
@@ -246,7 +249,7 @@ try {
     if (serverData.includes("http")) {
       // http server: e.g. docker container image
       const httpServerTest = request(`${restApiMainUrl}:${restApiPort}`);
-      httpServerTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      httpServerTest.get(`${restApiServerPath}/health/readiness`).expect(200);
       testServers["http"] = httpServerTest;
     }
 
@@ -255,12 +258,14 @@ try {
       nestApp = await restApp();
       const nestAppServer = (await nestApp.init()).getHttpServer();
       const nestAppTest = request(nestAppServer);
-      nestAppTest.get(`${restApiRoutePath}/health/readiness`).expect(200);
+      nestAppTest.get(`${restApiServerPath}/health/readiness`).expect(200);
       testServers["app"] = nestAppTest;
+
+      const path = `${restApiServerPath}/auth/token`;
 
       // initialize token for
       const res = await nestAppTest
-        .get(`${restApiRoutePath}/auth/token`)
+        .get(`${restApiServerPath}/auth/token`)
         .expect("Content-Type", /json/)
         .expect(200);
       token = res.body.token;
@@ -385,7 +390,7 @@ describe("Ping", () => {
     expect(res3).not.toBeNull();
     await c2.closeSession();
     try {
-      const res = await c2.ping();
+      await c2.ping();
     } catch (err) {
       expect(err).toHaveProperty("message");
     }
@@ -1233,12 +1238,12 @@ describe("OSDU Dataspaces", () => {
 describe("Rest server health", () => {
   it.each(serverData)("Check API readiness probe %s", async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/health/readiness`)
+      .get(`${restApiServerPath}/health/readiness`)
       .expect(200);
   });
   it.each(serverData)("Check API liveness probe %s", async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/health/liveness`)
+      .get(`${restApiServerPath}/health/liveness`)
       .expect(200);
   });
 });
@@ -1248,7 +1253,7 @@ describe("Large number of API access", () => {
   it.each(serverData)(`Get Dataspace Ok %s`, async type => {
     for (let i = 0; i < 200; i++) {
       await testServers[type]
-        .get(`${restApiRoutePath}/dataspaces`)
+        .get(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .expect(`Content-Type`, /json/)
         .expect(200);
@@ -1256,7 +1261,7 @@ describe("Large number of API access", () => {
   });
 });
 
-describe("Rest API", () => {
+describe("Rest API tools", () => {
   it.each(serverData)("sliceArray", () => {
     expect(
       controlUtils.sliceArray<string>(1, 2, [
@@ -1299,17 +1304,641 @@ describe("Rest API", () => {
     400000
   );
 });
+
+describe.only("Rest API Transaction 2.0.1 Workflow", () => {
+  it.each(serverData)(
+    "Full Workflow",
+    async type => {
+      const crsObject: SimpleJson<Resqml20.obj_LocalDepth3dCrs> = {
+        Citation: {
+          Title: "CustomTestCrs",
+          Originator: "dalsaab",
+          Creation: new Date("2021-09-02T07:57:28.000Z"),
+          Format:
+            "Paradigm SKUA-GOCAD 22 Alpha 1 Build:20210830-0200 (id: origin/master|56050|1fb1cf919c2|20210827-1108) for Linux_x64_2.17_gcc91",
+          Editor: "dalsaab",
+          LastUpdate: new Date("2021-09-06T13:30:24.000Z")
+        },
+        YOffset: 6470000,
+        ZOffset: 0,
+        ArealRotation: {
+          _: 0,
+          $type: "eml20.PlaneAngleMeasure",
+          Uom: "rad"
+        },
+        ProjectedAxisOrder: "easting northing",
+        ProjectedUom: "m",
+        VerticalUom: "m",
+        XOffset: 420000,
+        ZIncreasingDownward: true,
+        VerticalCrs: {
+          EpsgCode: 6230,
+          $type: "eml20.VerticalCrsEpsgCode"
+        },
+        ProjectedCrs: {
+          EpsgCode: 23031,
+          $type: "eml20.ProjectedCrsEpsgCode"
+        },
+        $type: "resqml20.obj_LocalDepth3dCrs",
+        SchemaVersion: "2.0",
+        Uuid: "7c7d7987-b7b9-4215-9014-cb7d6fb62173"
+      };
+      const HdfObject: SimpleJson<Eml20.obj_EpcExternalPartReference> = {
+        Citation: {
+          $type: "eml20.Citation",
+          Title: "Hdf Proxy",
+          Originator: "Mathieu",
+          Creation: new Date("2014-09-09T15:33:25Z"),
+          Format: "[F2I-CONSULTING:resqml2CppApi]"
+        },
+        MimeType: "application/x-hdf5",
+        $type: "eml20.obj_EpcExternalPartReference",
+        SchemaVersion: "2.0.0.20140822",
+        Uuid: `68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23`
+      };
+      const pointSet: SimpleJson<Resqml20.obj_PointSetRepresentation> = {
+        Citation: {
+          Title: "Pointset 1",
+          Originator: "user1",
+          Creation: new Date("2019-01-08T13:41:25.000Z"),
+          Format:
+            "Paradigm SKUA-GOCAD 22 Alpha 1 Build:20210830-0200 (id: origin/master|56050|1fb1cf919c2|20210827-1108) for Linux_x64_2.17_gcc91",
+          $type: "eml20.Citation"
+        },
+        ExtraMetadata: [
+          {
+            Name: "pdgm/dx/resqml/creatorGroup",
+            Value: "Interpreters",
+            $type: "resqml20.NameValuePair"
+          }
+        ],
+        NodePatch: [
+          {
+            PatchIndex: 0,
+            Count: 6,
+            Geometry: {
+              $type: "resqml20.PointGeometry",
+              LocalCrs: {
+                $type: "eml20.DataObjectReference",
+                ContentType:
+                  "application/x-resqml+xml;version=2.0;type=obj_LocalDepth3dCrs",
+                Title: "CustomTestCrs",
+                UUID: "7c7d7987-b7b9-4215-9014-cb7d6fb62173"
+              },
+              Points: {
+                $type: "resqml20.Point3dHdf5Array",
+                Coordinates: {
+                  $type: "eml20.Hdf5Dataset",
+                  PathInHdfFile:
+                    "/RESQML/5d27775e-5c7f-4786-a048-9a303fa1165a/points_patch0",
+                  HdfProxy: {
+                    $type: "eml20.DataObjectReference",
+                    ContentType:
+                      "application/x-resqml+xml;version=2.0;type=obj_EpcExternalPartReference",
+                    UUID: "68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23",
+                    DescriptionString: "Hdf Proxy",
+                    VersionString: "1410276805"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        $type: "resqml20.obj_PointSetRepresentation",
+        SchemaVersion: "2.0.0.20140822",
+        Uuid: "5d27775e-5c7f-4786-a048-9a303fa1165a"
+      };
+      const array = {
+        ContainerType: "eml20.obj_EpcExternalPartReference",
+        ContainerUuid: "68f2a7d4-f7c1-4a75-95e9-3c6a7029fb23",
+        PathInResource:
+          "/RESQML/5d27775e-5c7f-4786-a048-9a303fa1165a/points_patch0",
+        Dimensions: [3, 3],
+        PreferredSubarrayDimensions: [3, 1],
+        Data: "AAAAAAAAAAAAAAAAAACAPwAAgD8AAIA/AAAAQAAAAEAAAABA",
+        ArrayType: "Float32Array"
+      };
+
+      const dataSpace = "projectA/ScenarioTest1";
+      await testServers[type]
+        .post(`${restApiServerPath}/dataspaces`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([
+          {
+            DataspaceId: `${dataSpace}`,
+            Path: `${dataSpace}`,
+            CustomData: {
+              key: "value"
+            }
+          }
+        ])
+        .expect(`Content-Type`, /json/)
+        .expect(201);
+
+      const res = await testServers[type]
+        .get(`${restApiServerPath}/dataspaces`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(`Content-Type`, /json/)
+        .expect(200);
+      const len = res.body.filter(
+        (d: any) => d.uri === `eml:///dataspace('${dataSpace}')`
+      ).length;
+      expect(len).toBe(1);
+
+      const trans = await testServers[type]
+        .post(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/transactions`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(201);
+      const transId = trans.text;
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources?transactionId=${transId}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([crsObject, HdfObject, pointSet])
+        .expect(200);
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources/arrays?transactionId=${transId}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([array])
+        .expect(200);
+
+      // Visible Inside transaction
+      const res2 = await testServers[type]
+        .get(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources?transactionId=${transId}`
+        )
+        .set(`Authorization`, `Bearer ${token}`);
+      expect(res2.body.length).toBe(3);
+
+      // Invisible outside transaction
+      const res3 = await testServers[type]
+        .get(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources`
+        )
+        .set(`Authorization`, `Bearer ${token}`);
+      expect(res3.body.length).toBe(0);
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/transactions/${transId}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(200);
+
+      // Visible after transaction
+      const res4 = await testServers[type]
+        .get(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources`
+        )
+        .set(`Authorization`, `Bearer ${token}`);
+      expect(res4.body.length).toBe(3);
+
+      await testServers[type]
+        .delete(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(dataSpace)}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(204);
+    },
+    400000
+  );
+});
+
+describe("Rest API Transaction 2.2 Workflow", () => {
+  it.each(serverData)(
+    "Seismic Horizons",
+    async type => {
+      const horizonRep: SimpleJson<Resqml22.Grid2dRepresentation> = {
+        $type: "resqml22.Grid2dRepresentation",
+        SchemaVersion: "2.2",
+        Uuid: "030a82f6-10a7-4ecf-af03-54749e098624",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Horizon1 Interp1 Grid2dRep",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        OSDUIntegration: {
+          LegalTags: ["opendes-ReservoirDDMS-Legal-Tag"],
+          OwnerGroup: ["group1"],
+          LineageAssertions: [
+            {
+              $type: "eml23.OSDULineageAssertion",
+              ID: "opendes:work-product-component--SeismicHorizon:65681972-6eef-497e-b1d8-2f54a87ad950",
+              LineageRelationshipKind: "direct"
+            }
+          ]
+        },
+        RepresentedObject: {
+          $type: "eml23.DataObjectReference",
+          Uuid: "ac12dc12-4951-459b-b585-90f48aa88a5a",
+          QualifiedType: "resqml22.HorizonInterpretation",
+          Title: "Horizon1 Interp1"
+        },
+        SurfaceRole: "map",
+        FastestAxisCount: 4,
+        SlowestAxisCount: 2,
+        Geometry: {
+          $type: "resqml22.PointGeometry",
+          LocalCrs: {
+            $type: "eml23.DataObjectReference",
+            Uuid: "49ff9f92-aae5-49af-98ec-1496c6343a90",
+            QualifiedType: "eml23.LocalEngineeringCompoundCrs",
+            Title: "Default local CRS"
+          },
+          Points: {
+            $type: "resqml22.Point3dZValueArray",
+            SupportingGeometry: {
+              $type: "resqml22.Point3dFromRepresentationLatticeArray",
+              NodeIndicesOnSupportingRepresentation: {
+                $type: "eml23.IntegerLatticeArray",
+                StartValue: 0,
+                Offset: [
+                  {
+                    $type: "eml23.IntegerConstantArray",
+                    Value: 1,
+                    Count: 1
+                  },
+                  {
+                    $type: "eml23.IntegerConstantArray",
+                    Value: 1,
+                    Count: 3
+                  }
+                ]
+              },
+              SupportingRepresentation: {
+                $type: "eml23.DataObjectReference",
+                Uuid: "aa5b90f1-2eab-4fa6-8720-69dd4fd51a4d",
+                QualifiedType: "resqml22.Grid2dRepresentation",
+                Title: "Seismic BinGrid"
+              }
+            },
+            ZValues: {
+              $type: "eml23.FloatingPointXmlArray",
+              CountPerValue: 1,
+              Values: [300.0, 310.0, 350.0, 355.0, 400.0, 410.0, 450.0, 455.0]
+            }
+          }
+        }
+      };
+      const horizonCrs: SimpleJson<Eml23._LocalEngineeringCompoundCrs> = {
+        $type: "eml23.LocalEngineeringCompoundCrs",
+        SchemaVersion: "2.3",
+        Uuid: "49ff9f92-aae5-49af-98ec-1496c6343a90",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Default local CRS",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        VerticalCrs: {
+          $type: "eml23.DataObjectReference",
+          Uuid: "1f774a06-7d6f-5de0-ad1c-aebde6ecd2ea",
+          QualifiedType: "eml23.VerticalCrs",
+          Title: "Default local CRS VerticalCrs"
+        },
+        OriginVerticalCoordinate: 0,
+        VerticalAxis: {
+          $type: "eml23.VerticalAxis",
+          Direction: "down",
+          Uom: "m",
+          IsTime: false
+        },
+        LocalEngineering2dCrs: {
+          $type: "eml23.DataObjectReference",
+          Uuid: "a95299f3-7005-5112-b6ad-6776525a7bbb",
+          QualifiedType: "eml23.LocalEngineering2dCrs",
+          Title: "Default local CRS LocalEngineering2dCrs"
+        }
+      };
+      const horizonVertCrs: SimpleJson<Eml23.VerticalCrs> = {
+        $type: "eml23.VerticalCrs",
+        SchemaVersion: "2.3",
+        Uom: "m",
+        Uuid: "1f774a06-7d6f-5de0-ad1c-aebde6ecd2ea",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Default local time CRS VerticalCrs",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        Direction: "down",
+        AbstractVerticalCrs: {
+          $type: "eml23.VerticalUnknownCrs",
+          Unknown: "Unknown"
+        }
+      };
+      const horizon2dCrs: SimpleJson<Eml23.LocalEngineering2dCrs> = {
+        $type: "eml23.LocalEngineering2dCrs",
+        SchemaVersion: "2.3",
+        Uuid: "a95299f3-7005-5112-b6ad-6776525a7bbb",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Default local time CRS LocalEngineering2dCrs",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        Azimuth: {
+          $type: "eml23.PlaneAngleMeasureExt",
+          Uom: "rad",
+          _: 0
+        },
+        AzimuthReference: "grid north",
+        OriginProjectedCoordinate1: 1,
+        OriginProjectedCoordinate2: 0.1,
+        HorizontalAxes: {
+          $type: "eml23.HorizontalAxes",
+          Direction1: "east",
+          Direction2: "north",
+          Uom: "m",
+          IsTime: false
+        },
+        OriginProjectedCrs: {
+          $type: "eml23.ProjectedCrs",
+          SchemaVersion: "2.3",
+          Uom: "m",
+          Uuid: "00000000-0000-0000-0000-000000000000",
+          Citation: {
+            $type: "eml23.Citation",
+            Title: "Default local time CRS LocalEngineering2dCrs ProjectedCrs",
+            Originator: "philippe",
+            Creation: new Date("2024-02-06T10:53:01.000Z"),
+            Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+          },
+          AxisOrder: "easting northing",
+          AbstractProjectedCrs: {
+            $type: "eml23.ProjectedEpsgCrs",
+            EpsgCode: 23031
+          }
+        }
+      };
+      const horizonFeat: SimpleJson<Resqml22.BoundaryFeature> = {
+        $type: "resqml22.BoundaryFeature",
+        SchemaVersion: "2.2",
+        Uuid: "35d7b57e-e5ff-4062-95af-ba2d7c4ce347",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Horizon1",
+          Originator: "philippe",
+          Creation: new Date("1900-02-08T15:02:35.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        IsWellKnown: false
+      };
+      const horizonInt: SimpleJson<Resqml22.HorizonInterpretation> = {
+        $type: "resqml22.HorizonInterpretation",
+        SchemaVersion: "2.2",
+        Uuid: "ac12dc12-4951-459b-b585-90f48aa88a5a",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Horizon1 Interp1",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        Domain: "mixed",
+        InterpretedFeature: {
+          $type: "eml23.DataObjectReference",
+          Uuid: "35d7b57e-e5ff-4062-95af-ba2d7c4ce347",
+          QualifiedType: "resqml22.BoundaryFeature",
+          Title: "Horizon1"
+        }
+      };
+      const binGridFeat: SimpleJson<Resqml22.SeismicLatticeFeature> = {
+        $type: "resqml22.SeismicLatticeFeature",
+        SchemaVersion: "2.2",
+        Uuid: "eb6a5e97-4d86-4809-b136-051f34cfcb51",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Seismic lattice",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        IsWellKnown: false,
+        CrosslineLabels: {
+          $type: "eml23.IntegerLatticeArray",
+          StartValue: 152,
+          Offset: [
+            {
+              $type: "eml23.IntegerConstantArray",
+              Value: 2,
+              Count: 1
+            }
+          ]
+        },
+        InlineLabels: {
+          $type: "eml23.IntegerLatticeArray",
+          StartValue: 150,
+          Offset: [
+            {
+              $type: "eml23.IntegerConstantArray",
+              Value: 2,
+              Count: 3
+            }
+          ]
+        }
+      };
+      const binGridInterpretation: SimpleJson<Resqml22.GenericFeatureInterpretation> =
+        {
+          $type: "resqml22.GenericFeatureInterpretation",
+          SchemaVersion: "2.2",
+          Uuid: "97816427-6ef6-4776-b21c-5b93c8a6310a",
+          Citation: {
+            $type: "eml23.Citation",
+            Title: "Seismic lattice Interp",
+            Originator: "philippe",
+            Creation: new Date("2024-02-06T10:53:01.000Z"),
+            Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+          },
+          Domain: "depth",
+          InterpretedFeature: {
+            $type: "eml23.DataObjectReference",
+            Uuid: "eb6a5e97-4d86-4809-b136-051f34cfcb51",
+            QualifiedType: "resqml22.SeismicLatticeFeature",
+            Title: "Seismic lattice"
+          }
+        };
+
+      const binGrid: SimpleJson<Resqml22.Grid2dRepresentation> = {
+        $type: "resqml22.Grid2dRepresentation",
+        SchemaVersion: "2.2",
+        Uuid: "aa5b90f1-2eab-4fa6-8720-69dd4fd51a4d",
+        Citation: {
+          $type: "eml23.Citation",
+          Title: "Seismic lattice Rep",
+          Originator: "philippe",
+          Creation: new Date("2024-02-06T10:53:01.000Z"),
+          Format: "F2I-CONSULTING:FESAPI Example:3.0.0.0"
+        },
+        RepresentedObject: {
+          $type: "eml23.DataObjectReference",
+          Uuid: "97816427-6ef6-4776-b21c-5b93c8a6310a",
+          QualifiedType: "resqml22.GenericFeatureInterpretation",
+          Title: "Seismic lattice Interp"
+        },
+        SurfaceRole: "pick",
+        FastestAxisCount: 4,
+        SlowestAxisCount: 2,
+        Geometry: {
+          $type: "resqml22.PointGeometry",
+          LocalCrs: {
+            $type: "eml23.DataObjectReference",
+            Uuid: "49ff9f92-aae5-49af-98ec-1496c6343a90",
+            QualifiedType: "eml23.LocalEngineeringCompoundCrs",
+            Title: "Default local CRS"
+          },
+          Points: {
+            $type: "resqml22.Point3dLatticeArray",
+            Origin: {
+              $type: "resqml22.Point3d",
+              Coordinate1: 0,
+              Coordinate2: 0,
+              Coordinate3: 0
+            },
+            Dimension: [
+              {
+                $type: "resqml22.Point3dLatticeDimension",
+                Direction: {
+                  $type: "resqml22.Point3d",
+                  Coordinate1: 0,
+                  Coordinate2: 1,
+                  Coordinate3: 3
+                },
+                Spacing: {
+                  $type: "eml23.FloatingPointConstantArray",
+                  Value: 200,
+                  Count: 1
+                }
+              },
+              {
+                $type: "resqml22.Point3dLatticeDimension",
+                Direction: {
+                  $type: "resqml22.Point3d",
+                  Coordinate1: 1,
+                  Coordinate2: 0,
+                  Coordinate3: 2
+                },
+                Spacing: {
+                  $type: "eml23.FloatingPointConstantArray",
+                  Value: 250,
+                  Count: 3
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      const dataSpace = "projectA/seismic22";
+      await testServers[type]
+        .post(`${restApiServerPath}/dataspaces`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([
+          {
+            DataspaceId: `${dataSpace}`,
+            Path: `${dataSpace}`,
+            CustomData: {
+              key: "value"
+            }
+          }
+        ])
+        .expect(`Content-Type`, /json/)
+        .expect(201);
+
+      const res = await testServers[type]
+        .get(`${restApiServerPath}/dataspaces`)
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(`Content-Type`, /json/)
+        .expect(200);
+      const len = res.body.filter(
+        (d: any) => d.uri === `eml:///dataspace('${dataSpace}')`
+      ).length;
+      expect(len).toBe(1);
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([
+          horizonCrs,
+          horizonVertCrs,
+          horizon2dCrs,
+          binGridFeat,
+          binGridInterpretation,
+          binGrid
+        ])
+        .expect(200);
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([horizonRep, horizonInt, horizonFeat])
+        .expect(200);
+
+      const res4 = await testServers[type]
+        .get(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/resources/all`
+        )
+        .set(`Authorization`, `Bearer ${token}`);
+      expect(res4.body.length).toBe(9);
+
+      await testServers[type]
+        .delete(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(dataSpace)}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(204);
+    },
+    400000
+  );
+});
+
 describe(`Dataspace`, () => {
   it.each(serverData)(`Get Dataspace Unauthorized %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .expect(`Content-Type`, /json/)
       .expect(403);
   });
 
   it.each(serverData)(`Bad Bearer Format %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `${token}`)
       .expect(`Content-Type`, /json/)
       .expect(403);
@@ -1317,7 +1946,7 @@ describe(`Dataspace`, () => {
 
   it.each(serverData)(`Get Dataspace Ok %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -1326,13 +1955,13 @@ describe(`Dataspace`, () => {
 describe(`Auth`, () => {
   it.each(serverData)(`No token %s`, async type => {
     const uris = [
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
     ];
     for (const u of uris) {
       await testServers[type].get(u).expect(403);
@@ -1341,15 +1970,15 @@ describe(`Auth`, () => {
 
   it.each(serverData)(`Wrong dataspace %s`, async type => {
     const uris = [
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/all`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/targets`,
-      `${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/sources`
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/all`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/all`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/targets`,
+      `${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/graph/${tSurfType}/${tSurfUid}/sources`
     ];
     for (const u of uris) {
       await testServers[type]
@@ -1374,7 +2003,7 @@ describe(`Resources`, () => {
   const jsonMime = "application/json; charset=utf-8";
   it.each(serverData)(`Dataspaces %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces`)
+      .get(`${restApiServerPath}/dataspaces`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -1383,7 +2012,7 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Dataspaces Info %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/info`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/info`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -1391,17 +2020,17 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Dataspaces Lock/unlock %s`, async type => {
     await testServers[type]
-      .post(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+      .post(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(201);
     await testServers[type]
-      .delete(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/lock`)
+      .delete(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/lock`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
   });
   it.each(serverData)(`Types %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
@@ -1410,7 +2039,7 @@ describe(`Resources`, () => {
 
   it.each(serverData)(`Wrong dataspacesTypes %s`, async type => {
     await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${wrongDataspaceEncoded}/resources`)
+      .get(`${restApiServerPath}/dataspaces/${wrongDataspaceEncoded}/resources`)
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(404);
@@ -1419,7 +2048,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Resource by Types %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1427,7 +2056,7 @@ describe(`Resources`, () => {
     expect(res.body).toHaveLength(3);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1436,7 +2065,7 @@ describe(`Resources`, () => {
   });
   it.each(serverData)(`Find Resources %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`)
 
       .query(`$filter=startswith(SurfaceRole,'map') eq true`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -1447,7 +2076,7 @@ describe(`Resources`, () => {
 
   it.each(serverData)(`Find Resources %s`, async type => {
     const res = await testServers[type]
-      .get(`${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/all`)
+      .get(`${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/all`)
 
       .query(`$filter=endswith(SurfaceRole,'map') eq true`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -1459,7 +2088,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects JSON %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1470,7 +2099,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects JSON Resolved %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?referencedContent=true`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1481,7 +2110,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get DataObjects XML %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}?$format=xml`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1494,14 +2123,14 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Targets %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/targets?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1511,14 +2140,14 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Sources %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
     expect(res.body).toHaveLength(2);
     const res2 = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
@@ -1528,7 +2157,7 @@ describe(`Resources`, () => {
   it.each(serverData)(`Get Arrays %s`, async type => {
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/arrays`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1542,7 +2171,7 @@ describe(`Resources`, () => {
     );
     await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}/metadata`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1555,7 +2184,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
@@ -1569,7 +2198,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query(`format=base64`)
       .set(`Authorization`, `Bearer ${token}`)
@@ -1589,7 +2218,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=10")
       .query("starts=1")
@@ -1607,7 +2236,7 @@ describe(`Resources`, () => {
     );
     const res = await testServers[type]
       .get(
-        `${restApiRoutePath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
+        `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/eml20.obj_EpcExternalPartReference/${externalPartUid}/arrays/${pathInResource}`
       )
       .query("starts=12")
       .query("starts=1")
@@ -1652,7 +2281,7 @@ describe(`Manifest`, () => {
         createMissingReferences: true
       };
       const res = await testServers[type]
-        .post(`${restApiRoutePath}/manifests/build`)
+        .post(`${restApiServerPath}/manifests/build`)
         .set(`Authorization`, `Bearer ${token}`)
         .send(manifestInput)
         .expect(`Content-Type`, /json/)

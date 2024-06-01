@@ -509,7 +509,10 @@ export class Parser<T> {
 
           if (splitter >= 0) {
             const attrPrefix = key.substr(0, splitter);
-            if (attrPrefix === "xmlns") {
+            if (
+              attrPrefix === "xmlns" ||
+              (attrPrefix === "xsi" && key !== "xsi:type")
+            ) {
               continue;
             }
 

@@ -1399,11 +1399,13 @@ export interface obj_Activity extends AbstractResqmlDataObject {
   ActivityDescriptor: eml20.DataObjectReference;
   Parameter: AbstractActivityParameter[];
   Parent?: eml20.DataObjectReference;
+  $type: "Activity";
 }
 
 /** Description of one type of activity. */
 export interface obj_ActivityTemplate extends AbstractResqmlDataObject {
   Parameter: ParameterTemplate[];
+  $type: "ActivityTemplate";
 }
 
 /** The information that allows you to locate, on one or several grids (existing or planned), the intersection of volume (cells) and surface (faces) elements with a wellbore trajectory (existing or planned). */
@@ -1423,16 +1425,29 @@ export interface obj_BlockedWellboreRepresentation
    *
    * BUSINESS RULE: The array dimensions must equal 2 x CellCount. */
   LocalFacePairPerCellIndices: AbstractIntegerArray;
+  $type: "resqml20.obj_BlockedWellboreRepresentation";
 }
 
 /** An interface between two geological objects, such as horizons and faults. It is a surface object. */
-export interface obj_BoundaryFeature extends AbstractGeologicFeature {}
+export interface obj_BoundaryFeature extends AbstractGeologicFeature {
+  $type:
+    | "resqml20.obj_BoundaryFeature"
+    | "resqml20.obj_FluidBoundaryFeature"
+    | "resqml20.obj_GeneticBoundaryFeature"
+    | "resqml20.obj_TectonicBoundaryFeature";
+}
 
 /** The main class for data describing an opinion of a surface feature between two volumes.
  *
  * BUSINESS RULE: The data-object reference (of type "interprets") must reference only a boundary feature. */
 export interface obj_BoundaryFeatureInterpretation
-  extends AbstractFeatureInterpretation {}
+  extends AbstractFeatureInterpretation {
+  $type:
+    | "resqml20.obj_BoundaryFeatureInterpretation"
+    | "resqml20.obj_FaultInterpretation"
+    | "resqml20.obj_HorizonInterpretation"
+    | "resqml20.obj_GeobodyBoundaryInterpretation";
+}
 
 /** Information specific to one categorical property. Contains discrete integer.
  * This type of property is associated either as:
@@ -1441,6 +1456,9 @@ export interface obj_BoundaryFeatureInterpretation
  * - an internally stored double to another double value through an explicitly provided table. */
 export interface obj_CategoricalProperty extends AbstractValuesProperty {
   Lookup: eml20.DataObjectReference;
+  $type:
+    | "resqml20.obj_CategoricalProperty"
+    | "resqml20.obj_CategoricalPropertySeries";
 }
 
 /** Information specific to one comment property.
@@ -1450,6 +1468,7 @@ export interface obj_CategoricalPropertySeries extends obj_CategoricalProperty {
    * If not provided, then the realization count (which could be 1) does not introduce a dimension to the multi-dimensional array storage. */
   RealizationIndices?: AbstractIntegerArray;
   SeriesTimeIndices?: TimeIndices;
+  $type: "resqml20.obj_CategoricalPropertySeries";
 }
 
 /** Information specific to one comment property.
@@ -1457,6 +1476,7 @@ export interface obj_CategoricalPropertySeries extends obj_CategoricalProperty {
 export interface obj_CommentProperty extends AbstractValuesProperty {
   /** Identify the language (e.g., US English or French) of the string. It is recommended that language names conform to ISO 639. */
   Language?: string;
+  $type: "resqml20.obj_CommentProperty" | "resqml20.obj_CommentPropertySeries";
 }
 
 /** Information specific to one comment property.
@@ -1466,6 +1486,7 @@ export interface obj_CommentPropertySeries extends obj_CommentProperty {
    * If not provided, then the realization count (which could be 1) does not introduce a dimension to the multi-dimensional array storage. */
   RealizationIndices?: AbstractIntegerArray;
   SeriesTimeIndices?: TimeIndices;
+  $type: "resqml20.obj_CommentPropertySeries";
 }
 
 /** Most common type of property used for storing rock or fluid attributes; all are represented as doubles.
@@ -1480,6 +1501,9 @@ export interface obj_ContinuousProperty extends AbstractValuesProperty {
   MinimumValue?: number[];
   /** Unit of measure for the property. */
   UOM: ResqmlUom;
+  $type:
+    | "resqml20.obj_ContinuousProperty"
+    | "resqml20.obj_ContinuousPropertySeries";
 }
 
 /** Information specific to one comment property.
@@ -1489,6 +1513,7 @@ export interface obj_ContinuousPropertySeries extends obj_ContinuousProperty {
    * If not provided, then the realization count (which could be 1) does not introduce a dimension to the multi-dimensional array storage. */
   RealizationIndices?: AbstractIntegerArray;
   SeriesTimeIndices?: TimeIndices;
+  $type: "resqml20.obj_ContinuousPropertySeries";
 }
 
 /** Specifies the station data from a deviation survey.
@@ -1529,6 +1554,7 @@ export interface obj_DeviationSurveyRepresentation
   StationCount: number;
   TimeIndex?: TimeIndex;
   WitsmlDeviationSurvey?: eml20.DataObjectReference;
+  $type: "resqml20.obj_DeviationSurveyRepresentation";
 }
 
 /** Contains discrete integer values; typically used to store any type of index.
@@ -1540,6 +1566,9 @@ export interface obj_DiscreteProperty extends AbstractValuesProperty {
   /** @integer The minimum of the associated property values.
    * BUSINESS RULE: There can only be one value per number of elements. */
   MinimumValue?: number[];
+  $type:
+    | "resqml20.obj_DiscreteProperty"
+    | "resqml20.obj_DiscretePropertySeries";
 }
 
 /** Information specific to one comment property.
@@ -1549,12 +1578,14 @@ export interface obj_DiscretePropertySeries extends obj_DiscreteProperty {
    * If not provided, then the realization count (which could be 1) does not introduce a dimension to the multi-dimensional array storage. */
   RealizationIndices?: AbstractIntegerArray;
   SeriesTimeIndices?: TimeIndices;
+  $type: "resqml20.obj_DiscretePropertySeries";
 }
 
 /** Defines a function for table lookups. For example, used for linear interpolation, such as PVT.
  * Used for categorical property, which also may use StringTableLookup. */
 export interface obj_DoubleTableLookup extends AbstractPropertyLookup {
   Value: DoubleLookup[];
+  $type: "resqml20.obj_DoubleTableLookup";
 }
 
 /** An earth model interpretation has a specific role: it gathers a maximum of one of each of these other organization interpretations: structural organization interpretation, stratigraphic organization interpretation, and/or fluid organization interpretation.
@@ -1566,6 +1597,7 @@ export interface obj_EarthModelInterpretation
   StratigraphicColumn?: eml20.DataObjectReference;
   StratigraphicOccurrences?: eml20.DataObjectReference[];
   Structure?: eml20.DataObjectReference;
+  $type: "resqml20.obj_EarthModelInterpretation";
 }
 
 /** A type of boundary feature, this class contains the data describing an opinion about the characterization of the fault, which includes the attributes listed below. */
@@ -1578,29 +1610,37 @@ export interface obj_FaultInterpretation
   MeanAzimuth?: eml20.PlaneAngleMeasure;
   MeanDip?: eml20.PlaneAngleMeasure;
   ThrowInterpretation?: FaultThrow[];
+  $type: "resqml20.obj_FaultInterpretation";
 }
 
 /** A boundary (usually a plane) separating two fluid phases, such as a gas-oil contact (GOC), a water-oil contact (WOC), a gas-oil contact (GOC), or others. For types, see FluidContact. */
 export interface obj_FluidBoundaryFeature extends obj_BoundaryFeature {
   FluidContact: FluidContact;
+  $type: "resqml20.obj_FluidBoundaryFeature";
 }
 
 /** Identifies a frontier or boundary in the earth model that is not a geological feature but an arbitrary geographic/geometric surface used to delineate the boundary of the model. */
-export interface obj_FrontierFeature extends AbstractTechnicalFeature {}
+export interface obj_FrontierFeature extends AbstractTechnicalFeature {
+  $type: "resqml20.obj_FrontierFeature";
+}
 
 export interface obj_GenericFeatureInterpretation
-  extends AbstractFeatureInterpretation {}
+  extends AbstractFeatureInterpretation {
+  $type: "resqml20.obj_GenericFeatureInterpretation";
+}
 
 /** A boundary between two units produced by a contrast between two deposits that occurred at two different geologic time periods. For types, see GeneticBoundaryKind. */
 export interface obj_GeneticBoundaryFeature extends obj_BoundaryFeature {
   AbsoluteAge?: Timestamp;
   GeneticBoundaryKind: GeneticBoundaryKind;
+  $type: "resqml20.obj_GeneticBoundaryFeature";
 }
 
 /** A type of boundary feature, this class identifies if the boundary is a geobody and the type of the boundary. */
 export interface obj_GeobodyBoundaryInterpretation
   extends obj_BoundaryFeatureInterpretation {
   BoundaryRelation?: BoundaryRelation[];
+  $type: "resqml20.obj_GeobodyBoundaryInterpretation";
 }
 
 /** A volume of rock that is identified based on some specific attribute, like its mineral content or other physical characteristic. Unlike stratigraphic or phase units, there is no associated time or fluid content semantic. For types, see GeobodyKind. */
@@ -1610,40 +1650,55 @@ export interface obj_GeobodyFeature extends obj_GeologicUnitFeature {}
 export interface obj_GeobodyInterpretation
   extends obj_GeologicUnitInterpretation {
   Geobody3dShape?: Geobody3dShape;
+  $type: "resqml20.obj_GeobodyInterpretation";
 }
 
 /** A volume of rock located between one or more boundary features.  The limiting boundary features should be genetic boundary features (i.e. should not be faults). */
-export interface obj_GeologicUnitFeature extends AbstractGeologicFeature {}
+export interface obj_GeologicUnitFeature extends AbstractGeologicFeature {
+  $type:
+    | "resqml20.obj_GeologicUnitFeature"
+    | "resqml20.obj_RockFluidUnitFeature"
+    | "resqml20.obj_StratigraphicUnitFeature";
+}
 
 /** The main class for data describing an opinion of a volume-based geologic feature or unit. */
 export interface obj_GeologicUnitInterpretation
   extends AbstractFeatureInterpretation {
   GeologicUnitComposition?: GeologicUnitComposition;
   GeologicUnitMaterialImplacement?: GeologicUnitMaterialImplacement;
+  $type:
+    | "resqml20.obj_GeologicUnitInterpretation"
+    | "resqml20.obj_StratigraphicUnitInterpretation"
+    | "resqml20.obj_RockFluidUnitInterpretation"
+    | "resqml20.obj_GeobodyInterpretation";
 }
 
 /** Chronological successions of some chronostratigraphic units organized into 1 to n chronological ranks. */
 export interface obj_GlobalChronostratigraphicColumn
   extends AbstractResqmlDataObject {
   ChronostratigraphicColumnComponent: ChronostratigraphicRank[];
+  $type: "resqml20.obj_GlobalChronostratigraphicColumn";
 }
 
 /** General purpose (GP) grid representation, which includes and/or extends the features from all other grid representations. This general purpose representation is included in the schema for research and/or advanced modeling purposes, but is not expected to be used for routine data transfer. */
 export interface obj_GpGridRepresentation extends AbstractGridRepresentation {
   ColumnLayerGrid?: GpGridColumnLayerGrid[];
   UnstructuredGridPatch?: GpGridUnstructuredGridPatch[];
+  $type: "resqml20.obj_GpGridRepresentation";
 }
 
 /** Representation based on a 2D grid. For definitions of slowest and fastest axes of the array, see Grid2dPatch. */
 export interface obj_Grid2dRepresentation
   extends AbstractSurfaceRepresentation {
   Grid2dPatch: Grid2dPatch;
+  $type: "resqml20.obj_Grid2dRepresentation";
 }
 
 /** Set of representations based on a 2D grid. Each 2D grid representation corresponds to one patch of the set. */
 export interface obj_Grid2dSetRepresentation
   extends AbstractSurfaceRepresentation {
   Grid2dPatch: Grid2dPatch[];
+  $type: "resqml20.obj_Grid2dSetRepresentation";
 }
 
 /** Representation which consists of a list of connections between grid cells, potentially on different grids.
@@ -1674,6 +1729,7 @@ export interface obj_GridConnectionSetRepresentation
    *
    * If no face per cell definition occur as part of the grid representation, e.g., for a block centered grid, then this array need not appear. */
   LocalFacePerCellIndexPairs?: AbstractIntegerArray;
+  $type: "resqml20.obj_GridConnectionSetRepresentation";
 }
 
 /** A type of boundary feature, the class specifies if the boundary feature is a horizon.
@@ -1688,6 +1744,7 @@ export interface obj_HorizonInterpretation
   extends obj_BoundaryFeatureInterpretation {
   BoundaryRelation?: BoundaryRelation[];
   SequenceStratigraphySurface?: SequenceStratigraphySurface;
+  $type: "resqml20.obj_HorizonInterpretation";
 }
 
 /** Grid whose topology is characterized by structured column indices (I,J) and a layer index, K.
@@ -1712,21 +1769,26 @@ export interface obj_IjkGridRepresentation
    *
    * May be used to change the grid topology for either a cartesian or a radial grid, although radial grid usage is by far the more common. */
   RadialGridIsComplete?: boolean;
+  $type: "resqml20.obj_IjkGridRepresentation";
 }
 
 /** Defines a local depth coordinate system, the geometrical origin and location is defined by the elements of the base class AbstractLocal3dCRS. This CRS uses the units of measure of its projected and vertical CRS. */
-export interface obj_LocalDepth3dCrs extends AbstractLocal3dCrs {}
+export interface obj_LocalDepth3dCrs extends AbstractLocal3dCrs {
+  $type: "resqml20.obj_LocalDepth3dCrs";
+}
 
 /** Used to activate and/or deactivate the specified children grids as local grids on their parents. Once activated, this object indicates that a child grid replaces local portions of the corresponding parent grid. Parentage is inferred from the child grid construction. Without a grid set activation, the local grids are always active. Otherwise, the grid set activation is used to activate and/or deactivate the local grids in the set at specific times. */
 export interface obj_LocalGridSet extends AbstractResqmlDataObject {
   Activation?: Activation;
   ChildGrid: eml20.DataObjectReference[];
+  $type: "resqml20.obj_LocalGridSet";
 }
 
 /** Defines a local time coordinate system, the geometrical origin and location is defined by the elements of the base class AbstractLocal3dCRS. This CRS defines the time unit that the time-based geometries that refers it will use. */
 export interface obj_LocalTime3dCrs extends AbstractLocal3dCrs {
   /** Defines the unit of measure of the third (time) coordinates, for the geometries that refers to it. */
   TimeUom: eml20.TimeUom;
+  $type: "resqml20.obj_LocalTime3dCrs";
 }
 
 /** Specifies the location of the measured depth = 0 reference point.
@@ -1737,17 +1799,20 @@ export interface obj_MdDatum extends AbstractResqmlDataObject {
   /** The location of the md reference point relative to a local CRS. */
   Location: Point3d;
   MdReference: MdReference;
+  $type: "resqml20.obj_MdDatum";
 }
 
 /** A collection of contact representations parts, which are a list of contact patches with no identity. This collection of contact representations is completed by a set of representations gathered at the representation set representation level. */
 export interface obj_NonSealedSurfaceFrameworkRepresentation
   extends AbstractSurfaceFrameworkRepresentation {
   NonSealedContactRepresentation?: AbstractContactRepresentationPart[];
+  $type: "resqml20.obj_NonSealedSurfaceFrameworkRepresentation";
 }
 
 /** The explicit description of the relationships between geologic features, such as rock features (e.g., stratigraphic units, geobodies, phase unit) and boundary features (e.g., genetic, tectonic, and fluid boundaries). For types of organizations, see OrganizationKind. */
 export interface obj_OrganizationFeature extends AbstractGeologicFeature {
   OrganizationKind: OrganizationKind;
+  $type: "resqml20.obj_OrganizationFeature";
 }
 
 /** Defines a plane representation, which can be made up of multiple patches. Commonly represented features are fluid contacts or frontiers. Common geometries of this representation are titled or horizontal planes.
@@ -1756,16 +1821,19 @@ export interface obj_OrganizationFeature extends AbstractGeologicFeature {
 export interface obj_PlaneSetRepresentation
   extends AbstractSurfaceRepresentation {
   Planes: AbstractPlaneGeometry[];
+  $type: "resqml20.obj_PlaneSetRepresentation";
 }
 
 /** A representation that consists of one or more node patches. Each node patch is an array of XYZ coordinates for the 3D points. There is no implied linkage between the multiple patches. */
 export interface obj_PointSetRepresentation extends AbstractRepresentation {
   NodePatch: NodePatch[];
+  $type: "resqml20.obj_PointSetRepresentation";
 }
 
 /** Represents the geometric information that should *not* be used as representation geometry, but should be used in another context where the location or geometrical vectorial distances are needed. */
 export interface obj_PointsProperty extends AbstractProperty {
   PatchOfPoints: PatchOfPoints[];
+  $type: "resqml20.obj_PointsProperty";
 }
 
 /** A representation made up of a single polyline or "polygonal chain", which may be closed or not.
@@ -1785,6 +1853,7 @@ export interface obj_PolylineRepresentation extends AbstractRepresentation {
   IsClosed: boolean;
   LineRole?: LineRole;
   NodePatch: NodePatch;
+  $type: "resqml20.obj_PolylineRepresentation";
 }
 
 /** A representation made up of a set of polylines or a set of polygonal chains (for more information, see PolylineRepresentation).
@@ -1797,6 +1866,7 @@ export interface obj_PolylineRepresentation extends AbstractRepresentation {
 export interface obj_PolylineSetRepresentation extends AbstractRepresentation {
   LinePatch: PolylineSetPatch[];
   LineRole?: LineRole;
+  $type: "resqml20.obj_PolylineSetRepresentation";
 }
 
 /** A description of a property name relative to a standard definition. For example, you may specify if the property kind is abstract, the dictionary in which the property is unique, and the representative unit of measure. */
@@ -1813,6 +1883,7 @@ export interface obj_PropertyKind extends AbstractResqmlDataObject {
   ParentPropertyKind: AbstractPropertyKind;
   /** Generally matches the base for conversion, except where multiple classes have the same underlying dimensional analysis. In this case, the representative unit may provide additional information about the underlying concept of the class. For example, “area per volume” has the same dimensional analysis as “per length”, but it specifies a representative unit of “m2/m3” instead of “1/m”. */
   RepresentativeUom: ResqmlUom;
+  $type: "resqml20.obj_PropertyKind";
 }
 
 /** A set of properties collected together for a specific purpose. For example, a property set can be used to collect all the properties corresponding to the simulation output at a single time, or all the values of a single property type for all times. */
@@ -1825,6 +1896,7 @@ export interface obj_PropertySet extends AbstractResqmlDataObject {
   ParentSet?: eml20.DataObjectReference[];
   Properties: eml20.DataObjectReference[];
   TimeSetKind: TimeSetKind;
+  $type: "resqml20.obj_PropertySet";
 }
 
 /** A representation derived from an existing representation by redefining its geometry. Example use cases include deformation of the geometry of an object, change of coordinate system, and change of time <=> depth. */
@@ -1832,12 +1904,14 @@ export interface obj_RedefinedGeometryRepresentation
   extends AbstractRepresentation {
   PatchOfGeometry: PatchOfGeometry[];
   SupportingRepresentation: eml20.DataObjectReference;
+  $type: "resqml20.obj_RedefinedGeometryRepresentation";
 }
 
 /** A collection of representation identities. */
 export interface obj_RepresentationIdentitySet
   extends AbstractResqmlDataObject {
   RepresentationIdentity: RepresentationIdentity[];
+  $type: "resqml20.obj_RepresentationIdentitySet";
 }
 
 /** The parent class of the framework representations. It is used to group together individual representations which may be of the same kind to represent a “bag” of representations. If the bag is homogeneous, then this may be indicated.
@@ -1850,12 +1924,18 @@ export interface obj_RepresentationSetRepresentation
   /** Indicates that all of the selected representations are of a single kind. */
   IsHomogeneous: boolean;
   Representation: eml20.DataObjectReference[];
+  $type:
+    | "resqml20.obj_RepresentationSetRepresentation"
+    | "resqml20.obj_SealedVolumeFrameworkRepresentation"
+    | "resqml20.obj_SealedSurfaceFrameworkRepresentation"
+    | "resqml20.obj_NonSealedSurfaceFrameworkRepresentation";
 }
 
 /** Interpretation of the fluid organization units. */
 export interface obj_RockFluidOrganizationInterpretation
   extends AbstractOrganizationInterpretation {
   RockFluidUnitIndex: RockFluidUnitInterpretationIndex;
+  $type: "resqml20.obj_RockFluidOrganizationInterpretation";
 }
 
 /** A fluid phase plus one or more stratigraphic units. A unit may correspond to a pair of horizons that are not adjacent stratigraphically, e.g., a coarse zonation, and is often used to define the reservoir. For types, see Phase. */
@@ -1863,18 +1943,21 @@ export interface obj_RockFluidUnitFeature extends obj_GeologicUnitFeature {
   FluidBoundaryBottom: eml20.DataObjectReference;
   FluidBoundaryTop: eml20.DataObjectReference;
   Phase: Phase;
+  $type: "resqml20.obj_RockFluidUnitFeature";
 }
 
 /** A type of rock fluid feature interpretation , this class identifies if a rock fluid feature by its phase */
 export interface obj_RockFluidUnitInterpretation
   extends obj_GeologicUnitInterpretation {
   Phase?: Phase;
+  $type: "resqml20.obj_RockFluidUnitInterpretation";
 }
 
 /** A collection of contact representations parts, which are a list of contact patches and their identities. This collection of contact representations is completed by a set of representations gathered at the representation set representation level. */
 export interface obj_SealedSurfaceFrameworkRepresentation
   extends AbstractSurfaceFrameworkRepresentation {
   SealedContactRepresentation?: SealedContactRepresentationPart[];
+  $type: "resqml20.obj_SealedSurfaceFrameworkRepresentation";
 }
 
 /** A strict boundary representation (BREP), which represents the volume region by assembling together shells.
@@ -1885,6 +1968,7 @@ export interface obj_SealedVolumeFrameworkRepresentation
   BasedOn: eml20.DataObjectReference;
   Regions: VolumeRegion[];
   Shells: VolumeShell[];
+  $type: "resqml20.obj_SealedVolumeFrameworkRepresentation";
 }
 
 /** Defined by two lateral ordered dimensions: inline (lateral), crossline (lateral and orthogonal to the inline dimension), which are fixed.
@@ -1905,6 +1989,7 @@ export interface obj_SeismicLatticeFeature
   /** @integer The constant index increment between two consecutive inlines of the 3D seismic survey. */
   InlineIndexIncrement: number;
   IsPartOf?: SeismicLatticeSetFeature;
+  $type: "resqml20.obj_SeismicLatticeFeature";
 }
 
 /** Defined by one lateral dimension: trace (lateral). Seismic trace of the 3D seismic survey.
@@ -1918,17 +2003,21 @@ export interface obj_SeismicLineFeature extends AbstractSeismicSurveyFeature {
   TraceCount: number;
   /** @integer The constant index increment between two consecutive traces. */
   TraceIndexIncrement: number;
+  $type: "resqml20.obj_SeismicLineFeature";
 }
 
 /** An unordered set of several seismic lines. Generally, it has no direct interpretation or representation. */
 export interface obj_SeismicLineSetFeature
-  extends AbstractSeismicSurveyFeature {}
+  extends AbstractSeismicSurveyFeature {
+  $type: "resqml20.obj_SeismicLineSetFeature";
+}
 
 /** A global interpretation of the stratigraphy, which can be made up of several ranks of stratigraphic unit interpretations.
  *
  * BUSINESS RULE: All stratigraphic column rank interpretations that make up a stratigraphic column must be ordered by age. */
 export interface obj_StratigraphicColumn extends AbstractResqmlDataObject {
   Ranks: eml20.DataObjectReference[];
+  $type: "resqml20.obj_StratigraphicColumn";
 }
 
 /** A global hierarchy containing an ordered list of stratigraphic unit interpretations. */
@@ -1937,6 +2026,7 @@ export interface obj_StratigraphicColumnRankInterpretation
   /** @integer Rank */
   Index: number;
   StratigraphicUnits: StratigraphicUnitInterpretationIndex[];
+  $type: "resqml20.obj_StratigraphicColumnRankInterpretation";
 }
 
 /** A local Interpretation—it could be along a well, on a 2D map, or on a 2D section or on a part of the global volume of an earth model—of a succession of rock feature elements.
@@ -1948,6 +2038,7 @@ export interface obj_StratigraphicOccurrenceInterpretation
   extends AbstractStratigraphicOrganizationInterpretation {
   GeologicUnitIndex?: GeologicUnitInterpretationIndex[];
   IsOccurrenceOf?: eml20.DataObjectReference;
+  $type: "resqml20.obj_StratigraphicOccurrenceInterpretation";
 }
 
 /** A stratigraphic unit that can have a well-known (e.g., "Jurassic") chronostratigraphic top and chronostratigraphic bottom. These chronostratigraphic units have no associated interpretations or representations.
@@ -1956,6 +2047,7 @@ export interface obj_StratigraphicOccurrenceInterpretation
 export interface obj_StratigraphicUnitFeature extends obj_GeologicUnitFeature {
   ChronostratigraphicBottom?: eml20.DataObjectReference;
   ChronostratigraphicTop?: eml20.DataObjectReference;
+  $type: "resqml20.obj_StratigraphicUnitFeature";
 }
 
 /** Interpretation of a stratigraphic unit which includes the knowledge of the top, the bottom, the deposition mode. */
@@ -1965,6 +2057,7 @@ export interface obj_StratigraphicUnitInterpretation
   DepositionMode?: DepositionMode;
   MaxThickness?: eml20.LengthMeasure;
   MinThickness?: eml20.LengthMeasure;
+  $type: "resqml20.obj_StratigraphicUnitInterpretation";
 }
 
 /** Specification of the vector field upon which the streamlines are based. Streamlines are commonly used to trace the flow of phases (water / oil / gas / total) based upon their flux at a specified time. They may also be used for trace components for compositional simulation, e.g., CO2, or temperatures for thermal simulation.
@@ -1978,6 +2071,7 @@ export interface obj_StreamlinesFeature extends AbstractTechnicalFeature {
    * BUSINESS RULE: OtherFlux should appear if Flux has the value of other. */
   OtherFlux?: string;
   TimeIndex: TimeIndex;
+  $type: "resqml20.obj_StreamlinesFeature";
 }
 
 /** Representation of streamlines associated with a streamline feature and interpretation.
@@ -1992,12 +2086,14 @@ export interface obj_StreamlinesRepresentation extends AbstractRepresentation {
   /** @integer Number of streamlines. */
   LineCount: number;
   StreamlineWellbores?: StreamlineWellbores;
+  $type: "resqml20.obj_StreamlinesRepresentation";
 }
 
 /** Defines an integer-to-string lookup table, for example, stores facies properties, where a facies index is associated with a facies name. .
  * Used for categorical properties, which also may use a double table lookup. */
 export interface obj_StringTableLookup extends AbstractPropertyLookup {
   Value: StringLookup[];
+  $type: "resqml20.obj_StringTableLookup";
 }
 
 /** One of the main types of RESQML organizations, this class gathers boundary interpretations (e.g., horizons and faults) plus frontier features and their relationships (contacts interpretations), which when taken together define the structure of a part of the earth. */
@@ -2009,6 +2105,7 @@ export interface obj_StructuralOrganizationInterpretation
   OrderingCriteria: OrderingCriteria;
   Sides?: eml20.DataObjectReference[];
   TopFrontier?: eml20.DataObjectReference[];
+  $type: "resqml20.obj_StructuralOrganizationInterpretation";
 }
 
 /** An ordered list of indexable elements and/or indexable element pairs of an existing representation.
@@ -2020,11 +2117,13 @@ export interface obj_SubRepresentation extends AbstractRepresentation {
   AdditionalGridTopology?: AdditionalGridTopology;
   SubRepresentationPatch: SubRepresentationPatch[];
   SupportingRepresentation: eml20.DataObjectReference;
+  $type: "resqml20.obj_SubRepresentation";
 }
 
 /** A boundary caused by tectonic movement or metamorphism, such as a fault or a fracture. For types, see TectonicBoundaryKind. */
 export interface obj_TectonicBoundaryFeature extends obj_BoundaryFeature {
   TectonicBoundaryKind: TectonicBoundaryKind;
+  $type: "resqml20.obj_TectonicBoundaryFeature";
 }
 
 /** Stores an ordered list of times, for example, for time-dependent properties, geometries, or representations. It is used in conjunction with the time index to specify times for RESQML. */
@@ -2032,6 +2131,7 @@ export interface obj_TimeSeries extends AbstractResqmlDataObject {
   /** Individual times composing the series. The list ordering is used by the time index. */
   Time: Timestamp[];
   TimeSeriesParentage?: TimeSeriesParentage;
+  $type: "resqml20.obj_TimeSeries";
 }
 
 /** A representation based on set of triangulated mesh patches, which gets its geometry from a 1D array of points.
@@ -2040,6 +2140,7 @@ export interface obj_TimeSeries extends AbstractResqmlDataObject {
 export interface obj_TriangulatedSetRepresentation
   extends AbstractSurfaceRepresentation {
   TrianglePatch: TrianglePatch[];
+  $type: "resqml20.obj_TriangulatedSetRepresentation";
 }
 
 /** Grid class with an underlying IJK topology, together with a 1D split cell list. The truncated IJK cells have more than the usual 6 faces. The split cells are arbitrary polyhedra, identical to those of an unstructured cell grid. */
@@ -2050,6 +2151,7 @@ export interface obj_TruncatedIjkGridRepresentation
   Ni: number;
   /** @integer Count of J-indices in the grid. Must be positive. */
   Nj: number;
+  $type: "resqml20.obj_TruncatedIjkGridRepresentation";
 }
 
 /** Grid class with an underlying unstructured column layer topology, together with a 1D split cell list. The truncated cells have more than the usual number of faces within each column. The split cells are arbitrary polyhedra, identical to those of an unstructured cell grid. */
@@ -2058,6 +2160,7 @@ export interface obj_TruncatedUnstructuredColumnLayerGridRepresentation
   /** @integer Number of unstructured columns in the grid. Must be positive. */
   ColumnCount: number;
   Geometry: UnstructuredColumnLayerGridGeometry;
+  $type: "resqml20.obj_TruncatedUnstructuredColumnLayerGridRepresentation";
 }
 
 /** Grid whose topology is characterized by an unstructured column index and a layer index, K.
@@ -2068,6 +2171,7 @@ export interface obj_UnstructuredColumnLayerGridRepresentation
   /** @integer Number of unstructured columns in the grid. Must be positive. */
   ColumnCount: number;
   Geometry?: UnstructuredColumnLayerGridGeometry;
+  $type: "resqml20.obj_UnstructuredColumnLayerGridRepresentation";
 }
 
 /** Unstructured grid representation characterized by a cell count, and potentially nothing else. Both the oldest and newest simulation formats are based on this format. */
@@ -2076,6 +2180,7 @@ export interface obj_UnstructuredGridRepresentation
   /** @integer Number of cells in the grid. Must be positive. */
   CellCount: number;
   Geometry?: UnstructuredGridGeometry;
+  $type: "resqml20.obj_UnstructuredGridRepresentation";
 }
 
 /** May refer to one of these:
@@ -2086,6 +2191,7 @@ export interface obj_UnstructuredGridRepresentation
  * sidetrack. A borehole that originates in another borehole as opposed to originating at the surface. */
 export interface obj_WellboreFeature extends AbstractTechnicalFeature {
   WitsmlWellbore?: WitsmlWellboreReference;
+  $type: "resqml20.obj_WellboreFeature";
 }
 
 /** Representation of a wellbore that is organized along a wellbore trajectory by its MD values. RESQML uses MD values to associate properties on points and to organize association of properties on intervals between MD points. */
@@ -2101,6 +2207,10 @@ export interface obj_WellboreFrameRepresentation
   Trajectory: eml20.DataObjectReference;
   /** The reference to the equivalent WITSML well log. */
   WitsmlLogReference?: eml20.DataObjectReference;
+  $type:
+    | "resqml20.obj_WellboreFrameRepresentation"
+    | "resqml20.obj_WellboreMarkerFrameRepresentation"
+    | "resqml20.obj_BlockedWellboreRepresentation";
 }
 
 /** This class contains the data describing an opinion of a borehole. This interpretation is relative to one particular well trajectory. */
@@ -2108,12 +2218,14 @@ export interface obj_WellboreInterpretation
   extends AbstractFeatureInterpretation {
   /** Used to indicate that this wellbore has been, or is being, drilled. This distinguishes from planned wells. For one wellbore feature we may expect to have multiple wellbore interpretations: IsDrilled=TRUE for instance will be used for updated drilled trajectories. IsDrilled=FALSE for planned trajectories. */
   IsDrilled: boolean;
+  $type: "resqml20.obj_WellboreInterpretation";
 }
 
 /** A well log frame where each entry represents a well marker */
 export interface obj_WellboreMarkerFrameRepresentation
   extends obj_WellboreFrameRepresentation {
   WellboreMarker: WellboreMarker[];
+  $type: "resqml20.obj_WellboreMarkerFrameRepresentation";
 }
 
 /** Representation of a wellbore trajectory. */
@@ -2141,6 +2253,7 @@ export interface obj_WellboreTrajectoryRepresentation
   StartMd: number;
   /** Pointer to the WITSML trajectory that is contained in the referenced wellbore. (For information about WITSML well and wellbore references, see the definition for RESQML technical feature, WellboreFeature). */
   WitsmlTrajectory?: eml20.DataObjectReference;
+  $type: "resqml20.obj_WellboreTrajectoryRepresentation";
 }
 
 export interface ObjectParameterKey extends AbstractParameterKey {

@@ -58,6 +58,9 @@ import {
 import type { SupportedType } from "../../client/ResqmlClient";
 
 import {
+  FindInDataSpaceParams,
+  FindInObjectParams,
+  FindInTypeParams,
   HasBearerGuard,
   HasDataPartitionGuard,
   OptionalParseBoolPipe,
@@ -65,6 +68,9 @@ import {
   OptionalParseIntPipe,
   alphaSpaceSchema,
   createSession,
+  dataObjectTypePattern,
+  dataObjectTypeRegexp,
+  dataObjectTypesPattern,
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
@@ -77,7 +83,8 @@ import {
   sliceArray,
   swaggerServers,
   toDate,
-  toJSonCustomData
+  toJSonCustomData,
+  transactionIdQueryParam
 } from "../ControllerUtils";
 
 import express from "express";
@@ -85,10 +92,9 @@ import {
   IsDate,
   IsDateString,
   IsInt,
-  IsUUID,
   Matches,
   MaxLength
-} from "@nestjs/class-validator";
+} from "class-validator";
 
 import { ResourceGraph } from "../../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../../common/EtpTypes";
@@ -112,17 +118,6 @@ export const datePattern =
   /^((?:(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:.\d+)?))(Z|[+-]\d{2}:\d{2})?)$/;
 
 export const filterPattern = /^(?:(_data)|[0-9a-zA-Z /(),.]+|'.*')+$/;
-
-export const dataObjectTypePattern =
-  /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>\d+).(?<dataType>(obj_)?\w+)$/;
-
-export const dataObjectTypesPattern =
-  /^((witsml|resqml|prodml|eml)[1-9]\d\.(obj_)?\w+,?)*$/;
-
-export const dataObjectTypeRegexp = RegExp(dataObjectTypePattern);
-
-export const uuidPattern =
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export const pathPattern = /^[\w:\/]*$/;
 
@@ -391,8 +386,6 @@ const toJSonResource = (
   };
 };
 
-export const dataspaceNamePattern = /^[^\/]+\/[^\/]+$/;
-
 /**
  * Send the resource content.
  * Also do client side pagination since server does not support it yet.
@@ -435,58 +428,6 @@ const sendGraph = (
     }))
   };
 };
-
-export class FindInDataSpaceParams {
-  @ApiProperty({
-    name: "dataspaceId",
-    description: "Name of dataspace",
-    example: "demo/Volve",
-    maxLength: 2048,
-    pattern: patternString(dataspaceNamePattern)
-  })
-  @MaxLength(2048)
-  @Matches(dataspaceNamePattern)
-  dataspaceId!: string;
-}
-
-/**
- * Describe to parameters to look inside a given type
- *
- * @export
- * @class FindInTypeParams
- * @extends {FindInDataSpaceParams}
- */
-export class FindInTypeParams extends FindInDataSpaceParams {
-  @ApiProperty({
-    name: "dataObjectType",
-    description: "Energistics type of the object",
-    example: "resqml20.obj_ContinuousProperty",
-    maxLength: 2048,
-    pattern: patternString(dataObjectTypePattern)
-  })
-  @Matches(dataObjectTypePattern)
-  @MaxLength(256)
-  dataObjectType!: string;
-}
-
-/**
- * Describe to parameters to look inside a given object
- *
- * @export
- * @class FindInObjectParams
- * @extends {FindInTypeParams}
- */
-export class FindInObjectParams extends FindInTypeParams {
-  @ApiProperty({
-    name: "guid",
-    description: "Unique Id of the object",
-    example: "1615d8d2-2a2d-482c-885e-14225b89e90c",
-    maxLength: 2048,
-    pattern: patternString(uuidPattern)
-  })
-  @IsUUID()
-  guid!: string;
-}
 
 /**
  * Data Object Transfer for Type Count
@@ -875,6 +816,7 @@ export default class ResourcesReadAPI {
   @Get(":dataspaceId/resources")
   @ApiQuery(skipQueryParam)
   @ApiQuery(topQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse({
     description: "Success",
     schema: {
@@ -893,18 +835,23 @@ export default class ResourcesReadAPI {
     @Param() params: FindInDataSpaceParams,
     @Query("$skip", OptionalParseIntPipe) skip?: number,
     @Query("$top", OptionalParseIntPipe) top?: number,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<TypeCountDto[] | null> {
     let c = undefined;
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const types = await c.getDataspaceTypes(
         EtpUri.createDataSpaceUri(params.dataspaceId).uri
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sliceArray<SupportedType>(skip, top, types).map(r => {
         return {
@@ -913,7 +860,9 @@ export default class ResourcesReadAPI {
         };
       });
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -930,6 +879,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "List all resources.",
@@ -946,6 +896,7 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -957,7 +908,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const resources = await findResources(
         c,
@@ -972,11 +925,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1001,6 +958,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(dataObjectTypesQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Graph all resources.",
@@ -1017,6 +975,7 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Query("dataObjectTypes") dataObjectTypes?: string,
     @Query("countObjects", OptionalParseBoolPipe) countObjects?: boolean,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -1028,7 +987,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const graph = await graphResources(
         c,
@@ -1043,11 +1004,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendGraph(skip, top, graph);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1063,6 +1028,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(filterQueryParam)
   @ApiQuery(storeLastWriteFilterQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources of a given type.",
@@ -1078,6 +1044,7 @@ export default class ResourcesReadAPI {
     @Query("storeLastWriteFilter", OptionalParseDatePipe)
     storeLastWriteFilter?: Date,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -1089,7 +1056,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const resources = await findResources(
         c,
@@ -1104,11 +1073,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1128,6 +1101,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(depthQueryParam)
   @ApiQuery(includeSecondarySourcesQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources referenced by current one.",
@@ -1149,6 +1123,7 @@ export default class ResourcesReadAPI {
     @Query("includeSecondarySources", OptionalParseBoolPipe)
     includeSecondarySources?: boolean,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -1169,7 +1144,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const resources = await findResources(
         c,
@@ -1185,11 +1162,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1206,6 +1187,7 @@ export default class ResourcesReadAPI {
    * @param depth - The depth of the graph
    * @param includeSecondarySources - Include secondary sources
    * @param countObjects - If true, the source and target count will be computed for each resource
+   * @param transactionId - The id of the current transaction when in a transaction
    * @param request - The express request
    * @returns The resources graph of the targets(nodes and links)
    *
@@ -1221,6 +1203,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(depthQueryParam)
   @ApiQuery(includeSecondarySourcesQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Graph the resources referenced by current one.",
@@ -1243,6 +1226,7 @@ export default class ResourcesReadAPI {
     @Query("includeSecondarySources", OptionalParseBoolPipe)
     includeSecondarySources?: boolean,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -1263,7 +1247,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const graph = await graphResources(
         c,
@@ -1279,11 +1265,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendGraph(skip, top, graph);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1303,6 +1293,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(depthQueryParam)
   @ApiQuery(includeSecondaryTargetsQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Get the resources referencing current one.",
@@ -1324,6 +1315,7 @@ export default class ResourcesReadAPI {
     @Query("includeSecondaryTargets", OptionalParseBoolPipe)
     includeSecondaryTargets?: boolean,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
     const query = {
@@ -1344,7 +1336,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const resources = await findResources(
         c,
@@ -1360,11 +1354,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendResources(skip, top, resources);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }
@@ -1394,6 +1392,7 @@ export default class ResourcesReadAPI {
   @ApiQuery(depthQueryParam)
   @ApiQuery(includeSecondaryTargetsQueryParam)
   @ApiQuery(countObjectsQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse(resourceResponse)
   @ApiOperation({
     summary: "Graph the resources referencing current one.",
@@ -1416,6 +1415,7 @@ export default class ResourcesReadAPI {
     @Query("includeSecondaryTargets", OptionalParseBoolPipe)
     includeSecondaryTargets?: boolean,
     @Query("countObjects", OptionalParseBoolPipe) countObjects = false,
+    @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
     const query = {
@@ -1436,7 +1436,9 @@ export default class ResourcesReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const graph = await graphResources(
         c,
@@ -1452,11 +1454,15 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       return sendGraph(skip, top, graph);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }

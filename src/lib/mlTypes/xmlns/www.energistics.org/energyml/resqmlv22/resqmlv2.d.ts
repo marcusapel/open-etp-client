@@ -489,7 +489,9 @@ interface _BlockedWellboreRepresentation extends _WellboreFrameRepresentation {
   IntervalGridCells: IntervalGridCells;
 }
 export interface BlockedWellboreRepresentation
-  extends _BlockedWellboreRepresentation {}
+  extends _BlockedWellboreRepresentation {
+  $type: "resqml22.BlockedWellboreRepresentation";
+}
 
 /** An array of Boolean values that is explicitly defined by indicating which indices in the array are either true or false. This class is used to represent very sparse true or false data, based on a discrete property. */
 interface _BooleanArrayFromDiscretePropertyArray
@@ -510,7 +512,9 @@ export interface BooleanProperty extends _BooleanProperty {}
  * A RockVolumeFeature is a geological feature (which is the general concept that refers to the various categories of geological objects that exist in the natural world).
  * For example: the stratigraphic boundaries, the =geobody boundaries or the fluid boundaries that are present before production. To simplify the hierarchy of concepts, the geological feature is not represented in the RESQML design. */
 interface _BoundaryFeature extends _AbstractFeature {}
-export interface BoundaryFeature extends _BoundaryFeature {}
+export interface BoundaryFeature extends _BoundaryFeature {
+  $type: "resqml22.BoundaryFeature";
+}
 
 /** The main class for data describing an opinion of a surface feature between two volumes.
  *
@@ -524,7 +528,9 @@ interface _BoundaryFeatureInterpretation
   YoungerPossibleAge?: number;
 }
 export interface BoundaryFeatureInterpretation
-  extends _BoundaryFeatureInterpretation {}
+  extends _BoundaryFeatureInterpretation {
+  $type: "resqml22.BoundaryFeatureInterpretation";
+}
 
 /** Element that lets you index and order feature interpretations which must be boundaries (horizon, faults and frontiers) or boundary sets (fault network). For possible ordering criteria, see OrderingCriteria.
  *
@@ -775,7 +781,9 @@ interface _ContinuousColorMap extends _AbstractColorMap {
   /** The method for the interpolation between color map entries. */
   InterpolationMethod: InterpolationMethod;
 }
-export interface ContinuousColorMap extends _ContinuousColorMap {}
+export interface ContinuousColorMap extends _ContinuousColorMap {
+  $type: "resqml22.ContinuousColorMap";
+}
 
 /** An association between a single double value and a color. */
 interface _ContinuousColorMapEntry extends BaseType {
@@ -793,7 +801,9 @@ interface _ContinuousProperty extends _AbstractValuesProperty {
   /** Unit of measure for the property. */
   Uom: eml.UnitOfMeasureExt;
 }
-export interface ContinuousProperty extends _ContinuousProperty {}
+export interface ContinuousProperty extends _ContinuousProperty {
+  $type: "resqml22.ContinuousProperty";
+}
 
 /** Information about contour lines between regions having different ranges of values (elevation or depth mostly). */
 interface _ContourLineSetInformation extends eml._AbstractGraphicalInformation {
@@ -832,7 +842,9 @@ export interface CorrectionInformation extends _CorrectionInformation {}
 interface _CulturalFeature extends _AbstractTechnicalFeature {
   CulturalFeatureKind: CulturalFeatureKindExt;
 }
-export interface CulturalFeature extends _CulturalFeature {}
+export interface CulturalFeature extends _CulturalFeature {
+  $type: "resqml22.CulturalFeature";
+}
 
 /** The enumeration of the possible cultural feature. */
 export type CulturalFeatureKind =
@@ -1039,7 +1051,9 @@ interface _DepositionMode extends eml._TypeEnum {
 interface _DiscreteColorMap extends _AbstractColorMap {
   Entry: DiscreteColorMapEntry[];
 }
-export interface DiscreteColorMap extends _DiscreteColorMap {}
+export interface DiscreteColorMap extends _DiscreteColorMap {
+  $type: "resqml22.DiscreteColorMap";
+}
 
 /** An association between a single integer value and a color. */
 interface _DiscreteColorMapEntry extends BaseType {
@@ -1053,6 +1067,7 @@ export interface DiscreteColorMapEntry extends _DiscreteColorMapEntry {}
  * Statistics about values such as maximum and minimum can be found in the statistics of each ValueForPatch. */
 interface _DiscreteProperty extends _AbstractValuesProperty {
   CategoryLookup?: eml.DataObjectReference;
+  $type: "resqml22.DiscreteProperty";
 }
 export interface DiscreteProperty extends _DiscreteProperty {}
 
@@ -1155,7 +1170,9 @@ interface _FaultInterpretation extends _BoundaryFeatureInterpretation {
   MeanDip?: eml.PlaneAngleMeasure;
   ThrowInterpretation?: FaultThrow[];
 }
-export interface FaultInterpretation extends _FaultInterpretation {}
+export interface FaultInterpretation extends _FaultInterpretation {
+  $type: "resqml22.FaultInterpretation";
+}
 
 /** Identifies the characteristic of the throw of a fault interpretation. */
 interface _FaultThrow extends BaseType {
@@ -1170,7 +1187,9 @@ interface _FluidBoundaryInterpretation extends _BoundaryFeatureInterpretation {
   FluidContact: FluidContact;
 }
 export interface FluidBoundaryInterpretation
-  extends _FluidBoundaryInterpretation {}
+  extends _FluidBoundaryInterpretation {
+  $type: "resqml22.FluidBoundaryInterpretation";
+}
 
 /** Enumerated values used to indicate a specific type of fluid boundary interpretation. */
 export type FluidContact =
@@ -1204,7 +1223,9 @@ interface _FluidMarker extends eml._TypeEnum {
 interface _GenericFeatureInterpretation
   extends _AbstractFeatureInterpretation {}
 export interface GenericFeatureInterpretation
-  extends _GenericFeatureInterpretation {}
+  extends _GenericFeatureInterpretation {
+  $type: "resqml22.GenericFeatureInterpretation";
+}
 
 /** Geological time during which a geological event (e.g., deposition, erosion, fracturation, faulting, intrusion) occurred. */
 interface _GeneticBoundaryBasedTimeInterval extends _AbstractTimeInterval {
@@ -1225,11 +1246,15 @@ interface _GeobodyBoundaryInterpretation
   IsConformableBelow?: boolean;
 }
 export interface GeobodyBoundaryInterpretation
-  extends _GeobodyBoundaryInterpretation {}
+  extends _GeobodyBoundaryInterpretation {
+  $type: "resqml22.GeobodyBoundaryInterpretation";
+}
 
 /** A volume of rock that is identified based on some specific attribute, like its mineral content or other physical characteristic. Unlike stratigraphic or phase units, there is no associated time or fluid content semantic. */
 interface _GeobodyInterpretation extends _GeologicUnitInterpretation {}
-export interface GeobodyInterpretation extends _GeobodyInterpretation {}
+export interface GeobodyInterpretation extends _GeobodyInterpretation {
+  $type: "resqml22.GeobodyInterpretation";
+}
 
 /** The various geologic boundaries a well marker can indicate. */
 export type GeologicBoundaryKind = "fault" | "geobody" | "horizon";
@@ -1258,7 +1283,9 @@ interface _GeologicUnitInterpretation extends _AbstractFeatureInterpretation {
   GeologicUnitMaterialEmplacement?: GeologicUnitMaterialEmplacement;
 }
 export interface GeologicUnitInterpretation
-  extends _GeologicUnitInterpretation {}
+  extends _GeologicUnitInterpretation {
+  $type: "resqml22.GeologicUnitInterpretation";
+}
 
 /** The enumerated attributes of a horizon. */
 export type GeologicUnitMaterialEmplacement = "intrusive" | "non-intrusive";
@@ -1285,7 +1312,9 @@ interface _GpGridRepresentation extends _AbstractGridRepresentation {
   ColumnLayerGpGrid?: ColumnLayerGpGrid[];
   UnstructuredGpGridPatch?: UnstructuredGpGridPatch[];
 }
-export interface GpGridRepresentation extends _GpGridRepresentation {}
+export interface GpGridRepresentation extends _GpGridRepresentation {
+  $type: "resqml22.GpGridRepresentation";
+}
 
 /** The geometry of a single point defined by its location in the local CRS. */
 interface _Graph2dRepresentation extends _AbstractRepresentation {
@@ -1362,7 +1391,9 @@ interface _Grid2dRepresentation extends _AbstractSurfaceRepresentation {
   Geometry: PointGeometry;
   SlowestAxisCount: eml.PositiveLong;
 }
-export interface Grid2dRepresentation extends _Grid2dRepresentation {}
+export interface Grid2dRepresentation extends _Grid2dRepresentation {
+  $type: "resqml22.Grid2dRepresentation";
+}
 
 /** Representation that consists of a list of connections between grid cells, potentially on different grids.
  *
@@ -1393,7 +1424,9 @@ interface _GridConnectionSetRepresentation extends _AbstractRepresentation {
   LocalFacePerCellIndexPairs?: eml.AbstractIntegerArray;
 }
 export interface GridConnectionSetRepresentation
-  extends _GridConnectionSetRepresentation {}
+  extends _GridConnectionSetRepresentation {
+  $type: "resqml22.GridConnectionSetRepresentation";
+}
 
 /** Indexable grid elements to which point geometry may be attached to describe additional grid geometry. */
 export type GridGeometryAttachment =
@@ -1418,7 +1451,9 @@ interface _HorizonInterpretation extends _BoundaryFeatureInterpretation {
   SequenceStratigraphySurface?: SequenceStratigraphySurfaceKindExt;
   StratigraphicRole?: StratigraphicRole[];
 }
-export interface HorizonInterpretation extends _HorizonInterpretation {}
+export interface HorizonInterpretation extends _HorizonInterpretation {
+  $type: "resqml22.HorizonInterpretation";
+}
 
 /** Defines the infinite geometry of a horizontal plane provided by giving its unique Z value. */
 interface _HorizontalPlaneGeometry extends _AbstractPlaneGeometry {
@@ -1518,7 +1553,9 @@ interface _IjkGridRepresentation
    * May be used to change the grid topology for either a Cartesian or a radial grid, although radial grid usage is by far the more common. */
   RadialGridIsComplete?: boolean;
 }
-export interface IjkGridRepresentation extends _IjkGridRepresentation {}
+export interface IjkGridRepresentation extends _IjkGridRepresentation {
+  $type: "resqml22.IjkGridRepresentation";
+}
 
 /** Parent window for any IJK grid. */
 interface _IjkParentWindow extends _AbstractParentWindow {
@@ -1739,7 +1776,9 @@ interface _NonSealedSurfaceFrameworkRepresentation
   Contacts?: AbstractSurfaceFrameworkContact[];
 }
 export interface NonSealedSurfaceFrameworkRepresentation
-  extends _NonSealedSurfaceFrameworkRepresentation {}
+  extends _NonSealedSurfaceFrameworkRepresentation {
+  $type: "resqml22.NonSealedSurfaceFrameworkRepresentation";
+}
 
 /** Enumeration used to specify the order of an abstract stratigraphic organization or a structural organization interpretation. */
 export type OrderingCriteria = "age" | "apparent depth";
@@ -1939,7 +1978,9 @@ interface _PillarShape extends eml._TypeEnum {
 interface _PlaneSetRepresentation extends _AbstractSurfaceRepresentation {
   Planes: AbstractPlaneGeometry[];
 }
-export interface PlaneSetRepresentation extends _PlaneSetRepresentation {}
+export interface PlaneSetRepresentation extends _PlaneSetRepresentation {
+  $type: "resqml22.PlaneSetRepresentation";
+}
 
 /** An array of explicit XY points stored as two coordinates in an HDF5 dataset. If needed, the implied Z coordinate is uniformly 0. */
 interface _Point2dExternalArray extends _AbstractPoint3dArray {
@@ -2047,7 +2088,9 @@ export interface PointGeometry extends _PointGeometry {}
 interface _PointSetRepresentation extends _AbstractRepresentation {
   NodePatchGeometry: PointGeometry[];
 }
-export interface PointSetRepresentation extends _PointSetRepresentation {}
+export interface PointSetRepresentation extends _PointSetRepresentation {
+  $type: "resqml22.PointSetRepresentation";
+}
 
 /** Represents the geometric information that should *not* be used as representation geometry, but should be used in another context where the location or geometrical vectorial distances are needed. */
 interface _PointsProperty extends _AbstractProperty {
@@ -2074,7 +2117,9 @@ interface _PolylineRepresentation extends _AbstractRepresentation {
   LineRole?: LineRoleExt;
   NodePatchGeometry: PointGeometry;
 }
-export interface PolylineRepresentation extends _PolylineRepresentation {}
+export interface PolylineRepresentation extends _PolylineRepresentation {
+  $type: "resqml22.PolylineRepresentation";
+}
 
 /** A Patch containing a set of polylines.
  *
@@ -2120,7 +2165,9 @@ interface _PolylineSetRepresentation extends _AbstractRepresentation {
   LinePatch: PolylineSetPatch[];
   LineRole?: LineRoleExt;
 }
-export interface PolylineSetRepresentation extends _PolylineSetRepresentation {}
+export interface PolylineSetRepresentation extends _PolylineSetRepresentation {
+  $type: "resqml22.PolylineSetRepresentation";
+}
 
 /** One-dimensional I, J, or K refinement and coarsening regrid specification.
  *
@@ -2159,7 +2206,9 @@ interface _RepresentationSetRepresentation extends _AbstractRepresentation {
   Representation: eml.DataObjectReference[];
 }
 export interface RepresentationSetRepresentation
-  extends _RepresentationSetRepresentation {}
+  extends _RepresentationSetRepresentation {
+  $type: "resqml22.RepresentationSetRepresentation";
+}
 
 /** A portion of a reservoir rock which is differentiated laterally from other portions of the same reservoir stratum. This differentiation could be due to being in a different fault block or a different channel or other stratigraphic or structural aspect.
  *
@@ -2192,13 +2241,17 @@ interface _RockFluidUnitInterpretation extends _GeologicUnitInterpretation {
   Phase?: Phase;
 }
 export interface RockFluidUnitInterpretation
-  extends _RockFluidUnitInterpretation {}
+  extends _RockFluidUnitInterpretation {
+  $type: "resqml22.RockFluidUnitInterpretation";
+}
 
 /** A continuous portion of rock material bounded by definite rock boundaries. It is a volume object.
  * Some of these rock volumes are “static”, while others are “dynamic”. Reservoir fluids are dynamic because their properties, geometries, and quantities may change over time during the course of field production.
  * A RockVolume feature is a geological feature--which is the general concept that refers to the various categories of geological objects that exist in the natural world, for example, the rock volume or the fluids that are present before production. The geological feature is not represented in the RESQML design. */
 interface _RockVolumeFeature extends _AbstractFeature {}
-export interface RockVolumeFeature extends _RockVolumeFeature {}
+export interface RockVolumeFeature extends _RockVolumeFeature {
+  $type: "resqml22.RockVolumeFeature";
+}
 
 /** Sealed contact elements that indicate that 2 or more contact patches are partially or totally colocated or equivalent. For possible types of identity, see IdentityKind. */
 interface _SealedContact extends _AbstractSurfaceFrameworkContact {
@@ -2217,7 +2270,9 @@ interface _SealedSurfaceFrameworkRepresentation
   Contacts?: SealedContact[];
 }
 export interface SealedSurfaceFrameworkRepresentation
-  extends _SealedSurfaceFrameworkRepresentation {}
+  extends _SealedSurfaceFrameworkRepresentation {
+  $type: "resqml22.SealedSurfaceFrameworkRepresentation";
+}
 
 /** A strict boundary representation (BREP), which represents the volume region by assembling together shells.
  *
@@ -2228,7 +2283,9 @@ interface _SealedVolumeFrameworkRepresentation
   Regions: VolumeRegion[];
 }
 export interface SealedVolumeFrameworkRepresentation
-  extends _SealedVolumeFrameworkRepresentation {}
+  extends _SealedVolumeFrameworkRepresentation {
+  $type: "resqml22.SealedVolumeFrameworkRepresentation";
+}
 
 /** A group of 2D seismic coordinates that stores the 1-to-1 mapping between geometry patch coordinates (usually X, Y, Z) and trace or inter-trace positions on a seismic line.
  * BUSINESS RULE: This patch must reference a geometry patch by its UUID. */
@@ -2310,7 +2367,9 @@ interface _Seismic3dPostStackRepresentation
   TraceSampling: eml.FloatingPointLatticeArray;
 }
 export interface Seismic3dPostStackRepresentation
-  extends _Seismic3dPostStackRepresentation {}
+  extends _Seismic3dPostStackRepresentation {
+  $type: "resqml22.Seismic3dPostStackRepresentation";
+}
 
 /** Defined by two lateral ordered dimensions: inline (lateral), crossline (lateral and orthogonal to the inline dimension), which are fixed.
  *
@@ -2328,15 +2387,21 @@ interface _SeismicLatticeFeature extends _AbstractSeismicSurveyFeature {
   InlineLabels?: eml.IntegerLatticeArray;
   IsPartOf?: SeismicLatticeSetFeature;
 }
-export interface SeismicLatticeFeature extends _SeismicLatticeFeature {}
+export interface SeismicLatticeFeature extends _SeismicLatticeFeature {
+  $type: "resqml22.SeismicLatticeFeature";
+}
 
 /** An unordered set of several seismic lattices. Generally, it has no direct interpretation or representation. */
 interface _SeismicLatticeSetFeature extends _AbstractSeismicSurveyFeature {}
-export interface SeismicLatticeSetFeature extends _SeismicLatticeSetFeature {}
+export interface SeismicLatticeSetFeature extends _SeismicLatticeSetFeature {
+  $type: "resqml22.SeismicLatticeSetFeature";
+}
 
 /** An unordered set of several seismic lines. Generally, it has no direct interpretation or representation. */
 interface _SeismicLineSetFeature extends _AbstractSeismicSurveyFeature {}
-export interface SeismicLineSetFeature extends _SeismicLineSetFeature {}
+export interface SeismicLineSetFeature extends _SeismicLineSetFeature {
+  $type: "resqml22.SeismicLineSetFeature";
+}
 
 /** The interpretation of this representation must be a WellboreInterpretation.
  *
@@ -2369,7 +2434,9 @@ interface _SeismicWellboreFrameRepresentation
   WeatheringVelocity: number;
 }
 export interface SeismicWellboreFrameRepresentation
-  extends _SeismicWellboreFrameRepresentation {}
+  extends _SeismicWellboreFrameRepresentation {
+  $type: "resqml22.SeismicWellboreFrameRepresentation";
+}
 
 /** The enumerated attributes of a horizon. */
 export type SequenceStratigraphySurfaceKind =
@@ -2487,7 +2554,9 @@ export interface SplitNodePatch extends _SplitNodePatch {}
 interface _StratigraphicColumn extends eml._AbstractObject {
   Ranks: eml.DataObjectReference[];
 }
-export interface StratigraphicColumn extends _StratigraphicColumn {}
+export interface StratigraphicColumn extends _StratigraphicColumn {
+  $type: "resqml22.StratigraphicColumn";
+}
 
 /** A global hierarchy containing an ordered list of stratigraphic unit interpretations. */
 interface _StratigraphicColumnRankInterpretation
@@ -2497,7 +2566,9 @@ interface _StratigraphicColumnRankInterpretation
   StratigraphicUnits: eml.DataObjectReference[];
 }
 export interface StratigraphicColumnRankInterpretation
-  extends _StratigraphicColumnRankInterpretation {}
+  extends _StratigraphicColumnRankInterpretation {
+  $type: "resqml22.StratigraphicColumnRankInterpretation";
+}
 
 /** This represents a stratigraphic boundary between two intervals. */
 interface _StratigraphicIntervalBoundary extends _MarkerBoundary {
@@ -2533,7 +2604,9 @@ interface _StratigraphicUnitInterpretation extends _GeologicUnitInterpretation {
   StratigraphicRole?: StratigraphicRole;
 }
 export interface StratigraphicUnitInterpretation
-  extends _StratigraphicUnitInterpretation {}
+  extends _StratigraphicUnitInterpretation {
+  $type: "resqml22.StratigraphicUnitInterpretation";
+}
 
 /** Enumeration of the usual streamline fluxes */
 export type StreamlineFlux = "oil" | "gas" | "water" | "total" | "other";
@@ -2552,7 +2625,9 @@ interface _StreamlinesFeature extends _AbstractTechnicalFeature {
   Flux: StreamlineFluxExt;
   TimeIndex: eml.TimeIndex;
 }
-export interface StreamlinesFeature extends _StreamlinesFeature {}
+export interface StreamlinesFeature extends _StreamlinesFeature {
+  $type: "resqml22.StreamlinesFeature";
+}
 
 /** Representation of streamlines associated with a streamline feature and interpretation.
  *
@@ -2567,7 +2642,9 @@ interface _StreamlinesRepresentation extends _AbstractRepresentation {
   LineCount: eml.PositiveLong;
   StreamlineWellbores?: StreamlineWellbores;
 }
-export interface StreamlinesRepresentation extends _StreamlinesRepresentation {}
+export interface StreamlinesRepresentation extends _StreamlinesRepresentation {
+  $type: "resqml22.StreamlinesRepresentation";
+}
 
 /** Used to specify the wellbores on which streamlines may originate or terminate. Additional properties, e.g., MD, or cell index may be used to specify locations along a wellbore.
  *
@@ -2585,7 +2662,9 @@ interface _StreamlineWellbores extends BaseType {
   ProducerPerLine: eml.AbstractIntegerArray;
   WellboreTrajectoryRepresentation: eml.DataObjectReference[];
 }
-export interface StreamlineWellbores extends _StreamlineWellbores {}
+export interface StreamlineWellbores extends _StreamlineWellbores {
+  $type: "resqml22.StreamlineWellbores";
+}
 
 /** One of the main types of RESQML organizations, this class gathers boundary interpretations (e.g., horizons, faults and fault networks) plus frontier features and their relationships (contacts interpretations), which when taken together define the structure of a part of the earth.
  * IMPLEMENTATION RULE: Two use cases are presented:
@@ -2609,7 +2688,9 @@ interface _StructuralOrganizationInterpretation
   TopFrontier?: eml.DataObjectReference[];
 }
 export interface StructuralOrganizationInterpretation
-  extends _StructuralOrganizationInterpretation {}
+  extends _StructuralOrganizationInterpretation {
+  $type: "resqml22.StructuralOrganizationInterpretation";
+}
 
 /** SubnodeNodeObject is used to specify the node object that supports the subnodes. This determines the number of nodes per subnode and the continuity of the associated geometry or property. For instance, for hexahedral cells, cell indicates a fixed value of 8, while for an unstructured column layer grid, cell indicates that this count varies from column to column. */
 export type SubnodeNodeObject = "cell" | "face" | "edge";
@@ -2717,7 +2798,9 @@ interface _TriangulatedSetRepresentation
   TrianglePatch: TrianglePatch[];
 }
 export interface TriangulatedSetRepresentation
-  extends _TriangulatedSetRepresentation {}
+  extends _TriangulatedSetRepresentation {
+  $type: "resqml22.TriangulatedSetRepresentation";
+}
 
 /** Grid class with an underlying IJK topology, together with a 1D split-cell list. The truncated IJK cells have more than the usual 6 faces. The split cells are arbitrary polyhedra, identical to those of an unstructured cell grid. */
 interface _TruncatedIjkGridRepresentation
@@ -2729,7 +2812,9 @@ interface _TruncatedIjkGridRepresentation
   Nj: eml.PositiveLong;
 }
 export interface TruncatedIjkGridRepresentation
-  extends _TruncatedIjkGridRepresentation {}
+  extends _TruncatedIjkGridRepresentation {
+  $type: "resqml22.TruncatedIjkGridRepresentation";
+}
 
 /** Grid class with an underlying unstructured column-layer topology, together with a 1D split-cell list. The truncated cells have more than the usual number of faces within each column. The split cells are arbitrary polyhedra, identical to those of an unstructured cell grid. */
 interface _TruncatedUnstructuredColumnLayerGridRepresentation
@@ -2739,7 +2824,9 @@ interface _TruncatedUnstructuredColumnLayerGridRepresentation
   Geometry: UnstructuredColumnLayerGridGeometry;
 }
 export interface TruncatedUnstructuredColumnLayerGridRepresentation
-  extends _TruncatedUnstructuredColumnLayerGridRepresentation {}
+  extends _TruncatedUnstructuredColumnLayerGridRepresentation {
+  $type: "resqml22.TruncatedUnstructuredColumnLayerGridRepresentation";
+}
 
 /** Truncation definitions for the truncated and split cells.
  *
@@ -2985,7 +3072,9 @@ export interface VolumeShell extends _VolumeShell {}
 interface _WellboreFeature extends _AbstractTechnicalFeature {
   WitsmlWellbore?: WitsmlWellWellbore;
 }
-export interface WellboreFeature extends _WellboreFeature {}
+export interface WellboreFeature extends _WellboreFeature {
+  $type: "resqml22.WellboreFeature";
+}
 
 /** Representation of a wellbore that is organized along a wellbore trajectory by its MD values. RESQML uses MD values to associate properties on points and to organize association of properties on intervals between MD points.
  *
@@ -3003,7 +3092,9 @@ interface _WellboreFrameRepresentation extends _AbstractRepresentation {
   WitsmlLog?: eml.DataObjectReference;
 }
 export interface WellboreFrameRepresentation
-  extends _WellboreFrameRepresentation {}
+  extends _WellboreFrameRepresentation {
+  $type: "resqml22.WellboreFrameRepresentation";
+}
 
 /** Contains the data describing an opinion of a borehole. This interpretation is relative to one particular well trajectory. */
 interface _WellboreInterpretation extends _AbstractFeatureInterpretation {
@@ -3012,13 +3103,17 @@ interface _WellboreInterpretation extends _AbstractFeatureInterpretation {
    * - For planned trajectories, use IsDrilled=FALSE used. */
   IsDrilled: boolean;
 }
-export interface WellboreInterpretation extends _WellboreInterpretation {}
+export interface WellboreInterpretation extends _WellboreInterpretation {
+  $type: "resqml22.WellboreInterpretation";
+}
 
 interface _WellboreIntervalSet extends _AbstractRepresentation {
   IntervalBoundaries?: MarkerBoundary[];
   MarkerInterval: MarkerInterval[];
 }
-export interface WellboreIntervalSet extends _WellboreIntervalSet {}
+export interface WellboreIntervalSet extends _WellboreIntervalSet {
+  $type: "resqml22.WellboreIntervalSet";
+}
 
 /** For a wellbore trajectory in a multi-lateral well, indicates the MD of the kickoff point where the trajectory begins and the corresponding MD of the parent trajectory. */
 interface _WellboreTrajectoryParentIntersection extends BaseType {
@@ -3052,14 +3147,18 @@ interface _WellboreTrajectoryRepresentation extends _AbstractRepresentation {
   WitsmlTrajectory?: eml.DataObjectReference;
 }
 export interface WellboreTrajectoryRepresentation
-  extends _WellboreTrajectoryRepresentation {}
+  extends _WellboreTrajectoryRepresentation {
+  $type: "resqml22.WellboreTrajectoryRepresentation";
+}
 
 /** Reference to the WITSML wellbore that this wellbore feature is based on. */
 interface _WitsmlWellWellbore extends BaseType {
   WitsmlWell: eml.DataObjectReference;
   WitsmlWellbore: eml.DataObjectReference;
 }
-export interface WitsmlWellWellbore extends _WitsmlWellWellbore {}
+export interface WitsmlWellWellbore extends _WitsmlWellWellbore {
+  $type: "resqml22.WitsmlWellWellbore";
+}
 
 export interface document extends BaseType {
   BlockedWellboreRepresentation: BlockedWellboreRepresentation;
