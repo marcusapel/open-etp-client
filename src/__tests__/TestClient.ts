@@ -33,7 +33,12 @@ import {
   ResqmlClient,
   XmlUtils
 } from "../index";
-import type { IResqmlDataObject, Resource, SimpleJson } from "../index";
+import type {
+  DataArray,
+  IResqmlDataObject,
+  Resource,
+  SimpleJson
+} from "../index";
 
 import { ETPClient } from "../lib/client/ETPClient";
 
@@ -781,6 +786,100 @@ describe("Resource Graph", () => {
     expect(projects.length).toBe(1);
     const testDataspace = projects.find(p => p.path.includes(dataspaceName));
     expect(testDataspace).toBeDefined();
+  });
+});
+
+describe("SubArray", () => {
+  it("Should handle getDataSubarray safely when bandwidth is less than array size", async () => {
+    const arraySize = 10000; // Replace with actual array size
+    const bandwidth = 200000; // Replace with actual bandwidth
+    const dataspaceName = "test/ArrayBandwidth";
+
+    // Set up the client and open session with low maxMessagePayloadSize
+    const client = new ResqmlClient();
+    client.setCallsTraceability(true);
+    await client.openSession(
+      etpServerUrl,
+      jwt,
+      testDataPartitionId,
+      undefined,
+      undefined,
+      bandwidth
+    );
+
+    const dataSpaceUri = EtpUri.createDataSpaceUri(dataspaceName).uri;
+
+    try {
+      await client.createDataspaces([
+        {
+          path: dataspaceName,
+          uri: dataSpaceUri,
+          storeCreated: BigInt(Date.now()),
+          storeLastWrite: BigInt(Date.now()),
+          customData: new Map()
+        }
+      ]);
+
+      // Create a large array and send it to the server
+      const subarray = new Int32Array(arraySize).fill(10);
+      const uri = EtpUri.createObjectUri(
+        dataspaceName,
+        "eml",
+        "2.0",
+        "obj_EpcExternalPartReference",
+        "53395ada-6f93-4bac-b506-d45997ded2a2"
+      ).uri;
+      const pathInResource = `/Resqml/${tSurfUid}/testArray`;
+      const nbSlice = 10;
+
+      // Push empty data array to the server
+      await client.putEmptyDataArray({ uri, pathInResource }, subarray, [
+        2,
+        nbSlice,
+        arraySize
+      ]);
+
+      // Push the large array to the server slice by slice, iterating over the array second dimension
+      for (let i = 0; i < nbSlice; i++) {
+        await client.putDataSubArray(
+          { uri, pathInResource },
+          [0, i, 0],
+          [1, 1, arraySize],
+          subarray
+        );
+        await client.putDataSubArray(
+          { uri, pathInResource },
+          [1, i, 0],
+          [1, 1, arraySize],
+          subarray
+        );
+      }
+
+      // Get the subarray that starts at index 2 for each dimension and has ends at the last index
+      const subArrayResult = await client.getDataSubarray(
+        uri,
+        pathInResource,
+        [1, 2, 2],
+        [1, nbSlice - 2, arraySize - 2]
+      );
+      expect(subArrayResult?.counts[0]).toBe(1);
+      expect(subArrayResult?.counts[1]).toBe(nbSlice - 2);
+      expect(subArrayResult?.counts[2]).toBe(arraySize - 2);
+      expect(
+        (subArrayResult?.data as DataArray).data.item._ArrayOfInt?.values.length
+      ).toBe((nbSlice - 2) * (arraySize - 2));
+
+      const arrayResult = await client.getDataArray(uri, pathInResource);
+      expect(arrayResult?.data?.dimensions![0]).toBe(BigInt(2));
+      expect(arrayResult?.data?.dimensions![1]).toBe(BigInt(nbSlice));
+      expect(arrayResult?.data?.dimensions![2]).toBe(BigInt(arraySize));
+      expect(
+        (arrayResult?.data as DataArray).data.item._ArrayOfInt?.values.length
+      ).toBe(2 * arraySize * nbSlice);
+    } finally {
+      // Delete empty array then delete object containing the array
+      client.deleteDataspaces([dataSpaceUri]);
+    }
   });
 });
 
@@ -1603,7 +1702,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
           }
         }
       };
-      const horizonCrs: SimpleJson<Eml23._LocalEngineeringCompoundCrs> = {
+      const horizonCrs: SimpleJson<Eml23.LocalEngineeringCompoundCrs> = {
         $type: "eml23.LocalEngineeringCompoundCrs",
         SchemaVersion: "2.3",
         Uuid: "49ff9f92-aae5-49af-98ec-1496c6343a90",
@@ -1682,7 +1781,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
           $type: "eml23.ProjectedCrs",
           SchemaVersion: "2.3",
           Uom: "m",
-          Uuid: "00000000-0000-0000-0000-000000000000",
+          Uuid: "ddc1b3b1-7b3b-5e3b-8b3b-3b3b3b3b3b3b",
           Citation: {
             $type: "eml23.Citation",
             Title: "Default local time CRS LocalEngineering2dCrs ProjectedCrs",
