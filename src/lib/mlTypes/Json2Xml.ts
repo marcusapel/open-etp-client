@@ -255,7 +255,7 @@ export class XMLBuilder {
         // Primitive type
 
         // Check if it is an attribute
-        const attr = this.isAttribute(key);
+        const attr = this.isAttribute(key, level);
         if (attr) {
           let newVal = "" + jObj[key];
           newVal = this.replaceEntitiesValue(newVal);
@@ -266,23 +266,32 @@ export class XMLBuilder {
         }
       } else if (Array.isArray(jObj[key])) {
         // Repeated nodes
-        const arrLen = jObj[key].length;
-        for (let j = 0; j < arrLen; j++) {
-          const item = jObj[key][j];
-          if (typeof item === "undefined") {
-            // Suppress undefined node
-          } else if (item === null) {
-            val += `${this.indentBy(level)}<${curKey}/>\n`;
-          } else if (typeof item === "object") {
-            val += this.processTextOrObjectNode(
-              item,
-              curKey,
-              level,
-              xmlType && xmlType[key] ? xmlType[key][0] : null,
-              version
-            );
-          } else {
-            val += this.buildTextValueNode(item, curKey, "", level);
+        if (this.isXMLList(jObj.$type, key)) {
+          val += this.buildTextValueNode(
+            jObj[key].join(" "),
+            curKey,
+            "",
+            level
+          );
+        } else {
+          const arrLen = jObj[key].length;
+          for (let j = 0; j < arrLen; j++) {
+            const item = jObj[key][j];
+            if (typeof item === "undefined") {
+              // Suppress undefined node
+            } else if (item === null) {
+              val += `${this.indentBy(level)}<${curKey}/>\n`;
+            } else if (typeof item === "object") {
+              val += this.processTextOrObjectNode(
+                item,
+                curKey,
+                level,
+                xmlType && xmlType[key] ? xmlType[key][0] : null,
+                version
+              );
+            } else {
+              val += this.buildTextValueNode(item, curKey, "", level);
+            }
           }
         }
       } else {
@@ -439,8 +448,8 @@ export class XMLBuilder {
    * @returns {string}
    * @memberof XMLBuilder
    */
-  private isAttribute(name: string): string {
-    if (name === "Uuid") {
+  private isAttribute(name: string, level: number): string {
+    if (name === "Uuid" && level === 1) {
       return "uuid";
     } else if (name === "ObjectVersion") {
       return "objectVersion";
@@ -451,5 +460,26 @@ export class XMLBuilder {
     } else {
       return "";
     }
+  }
+
+  /**
+   * Check if a JSON field is an XML List
+   *
+   * @private
+   * @param {string} type of the JSON Object containing the field
+   * @param {string} key of the JSON field
+   * @returns {boolean} true if the field derived from an XML List (xs:list)
+   * @memberof XMLBuilder
+   */
+  private isXMLList(type: string | undefined, key: string): boolean {
+    if (key !== "Values") {
+      return false;
+    }
+    return (
+      type === "eml23.FloatingPointXmlArray" ||
+      type === "eml23.IntegerXmlArray" ||
+      type === "eml23.StringXmlArray" ||
+      type === "eml23.BooleanXmlArray"
+    );
   }
 }

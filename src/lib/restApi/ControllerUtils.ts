@@ -47,6 +47,7 @@ import {
   NotFoundException,
   NotImplementedException,
   PipeTransform,
+  PreconditionFailedException,
   Type,
   UnauthorizedException
 } from "@nestjs/common";
@@ -63,6 +64,7 @@ import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
 import { ApiProperty, ApiQueryOptions } from "@nestjs/swagger";
 import { IsUUID, Matches, MaxLength } from "class-validator";
+import e from "express";
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
@@ -77,7 +79,14 @@ const getSHA256 = (input: string) => {
 
 let userInfo: string;
 
-const etpClients = new Map<string, { client: ResqmlClient; sha256: string }>();
+const etpClients = new Map<
+  string,
+  {
+    client: ResqmlClient;
+    timeoutId: NodeJS.Timeout;
+    timeoutPeriod: number;
+  }
+>();
 
 /**
  * Pagination of an array
@@ -363,9 +372,16 @@ export class OptionalParseIntPipe
  * @class OptionalParseIntArrayPipe
  * @implements {PipeTransform<string[]>}
  */
-export class OptionalParseIntArrayPipe implements PipeTransform<string[]> {
-  transform(value: string[] | undefined): Promise<number[] | undefined> {
-    return Promise.resolve(value ? value.map(v => parseInt(v)) : undefined);
+export class OptionalParseIntArrayPipe
+  implements PipeTransform<string | string[]>
+{
+  transform(
+    value: string | string[] | undefined
+  ): Promise<number[] | number | undefined> {
+    if (Array.isArray(value)) {
+      return Promise.resolve(value ? value.map(v => parseInt(v)) : undefined);
+    }
+    return Promise.resolve(value === undefined ? undefined : [parseInt(value)]);
   }
 }
 
@@ -527,21 +543,30 @@ export const createSession = async (
 ) => {
   if (transactionId) {
     const c1 = etpClients.get(transactionId);
-    if (c1 && c1.sha256 === getSHA256(jwt)) {
-      return c1.client;
+    if (c1 === undefined) {
+      throw new EtpError(
+        `Transaction ${transactionId} does not exists`,
+        ErrorCode.ENOT_FOUND
+      );
     }
-    throw new EtpError(
-      `Transaction ${transactionId} does not exists`,
-      ErrorCode.ENOT_FOUND
-    );
+    clearTimeout(c1.timeoutId);
+    etpClients.set(transactionId, {
+      ...c1,
+      timeoutId: setTimeout(() => {
+        if (etpClients.has(transactionId)) {
+          rollbackTransaction(transactionId);
+        }
+      }, c1.timeoutPeriod * 1000)
+    });
+    return c1.client;
   } else {
-    try {
-      const c = new ResqmlClient(options);
-      await c.openSession(etpServerUrl, jwt, dataPartitionId, userInfo);
-      return c;
-    } catch (err) {
-      throw new Error(`Cannot create session with ETP server: ${err}`);
-    }
+    const c = new ResqmlClient(options);
+    await c
+      .openSession(etpServerUrl, jwt, dataPartitionId, userInfo)
+      .catch(err => {
+        throw new Error(`Cannot create session with ETP server: ${err}`);
+      });
+    return c;
   }
 };
 
@@ -552,13 +577,17 @@ export const createSession = async (
  * @param {string} dataspace Uri of dataspace where transaction will occur
  * @param {IOptions} [options]
  * @param {string} [dataPartitionId] optional data partition
+ * @param {number} [timeoutPeriod] optional timeout period in seconds (default 300)
+ * @param {number} [retries] optional number of retries to account for busy dataspace (default 6)
  * @return {Promise<string>} Transaction identifier (uuid as string)
  */
 export const createTransaction = async (
   jwt: string,
   dataspace: string,
   options?: IOptions,
-  dataPartitionId?: string
+  dataPartitionId?: string,
+  timeoutPeriod: number = 300, // 5 minutes
+  retries = 6
 ): Promise<string> => {
   const c = new ResqmlClient(options);
   return c
@@ -567,18 +596,27 @@ export const createTransaction = async (
       c.startTransaction(
         false,
         [dataspace],
-        `Creating transaction for dataspace ${dataspace}`
+        `Creating transaction for dataspace ${dataspace}`,
+        retries
       )
     )
     .then(id => {
       const idString = EtpUri.uuidByteArrayToString(id);
       etpClients.set(idString, {
         client: c,
-        sha256: getSHA256(jwt)
+        timeoutId: setTimeout(() => {
+          if (etpClients.has(idString)) {
+            rollbackTransaction(idString);
+          }
+        }, timeoutPeriod * 1000),
+        timeoutPeriod
       });
       return idString;
     })
     .catch(err => {
+      if (err.code) {
+        throw new EtpError(err.message, err.code);
+      }
       throw new Error(`Cannot create session with ETP server: ${err}`);
     });
 };
@@ -586,53 +624,51 @@ export const createTransaction = async (
 /**
  * Commit the transaction
  *
- * @param {string} jwt JSON web token
  * @param {string} transactionId Transaction identifier
  * @returns
  */
 export const commitTransaction = async (
-  jwt: string,
   transactionId: string
 ): Promise<boolean> => {
   const t = etpClients.get(transactionId);
-  if (t?.sha256 !== getSHA256(jwt)) {
-    throw new Error(`Invalid token`);
-  }
-  try {
-    await t.client.commitTransaction(
-      EtpUri.uuidStringToByteArray(transactionId)
+  if (t === undefined) {
+    throw new EtpError(
+      `Transaction ${transactionId} does not exists`,
+      ErrorCode.ENOT_FOUND
     );
-    await t.client.closeSession();
-    return etpClients.delete(transactionId);
-  } catch (err) {
-    throw new Error(`Cannot create session with ETP server: ${err}`);
   }
+  await t.client
+    .commitTransaction(EtpUri.uuidStringToByteArray(transactionId))
+    .catch(err => {
+      throw new EtpError(err.message, err.code);
+    });
+  await t.client.closeSession();
+  return etpClients.delete(transactionId);
 };
 
 /**
  * Rollback the transaction
  *
- * @param {string} jwt JSON web token
  * @param {string} transactionId Transaction identifier
  * @returns
  */
 export const rollbackTransaction = async (
-  jwt: string,
   transactionId: string
 ): Promise<boolean> => {
   const t = etpClients.get(transactionId);
-  if (t?.sha256 !== getSHA256(jwt)) {
-    throw new Error(`Invalid token`);
-  }
-  try {
-    await t.client.rollbackTransaction(
-      EtpUri.uuidStringToByteArray(transactionId)
+  if (t === undefined) {
+    throw new EtpError(
+      `Transaction ${transactionId} does not exists`,
+      ErrorCode.ENOT_FOUND
     );
-    await t.client.closeSession();
-    return etpClients.delete(transactionId);
-  } catch (err) {
-    throw new Error(`Cannot create session with ETP server: ${err}`);
   }
+  await t.client
+    .rollbackTransaction(EtpUri.uuidStringToByteArray(transactionId))
+    .catch(err => {
+      throw new EtpError(err.message, err.code);
+    });
+  await t.client.closeSession();
+  return etpClients.delete(transactionId);
 };
 
 /**
@@ -804,6 +840,11 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
       error.code == ErrorCode.EMAXSIZE_EXCEEDED
     ) {
       return new BadRequestException({ description: error.message });
+    } else if (
+      error.code == ErrorCode.EINVALID_STATE ||
+      error.code == ErrorCode.EMAX_TRANSACTIONS_EXCEEDED
+    ) {
+      return new PreconditionFailedException({ description: error.message });
     } else if (
       error.code == ErrorCode.ENOSUPPORTEDPROTOCOLS ||
       error.code == ErrorCode.EINVALID_MESSAGETYPE ||

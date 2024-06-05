@@ -69,6 +69,7 @@ import {
   patternString,
   sliceArray,
   swaggerServers,
+  transactionIdQueryParam,
   uuidPattern
 } from "../ControllerUtils";
 
@@ -151,7 +152,9 @@ export const sendObjects = async (
       uris,
       objects,
       arrayValues,
-      arrayMetadata
+      arrayMetadata,
+      "base64",
+      referencedContent
     );
     return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
   } else {
@@ -327,6 +330,7 @@ export default class ObjectsReadAPI {
   @ApiQuery(referencedContentQueryParam)
   @ApiQuery(arrayValuesQueryParam)
   @ApiQuery(arrayMetadataQueryParam)
+  @ApiQuery(transactionIdQueryParam)
   @ApiOkResponse({
     description: "Success",
     content: {
@@ -353,6 +357,7 @@ export default class ObjectsReadAPI {
     @Res() res: express.Response,
     @Query("version") version?: string,
     @Query("$format") format: "xml" | "json" = "json",
+    @Query("transactionId") transactionId?: string,
     @Query("referencedContent", OptionalParseBoolPipe) referencedContent = true,
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
     @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
@@ -382,7 +387,9 @@ export default class ObjectsReadAPI {
     try {
       c = await createSession(
         extractToken(request),
-        extractDataPartitionId(request)
+        extractDataPartitionId(request),
+        undefined,
+        transactionId
       );
       const b = await sendObjects(
         {},
@@ -393,11 +400,15 @@ export default class ObjectsReadAPI {
         arrayValues,
         arrayMetadata
       );
-      await c.closeSession();
+      if (!transactionId) {
+        await c.closeSession();
+      }
       c = undefined;
       res.send(b);
     } catch (err) {
-      await c?.closeSession();
+      if (!transactionId) {
+        await c?.closeSession();
+      }
       throw httpErrorFromEtpError(err);
     }
   }

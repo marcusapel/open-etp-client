@@ -94,6 +94,7 @@ import { versionQueryParam } from "../read-etp.module/Resource.controller";
 import { qualifiedTypeRegex } from "../../common/EtpQualifiedType";
 
 import logging from "../../common/Logging";
+import { ErrorCode, EtpError } from "../../common/EtpTypes";
 const logger = logging.getLogger("EtpClient");
 
 const base64Pattern =
@@ -126,7 +127,7 @@ export class DataArrayDto {
 
   @ApiProperty({
     name: "Dimensions",
-    description: "Overall size of the array (One value per dimension)",
+    description: "Overall size of the entire array (One value per dimension)",
     required: true,
     isArray: true,
     maxItems: 256,
@@ -153,7 +154,7 @@ export class DataArrayDto {
   @ApiProperty({
     name: "Data",
     description:
-      "Data of the array (as an array of number or base64 encoded), if starts and counts are present data of the subarray",
+      "Numerical values (as a JSON array of number or a base64 encoded string) or the subarray if starts and counts are present",
     required: false,
     oneOf: [
       {
@@ -372,7 +373,7 @@ export default class MutationsAPI {
   })
   @ApiOperation({
     summary: "Create or update objects.",
-    description: `Create new objects by providing their data inside a JSON array.
+    description: `Create new objects by providing their content inside a JSON array.
     Should be done within a transaction.`,
     servers: swaggerServers
   })
@@ -391,6 +392,7 @@ export default class MutationsAPI {
         undefined,
         transactionId
       );
+
       const builder = new XMLBuilder();
       const dataObjects = requestBody.map(b => {
         if (!b.$type) {
@@ -616,9 +618,11 @@ export default class MutationsAPI {
     )
   )
   @ApiOperation({
-    summary: "Create new data array.",
-    description: `Create new data array to attach to existing object.
-    Should be done within a transaction.`,
+    summary: "Create or update a data array.",
+    description: `Create or update data array to attach to existing object.
+    When starts and count are present, it will update a subarray.
+    When data are not present, it will create an empty array else the data can be provided as either an array of number or a base64 encoded string.
+    Should be done within a transaction. `,
     servers: swaggerServers
   })
   public async PutDataArray(
@@ -637,7 +641,7 @@ export default class MutationsAPI {
         transactionId
       );
       if (!c) {
-        throw new InternalServerErrorException("Failed to create session");
+        throw new Error("Failed to create session");
       }
       const r = await Promise.all(
         requestBody.map(async a => {
@@ -663,44 +667,45 @@ export default class MutationsAPI {
             );
           }
 
+          const dataArr = this.toTypeArray(a.Data, a.ArrayType);
+
           if (a.Starts || a.Counts) {
             if (!a.Starts || !a.Counts) {
-              throw new BadRequestException({
-                description: `Validation Failed: Invalid Range: Starts or Counts required`
-              });
+              throw new EtpError(
+                `Validation Failed: Invalid Range: Starts or Counts required`,
+                ErrorCode.EINVALID_ARGUMENT
+              );
             }
             if (
               a.Starts.length !== a.Counts.length ||
               a.Starts.length !== a.Dimensions.length
             ) {
-              throw new BadRequestException({
-                description: `Validation Failed: Invalid Range: Starts and Counts must have the same size than Dimensions`
-              });
+              throw new EtpError(
+                `Validation Failed: Invalid Range: Starts and Counts must have the same size than Dimensions`,
+                ErrorCode.EINVALID_ARGUMENT
+              );
             }
             for (let d = 0; d < a.Dimensions.length; d++) {
               if (a.Starts[d] + a.Counts[d] > a.Dimensions[d]) {
-                throw new BadRequestException({
-                  description: `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`
-                });
+                throw new EtpError(
+                  `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`,
+                  ErrorCode.EINVALID_ARGUMENT
+                );
               }
             }
             if (
-              a.Counts.reduce((prev, cur) => prev * cur, 1) !== a.Data.length
+              a.Counts.reduce((prev, cur) => prev * cur, 1) !== dataArr.length
             ) {
-              throw new BadRequestException({
-                description: `Validation Failed: Invalid Range: Data length must be the product of Counts`
-              });
+              throw new EtpError(
+                `Validation Failed: Invalid Range: Data length must be the product of Counts`,
+                ErrorCode.EINVALID_ARGUMENT
+              );
             }
             try {
-              return c!.putDataSubArray(
-                dataArray,
-                a.Starts,
-                a.Counts,
-                this.toTypeArray(a.Data, a.ArrayType)
-              );
+              return c!.putDataSubArray(dataArray, a.Starts, a.Counts, dataArr);
             } catch (err) {
               logger.error(err);
-              throw new InternalServerErrorException(err);
+              throw err;
             }
           }
           if (
@@ -708,15 +713,12 @@ export default class MutationsAPI {
             typeof a.Data !== "string" &&
             a.Dimensions.reduce((prev, cur) => prev * cur, 1) !== a.Data.length
           ) {
-            throw new BadRequestException({
-              description: `Validation Failed: Invalid Range: Data length must be the product of Dimensions`
-            });
+            throw new EtpError(
+              `Validation Failed: Invalid Range: Data length must be the product of Dimensions`,
+              ErrorCode.EINVALID_ARGUMENT
+            );
           }
-          return c!.putDataArray(
-            dataArray,
-            a.Dimensions,
-            this.toTypeArray(a.Data, a.ArrayType)
-          );
+          return c!.putDataArray(dataArray, a.Dimensions, dataArr);
         })
       );
       if (!transactionId) {
