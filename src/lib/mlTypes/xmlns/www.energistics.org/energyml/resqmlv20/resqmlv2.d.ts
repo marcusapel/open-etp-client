@@ -1399,13 +1399,13 @@ export interface obj_Activity extends AbstractResqmlDataObject {
   ActivityDescriptor: eml20.DataObjectReference;
   Parameter: AbstractActivityParameter[];
   Parent?: eml20.DataObjectReference;
-  $type: "Activity";
+  $type: "resqml20.obj_Activity";
 }
 
 /** Description of one type of activity. */
 export interface obj_ActivityTemplate extends AbstractResqmlDataObject {
   Parameter: ParameterTemplate[];
-  $type: "ActivityTemplate";
+  $type: "resqml20.obj_ActivityTemplate";
 }
 
 /** The information that allows you to locate, on one or several grids (existing or planned), the intersection of volume (cells) and surface (faces) elements with a wellbore trajectory (existing or planned). */

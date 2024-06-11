@@ -254,9 +254,7 @@ export class SingleResponseHandler<T> extends ResponseHandler<{
       return false;
     }
     error
-      ? request.reject(
-          new EtpError(`Server error: ${error.message}`, error.code)
-        )
+      ? request.reject(new EtpError(`${error.message}`, error.code))
       : request.reject(new EtpError(`Server error`, ErrorCode.EINVALID_STATE));
     if (BaseHandler.isFinalMessage(header)) {
       this.onFinalMessage(header.correlationId);

@@ -877,6 +877,9 @@ export class ResqmlClient {
   public async getDataspaceInfo(
     dataspaceUris: URI[]
   ): Promise<(Dataspace | null)[]> {
+    if (!this.isInSession()) {
+      return dataspaceUris.map(() => null);
+    }
     if (this.client.dataSpaceOSDUSupported) {
       return this.dataspaceOSDU.getDataspaceInfo(dataspaceUris);
     }
@@ -1153,7 +1156,8 @@ export class ResqmlClient {
         new Map(),
         dataArrays,
         new Map(),
-        arrayFormat
+        arrayFormat,
+        false
       );
       return obj;
     });
@@ -1421,6 +1425,7 @@ export class ResqmlClient {
    * @param {boolean} [includeArrayValues=false]
    * @param {boolean} [includeArrayMetadata=false]
    * @param {ArrayFormat} [arrayFormat="base64"] Format of the array values
+   * @param {boolean} [includeReferences=true] Include references in the resolved objects
    * @returns {Promise<Array<IResqmlDataObject|null>>} resolved objects in order or query, null for failed queries
    * @memberof ResqmlClient
    */
@@ -1429,7 +1434,8 @@ export class ResqmlClient {
     objects: Map<URI, IResqmlDataObject> = new Map<URI, IResqmlDataObject>(),
     includeArrayValues = false,
     includeArrayMetadata = false,
-    arrayFormat: ArrayFormat = "base64"
+    arrayFormat: ArrayFormat = "base64",
+    includeReferences = true
   ): Promise<Array<IResqmlDataObject | null>> {
     if (uris.length === 0) {
       throw new Error("Empty uris");
@@ -1508,7 +1514,8 @@ export class ResqmlClient {
           objects,
           dataArrays,
           alreadyResolved,
-          arrayFormat
+          arrayFormat,
+          includeReferences
         ) as IResqmlDataObject;
         objects.set(uri, resolved);
         return resolved;
@@ -1542,22 +1549,22 @@ export class ResqmlClient {
   }
 
   /**
-   * Compute the subarray definitions allowing to fetch a large array using subArray request.
-   * Can either get the whole array or a subarray defined by a start and count in the slowest (0) axis.
-   * This would allow for example to get a limited number of layers in a 3D array.
-   * This will create an optimum number of GetSubArrays requests by filling the negotiated bandwidth
-   * with an optimized subarray size.
+   * Compute the subarray definitions allowing to fetch a large (sub)array using subArray requests
+   * that do not exceed the negotiated bandwidth.
+   * According to negotiated bandwidth, the resulting decomposition will either return a single
+   * subarray request for the whole (sub)array or multiple a subarray requests that decompose the
+   * initial (sub)array along an optimal direction.
    *
    * @param {IDataArrayMetadata} desc
-   * @param {number} [slowStart] Define an optional start index for the slowest axis [0], when undefined get the entire array
-   * @param {number} [slowCount] Define an optional number of indices for the slowest axis [0], when undefined get the entire array from slowStart
+   * @param {number[]} starts start index of the subarray in each dimension
+   * @param {number[]} counts number of elements in each dimension
    * @returns {Energistics.Etp.v12.Datatypes.DataArrayTypes.GetDataSubarraysType[]}
    * @memberof ResqmlClient
    */
-  public getDataArrayBySubarrayDefinitions(
+  public subarraySlicingToFitMessage(
     desc: IDataArrayMetadata,
-    slowStart?: number,
-    slowCount?: number
+    starts: number[],
+    counts: number[]
   ): Energistics.Etp.v12.Datatypes.DataArrayTypes.GetDataSubarraysType[] {
     if (!desc?.uid.uri || !desc.uid.pathInResource || !desc.dimensions) {
       return [];
@@ -1566,15 +1573,9 @@ export class ResqmlClient {
     const subarraysDefinition: Energistics.Etp.v12.Datatypes.DataArrayTypes.GetDataSubarraysType[] =
       [];
 
-    const size = ArrayCustomer.getArraySizeFromMetaData(desc);
+    const size = ArrayCustomer.getArraySizeFromMetaData(desc, counts);
 
-    const min = slowStart && slowStart < desc.dimensions[0] ? slowStart : 0;
-    const requestDimensions = [...desc.dimensions];
-    if (slowCount !== undefined && slowCount + min > desc.dimensions[0]) {
-      slowCount = desc.dimensions[0] - min;
-    }
-    requestDimensions[0] =
-      slowCount !== undefined ? slowCount : desc.dimensions[0] - min;
+    const requestDimensions = [...counts];
     if (
       this.client.negotiatedSize &&
       size + this.overhead > this.client.negotiatedSize
@@ -1614,11 +1615,11 @@ export class ResqmlClient {
       }
 
       // Compute the maximum length of an array in message to help compute offset
-      const newCounts: number[] = [...requestDimensions];
+      const sliceCounts: number[] = [...requestDimensions];
       for (let e = 0; e < dividingDimension; e++) {
-        newCounts[e] = 1;
+        sliceCounts[e] = 1;
       }
-      newCounts[dividingDimension] = nbIndicesInMessage;
+      sliceCounts[dividingDimension] = nbIndicesInMessage;
 
       // Get the number of loops to perform outside the dividing dimensions
       const nbExternalLoop = this.reduceArraySizeDimension(
@@ -1627,10 +1628,7 @@ export class ResqmlClient {
         dividingDimension
       );
 
-      const starts: number[] = Array.from(
-        { length: requestDimensions.length },
-        () => 0
-      );
+      const sliceStarts: number[] = [...starts];
 
       for (let e = 0; e < nbExternalLoop; e++) {
         // Compute starts for each dimension of external loop
@@ -1641,19 +1639,20 @@ export class ResqmlClient {
             il + 1,
             dividingDimension
           );
-          starts[il] = externalIndices / lp;
+          sliceStarts[il] = externalIndices / lp;
           externalIndices = externalIndices % lp;
         }
 
         // Create each message by decomposing along the dividing dimension
         for (let d = 0; d < nbMessages; d++) {
-          starts[dividingDimension] = d * nbIndicesInMessage;
-          newCounts[dividingDimension] =
+          sliceStarts[dividingDimension] =
+            starts[dividingDimension] + d * nbIndicesInMessage;
+          sliceCounts[dividingDimension] =
             d === nbMessages - 1 ? nbIndicesInLastMessage : nbIndicesInMessage;
 
           subarraysDefinition.push({
-            counts: newCounts.map(BigInt),
-            starts: starts.map(BigInt),
+            counts: sliceCounts.map(BigInt),
+            starts: sliceStarts.map(BigInt),
             uid: desc.uid
           });
         }
@@ -1661,10 +1660,8 @@ export class ResqmlClient {
     } else {
       // Everything in one
       subarraysDefinition.push({
-        counts: requestDimensions.map(BigInt),
-        starts: requestDimensions.map((_, i) =>
-          i === 0 ? BigInt(min) : BigInt(0)
-        ),
+        counts: counts.map(BigInt),
+        starts: starts.map(BigInt),
         uid: desc.uid
       });
     }
@@ -1680,7 +1677,7 @@ export class ResqmlClient {
    * @returns {Promise<DataArray|null>} data array corresponding to uri
    * @memberof ResqmlClient
    */
-  public async getDataArrayBySubarray(
+  public async getDataArrayBySlices(
     desc: IDataArrayMetadata
   ): Promise<IDataArray | null> {
     if (!desc.dimensions) {
@@ -1689,7 +1686,11 @@ export class ResqmlClient {
 
     try {
       const subarrays: Energistics.Etp.v12.Datatypes.AnyArray[] = [];
-      const subarraysDefinition = this.getDataArrayBySubarrayDefinitions(desc);
+      const subarraysDefinition = this.subarraySlicingToFitMessage(
+        desc,
+        desc.dimensions.map(() => 0),
+        desc.dimensions
+      );
       while (subarraysDefinition.length > 0) {
         const sp = subarraysDefinition
           .splice(0, this.messageQueueDepth())
@@ -1737,6 +1738,85 @@ export class ResqmlClient {
       };
     } catch (err) {
       this.logger.error("getDataArrayBySubarray", err);
+      return null;
+    }
+  }
+
+  /**
+   * From the data array store get the array corresponding to the given metadata.
+   * The array is obtained subarray by subarray. Each subarray correspond to one value along
+   * the slowest axis.
+   *
+   * @param {IDataArrayMetadata} desc description of the array
+   * @param {number[]} starts start index of the subarray in each dimension
+   * @param {number[]} counts number of elements in each dimension
+   * @returns {Promise<DataArray|null>} data array corresponding to uri
+   * @memberof ResqmlClient
+   */
+  public async getSubDataArrayBySlices(
+    desc: IDataArrayMetadata,
+    starts: number[],
+    counts: number[]
+  ): Promise<IDataSubarray | null> {
+    try {
+      if (!desc.dimensions || !desc.uid.uri || !desc.uid.pathInResource) {
+        return null;
+      }
+      const subarrays: Energistics.Etp.v12.Datatypes.AnyArray[] = [];
+      const subarraysDefinition = this.subarraySlicingToFitMessage(
+        desc,
+        starts,
+        counts
+      );
+      while (subarraysDefinition.length > 0) {
+        const sp = subarraysDefinition
+          .splice(0, this.messageQueueDepth())
+          .map(a => this.dataArray.getSubarrays([a]));
+        // Limit concurrent requests to what server can handle
+        (await Promise.all(sp))
+          .filter(ArrayCustomer.subArrayNotEmpty)
+          .map(
+            a =>
+              a[0]
+                .data as Energistics.Etp.v12.Datatypes.DataArrayTypes.DataArray
+          )
+          .filter(a => a !== null)
+          .map(a => a.data)
+          .filter(a => a !== null)
+          .forEach(a => subarrays.push(a));
+      }
+      if (subarrays.length === 0) {
+        return null;
+      }
+
+      const keyName = subarrays[0].item.__keyName;
+
+      let values: any[] = [];
+      for (const subarray of subarrays) {
+        const temp = subarray.item;
+        // Extract the values from the AnyArray (using the first property of the array)
+        // and concatenate to the large array of values
+        values = values.concat(temp[keyName]?.values);
+      }
+      // Build a new large array based on the type parameters of the first subarray
+      // and the large array of values and dimensions
+      const s = subarrays[0];
+      const nData: Energistics.Etp.v12.Datatypes.AnyArray = {
+        // Note: use of Object.assign is intentional, as the spread operator can use huge
+        // amounts of memory for large arrays.
+        item: Object.assign({}, s.item)
+      };
+      if (nData.item.__keyName && nData.item.__keyName !== "_bytes") {
+        nData.item[nData.item.__keyName] = { values };
+      }
+      return {
+        data: { data: nData, dimensions: desc.dimensions.map(BigInt) },
+        starts,
+        counts,
+        uid: desc.uid
+      };
+    } catch (err) {
+      this.logger.error("getSubDataArrayBySubarray", err);
       return null;
     }
   }
@@ -1837,16 +1917,27 @@ export class ResqmlClient {
   ): Promise<void> {
     try {
       const metaData = await this.getArrayDescription([dataArray]);
-      if (!metaData?.[0]) {
+      if (!metaData?.[0] || !metaData[0].dimensions) {
         throw new Error(
           `Cannot get metadata of ${dataArray.uri}/${dataArray.pathInResource}`
         );
       }
 
-      const subarraysDefinition = this.getDataArrayBySubarrayDefinitions(
+      const starts = metaData[0].dimensions.map(() => 0);
+      if (slowStart !== undefined && slowStart < metaData[0].dimensions[0]) {
+        starts[0] = slowStart;
+      }
+
+      const counts = [...metaData[0].dimensions];
+      if (slowCount) {
+        counts[0] =
+          slowCount + starts[0] > counts[0] ? counts[0] - starts[0] : slowCount;
+      }
+
+      const subarraysDefinition = this.subarraySlicingToFitMessage(
         metaData[0],
-        slowStart,
-        slowCount
+        starts,
+        counts
       );
       for (const a of subarraysDefinition) {
         const subArray = await this.dataArray.getSubarrays([a]);
@@ -1895,7 +1986,7 @@ export class ResqmlClient {
           this.client.negotiatedSize &&
           size + this.overhead > this.client.negotiatedSize
         ) {
-          return this.getDataArrayBySubarray(metaData);
+          return this.getDataArrayBySlices(metaData);
         }
       }
       return this.dataArray.get([id]).then(a => (a.length === 1 ? a[0] : null));
@@ -2293,6 +2384,7 @@ export class ResqmlClient {
    * @param {string} pathInResource identifier of the array
    * @param {number[]} starts beginning index for each direction
    * @param {number[]} counts number of elements for each direction
+   * @param {boolean} safe if true, use subarray slicing to fit message size
    * @returns {Promise<DataArray|null>} resulting array or null if failure
    * @memberof ResqmlClient
    */
@@ -2300,10 +2392,27 @@ export class ResqmlClient {
     uri: URI,
     pathInResource: string,
     starts: number[],
-    counts: number[]
+    counts: number[],
+    safe: boolean = true
   ): Promise<IDataSubarray | null> {
-    return this.getArrayId(uri, pathInResource).then(async uid =>
-      this.dataArray
+    return this.getArrayId(uri, pathInResource).then(async uid => {
+      if (safe) {
+        const metaData = await this.getDataArrayMetadata(
+          uid.uri,
+          uid.pathInResource
+        );
+        if (!metaData) {
+          return null;
+        }
+        const size = ArrayCustomer.getArraySizeFromMetaData(metaData);
+        if (
+          this.client.negotiatedSize &&
+          size + this.overhead > this.client.negotiatedSize
+        ) {
+          return this.getSubDataArrayBySlices(metaData, starts, counts);
+        }
+      }
+      return this.dataArray
         .getSubarrays([
           {
             uid,
@@ -2311,8 +2420,8 @@ export class ResqmlClient {
             counts: counts.map(BigInt)
           }
         ])
-        .then(subarrays => (subarrays.length === 1 ? subarrays[0] : null))
-    );
+        .then(subarrays => (subarrays.length === 1 ? subarrays[0] : null));
+    });
   }
 
   /**
@@ -2458,7 +2567,14 @@ export class ResqmlClient {
 
     if (deepSearch) {
       try {
-        await this.getResolvedObjects(uris, objects, false, false);
+        await this.getResolvedObjects(
+          uris,
+          objects,
+          false,
+          false,
+          "json",
+          true
+        );
       } catch (e) {
         // Do Nothing
       }
@@ -2827,6 +2943,9 @@ export class ResqmlClient {
    * @param {IResqmlDataObject} resqmlObj object for which the referenced should be solved
    * @param {Map<URI, IResqmlDataObject>} objects map of found data objects
    * @param {Map<URI, IDataArray>} dataArrays map of found data arrays
+   * @param {Map<URI, IResqmlDataObject>} resolved map of resolved objects
+   * @param {ArrayFormat} arrayFormat format of the array data
+   * @param {boolean} includeReferences include references to other objects in the resolved object
    * @returns {IResqmlDataObject} resolved object
    * @memberof ResqmlClient
    */
@@ -2836,7 +2955,8 @@ export class ResqmlClient {
     objects: Map<URI, IResqmlDataObject>,
     dataArrays: Map<URI, IDataArray>,
     resolved: Map<URI, IResqmlDataObject>,
-    arrayFormat: ArrayFormat
+    arrayFormat: ArrayFormat,
+    includeReferences: boolean
   ): Record<string, any> {
     const etpUri = new EtpUri(uri);
     const r = resolved.get(etpUri.uriPath);
@@ -2877,7 +2997,8 @@ export class ResqmlClient {
               objects,
               dataArrays,
               resolved,
-              arrayFormat
+              arrayFormat,
+              includeReferences
             )
           );
         } else if (
@@ -2911,8 +3032,9 @@ export class ResqmlClient {
             obj[key] = { ...obj[key], _data: simpleJson(arr, "2.0") };
           }
         } else if (
-          obj[key].$type === "eml20.DataObjectReference" ||
-          obj[key].$type === "eml23.DataObjectReference"
+          includeReferences &&
+          (obj[key].$type === "eml20.DataObjectReference" ||
+            obj[key].$type === "eml23.DataObjectReference")
         ) {
           let nURI: EtpUri = new EtpUri("");
           // TODO: Use of obj[key].EnergisticsUri for external references
@@ -2962,7 +3084,8 @@ export class ResqmlClient {
                 objects,
                 dataArrays,
                 resolved,
-                arrayFormat
+                arrayFormat,
+                includeReferences
               ) as IResqmlDataObject;
               obj[key] = { ...obj[key], _data: res };
               resolved.set(nURI.uri, res);
@@ -2975,7 +3098,8 @@ export class ResqmlClient {
             objects,
             dataArrays,
             resolved,
-            arrayFormat
+            arrayFormat,
+            includeReferences
           );
         }
       });

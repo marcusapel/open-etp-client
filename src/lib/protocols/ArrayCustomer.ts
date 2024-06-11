@@ -193,18 +193,22 @@ export default class ArrayCustomer extends BaseHandler {
    *
    * @static
    * @param {IDataArrayMetadata} desc
+   * @param {number[]} [dimensions] dimensions of the array, if different from metadata
    * @returns {number} size in bytes
    * @memberof ArrayCustomer
    */
-  public static getArraySizeFromMetaData(desc: IDataArrayMetadata): number {
+  public static getArraySizeFromMetaData(
+    desc: IDataArrayMetadata,
+    dimensions: number[] | undefined = desc.dimensions
+  ): number {
     if (
-      !desc.dimensions ||
+      !dimensions ||
       desc.logicalArrayType === undefined ||
       desc.transportArrayType === undefined
     ) {
       return 0;
     }
-    const size = desc.dimensions.reduce((p, c) => p * Number(c), 1);
+    const size = dimensions.reduce((p, c) => p * Number(c), 1);
     return size * ArrayCustomer.getElementSizeFromMetaData(desc);
   }
 
@@ -569,8 +573,9 @@ export default class ArrayCustomer extends BaseHandler {
    * @param {(number[] | Integer64[])} values
    * @returns {Promise<boolean>}
    * @memberof ArrayCustomer
+   * @async
    */
-  public sendSubArray(
+  public async sendSubArray(
     uid: IArrayId,
     starts: Integer32[],
     counts: Integer32[],

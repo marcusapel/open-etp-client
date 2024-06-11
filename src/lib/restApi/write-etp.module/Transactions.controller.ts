@@ -14,6 +14,7 @@
 // limitations under the License.
 // ============================================================================
 import {
+  Body,
   Controller,
   Delete,
   Param,
@@ -25,6 +26,7 @@ import {
 
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiDefaultResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -33,6 +35,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiPreconditionFailedResponse,
   ApiProperty,
   ApiTags,
   ApiTooManyRequestsResponse
@@ -51,7 +54,9 @@ import {
   commitTransaction,
   createTransaction,
   errorMessageSchema,
+  extractDataPartitionId,
   extractToken,
+  getSchemasForType,
   httpErrorFromEtpError,
   partitionPattern,
   patternString,
@@ -79,6 +84,28 @@ export class TransactionParams extends FindInDataSpaceParams {
 }
 
 const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
+
+export class CreateTransactionDto {
+  @ApiProperty({
+    name: "TimeoutPeriod",
+    description:
+      "Time in seconds before transaction is automatically rolled back (default 300)",
+    type: "number",
+    example: 1200,
+    required: false
+  })
+  TimeoutPeriod!: number;
+
+  @ApiProperty({
+    name: "Retries",
+    description:
+      "If dataspace busy, attempt to create transaction this number of times (default 6)",
+    type: "number",
+    example: 6,
+    required: false
+  })
+  Retries!: number;
+}
 
 /**
  * Creation, edition and deletion of resources
@@ -122,23 +149,38 @@ export default class TransactionsAPI {
       pattern: patternString(uuidPattern)
     }
   })
+  @ApiPreconditionFailedResponse(errorMessageSchema("Precondition failed", 412))
+  @ApiBody({
+    description: "JSON array of resqml objects",
+    schema: getSchemasForType(CreateTransactionDto),
+    required: false
+  })
   @ApiOperation({
     summary: "Create new transaction.",
     description: `Create new transaction.
-  Returns a transaction ID that can be used to commit (Put) or rollback(Delete)`,
+  Returns a transaction ID that can be used to commit (Put) or rollback(Delete).
+  Transaction will be automatically rolled back after the timeout period if no new transaction messages occur.
+  TimeoutPeriod is in seconds and defaults to 300 seconds if not provided.
+  Only one transaction can be active at a time for a given dataspace.`,
     servers: swaggerServers
   })
   public async PostTransaction(
     @Param() params: FindInDataSpaceParams,
+    @Body() requestBody?: CreateTransactionDto,
     @Req() request?: express.Request
   ): Promise<string> {
     const uri = EtpUri.createDataSpaceUri(params.dataspaceId).uri;
-    try {
-      // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
-      return createTransaction(extractToken(request), uri);
-    } catch (err) {
+    // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+    return createTransaction(
+      extractToken(request),
+      uri,
+      undefined,
+      extractDataPartitionId(request),
+      requestBody?.TimeoutPeriod ?? 300,
+      requestBody?.Retries ?? 6
+    ).catch(err => {
       throw httpErrorFromEtpError(err);
-    }
+    });
   }
 
   /**
@@ -153,24 +195,18 @@ export default class TransactionsAPI {
       type: "boolean"
     }
   })
+  @ApiPreconditionFailedResponse(errorMessageSchema("Precondition failed", 412))
   @ApiOperation({
     summary: "Commit transaction.",
     description: `Commit a transaction using the ID provided by Post.`,
     servers: swaggerServers
   })
   public async CommitTransaction(
-    @Param() params: TransactionParams,
-    @Req() request?: express.Request
+    @Param() params: TransactionParams
   ): Promise<boolean> {
-    try {
-      const r = await commitTransaction(
-        extractToken(request),
-        params.transactionId
-      );
-      return r;
-    } catch (err) {
+    return commitTransaction(params.transactionId).catch(err => {
       throw httpErrorFromEtpError(err);
-    }
+    });
   }
 
   /**
@@ -191,17 +227,10 @@ export default class TransactionsAPI {
     servers: swaggerServers
   })
   public async RollbackTransaction(
-    @Param() params: TransactionParams,
-    @Req() request?: express.Request
+    @Param() params: TransactionParams
   ): Promise<boolean> {
-    try {
-      const r = await rollbackTransaction(
-        extractToken(request),
-        params.transactionId
-      );
-      return r;
-    } catch (err) {
+    return rollbackTransaction(params.transactionId).catch(err => {
       throw httpErrorFromEtpError(err);
-    }
+    });
   }
 }
