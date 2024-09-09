@@ -692,14 +692,20 @@ export const getMinMaxPoints = async (
           v.Offset.Coordinate2 * v.Offset.Coordinate2
       );
 
-      const [ux, uy] = [
-        (uLen * u.Offset.Coordinate1) / uOffsetLen,
-        (uLen * u.Offset.Coordinate2) / uOffsetLen
-      ];
-      const [vx, vy] = [
-        (vLen * v.Offset.Coordinate1) / vOffsetLen,
-        (vLen * v.Offset.Coordinate2) / vOffsetLen
-      ];
+      const [ux, uy] =
+        uOffsetLen > 1e-6
+          ? [
+              (uLen * u.Offset.Coordinate1) / uOffsetLen,
+              (uLen * u.Offset.Coordinate2) / uOffsetLen
+            ]
+          : [0, 0];
+      const [vx, vy] =
+        vOffsetLen > 1e-6
+          ? [
+              (vLen * v.Offset.Coordinate1) / vOffsetLen,
+              (vLen * v.Offset.Coordinate2) / vOffsetLen
+            ]
+          : [0, 0];
       pNodeCount = nu * nv;
       for (let vv = 0; vv < nv; vv++) {
         for (let uu = 0; uu < nu; uu++) {
@@ -789,14 +795,20 @@ export const getMinMaxPoints = async (
           v.Direction.Coordinate2 * v.Direction.Coordinate2
       );
 
-      const [ux, uy] = [
-        (uLen * u.Direction.Coordinate1) / uOffsetLen,
-        (uLen * u.Direction.Coordinate2) / uOffsetLen
-      ];
-      const [vx, vy] = [
-        (vLen * v.Direction.Coordinate1) / vOffsetLen,
-        (vLen * v.Direction.Coordinate2) / vOffsetLen
-      ];
+      const [ux, uy] =
+        uOffsetLen > 1e-6
+          ? [
+              (uLen * u.Direction.Coordinate1) / uOffsetLen,
+              (uLen * u.Direction.Coordinate2) / uOffsetLen
+            ]
+          : [0, 0];
+      const [vx, vy] =
+        vOffsetLen > 1e-6
+          ? [
+              (vLen * v.Direction.Coordinate1) / vOffsetLen,
+              (vLen * v.Direction.Coordinate2) / vOffsetLen
+            ]
+          : [0, 0];
       pNodeCount = nu * nv;
       for (let vv = 0; vv < nv; vv++) {
         for (let uu = 0; uu < nu; uu++) {
@@ -1306,6 +1318,17 @@ export class ResqmlWorkProductComponent<
       }
     }
 
+    const Wgs84Min = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+    const Wgs84Max = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+    if (Wgs84Coordinates !== undefined) {
+      for (const g of Wgs84Coordinates) {
+        Wgs84Min[0] = Math.min(g[0], Wgs84Min[0]);
+        Wgs84Min[1] = Math.min(g[1], Wgs84Min[1]);
+        Wgs84Max[0] = Math.max(g[0], Wgs84Max[0]);
+        Wgs84Max[1] = Math.max(g[1], Wgs84Max[1]);
+      }
+    }
+
     const FrameOfReferenceCRS = {
       kind: "CRS",
       persistableReference: persistableReferenceCrs,
@@ -1336,38 +1359,38 @@ export class ResqmlWorkProductComponent<
               features: [
                 {
                   type: StickyType.Feature,
+                  properties: {},
                   geometry: {
-                    coordinates: Wgs84Coordinates[0],
-                    type: GeoJSONPointType.Point
-                  },
-                  properties: {}
+                    type: GeoJSONPointType.Point,
+                    coordinates: Wgs84Coordinates[0]
+                  }
                 }
               ]
             }
     };
     const SpatialArea = {
       AsIngestedCoordinates: {
+        type: AsIngestedCoordinatesType.AnyCRSFeatureCollection,
         CoordinateReferenceSystemID,
-        bbox: [
-          aMinX + XOffset,
-          aMinY + YOffset,
-          aMaxX + XOffset,
-          aMaxY + YOffset
-        ],
+        persistableReferenceCrs,
         features: [
           {
             type: FluffyType.AnyCRSFeature,
+            properties: {},
             geometry: {
               type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
               coordinates: [
                 pointCoordinates.map(p => [p[0] + XOffset, p[1] + YOffset])
               ]
-            },
-            properties: {}
+            }
           }
         ],
-        persistableReferenceCrs,
-        type: AsIngestedCoordinatesType.AnyCRSFeatureCollection
+        bbox: [
+          aMinX + XOffset,
+          aMinY + YOffset,
+          aMaxX + XOffset,
+          aMaxY + YOffset
+        ]
       },
       Wgs84Coordinates:
         Wgs84Coordinates === undefined
@@ -1377,13 +1400,14 @@ export class ResqmlWorkProductComponent<
               features: [
                 {
                   type: StickyType.Feature,
+                  properties: {},
                   geometry: {
-                    coordinates: Wgs84Coordinates,
-                    type: GeoJSONPointType.Polygon
-                  },
-                  properties: {}
+                    type: GeoJSONPointType.Polygon,
+                    coordinates: [Wgs84Coordinates]
+                  }
                 }
-              ]
+              ],
+              bbox: [Wgs84Min[0], Wgs84Min[1], Wgs84Max[0], Wgs84Max[1]]
             }
     };
     if (SpatialPoint !== undefined && context.spatialPoint === undefined) {
@@ -1480,7 +1504,8 @@ export class ResqmlWorkProductComponent<
           [aMinX, aMinY],
           [aMaxX, aMinY],
           [aMaxX, aMaxY],
-          [aMinX, aMaxY]
+          [aMinX, aMaxY],
+          [aMinX, aMinY]
         ],
         crs
       );
