@@ -20,7 +20,10 @@ import {
 } from "./Generated/manifest/Manifest.1.0.0";
 
 import { osduUrl } from "../common/config";
-import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
+import {
+  getPropertyTypeIDFromResqmlAlias,
+  PropertyTypesIds
+} from "./PropertyTypes";
 
 import fetch, { HeadersInit, RequestInit } from "node-fetch";
 
@@ -204,7 +207,10 @@ export class OSDUContext {
       return undefined;
     }
     const ref = `${this.partition}:reference-data--${referenceType}:${value}:`;
-    this.references.add(ref);
+    if (referenceType !== "PropertyType" || PropertyTypesIds.has(value)) {
+      // Do not create reference for Standards Resqml PropertyTypes
+      this.references.add(ref);
+    }
     return ref;
   }
 

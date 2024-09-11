@@ -9,6 +9,8 @@ interface IPropertyTypesManifest {
     id: string;
     data: {
       ID: string;
+      AttributionAuthority: string;
+      Code: string;
       NameAlias: {
         AliasName: string;
         DefinitionOrganisationID: string;
@@ -16,6 +18,8 @@ interface IPropertyTypesManifest {
     };
   }[];
 }
+
+export const PropertyTypesIds = new Set<string>();
 
 /**
  * Create the dictionary of PropertyTypes from JSON manifest
@@ -37,7 +41,10 @@ const PropertyTypes = (
 
   if (resqmlAlias) {
     obj[resqmlAlias.AliasName] = referenceData.data.ID;
+  } else if (referenceData.data.AttributionAuthority === "Energistics PWLS-3") {
+    obj[referenceData.data.Code] = referenceData.data.ID;
   }
+  PropertyTypesIds.add(referenceData.data.ID);
   return obj;
 }, {});
 

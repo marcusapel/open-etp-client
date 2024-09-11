@@ -44,24 +44,28 @@ export class PropertyTypeOSDU
       return this;
     }
 
-    const kindName =
-      xml.ParentPropertyKind.$type === "resqml20.LocalPropertyKind"
-        ? (xml.ParentPropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
-            .LocalPropertyKind.UUID
-        : getPropertyTypeIDFromResqmlAlias(
-            (
-              xml.ParentPropertyKind as SimpleJson<resqml20.StandardPropertyKind>
-            ).Kind
-          );
+    const localKind =
+      xml.ParentPropertyKind.$type === "resqml20.LocalPropertyKind";
+
+    const parentKindId = localKind
+      ? (xml.ParentPropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
+          .LocalPropertyKind.UUID
+      : getPropertyTypeIDFromResqmlAlias(
+          (xml.ParentPropertyKind as SimpleJson<resqml20.StandardPropertyKind>)
+            .Kind
+        );
     this.data = {
       ...(await this.AbstractCommonResources(context)),
+
+      Name: xml.Citation.Title,
+      Code: xml.Citation.Title,
 
       /**
        * Relationship to the parent PropertyType. The root PropertyType is called 'property' and
        * refers to itself as parent.
        */
       ParentPropertyTypeID:
-        context.addReferenceData("PropertyType", kindName) || "",
+        context.addReferenceData("PropertyType", parentKindId) || "",
       /**
        * The relationship to a UnitQuantity, which connects to frame of reference conversion.
        */

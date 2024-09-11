@@ -261,7 +261,7 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_PropertyKind",
-  () => "osdu:wks:work-product-component--PropertyType:1.0.0",
+  () => "osdu:wks:reference-data--PropertyType:1.0.0",
   PropertyTypeManifest
 );
 ResqmlOSDU.add(

@@ -15,6 +15,7 @@ import {
 import { etpServerPath, osduUrl } from "../common/config";
 
 import serverSchema from "./server-schema.json";
+import { PropertyTypesIds } from "./PropertyTypes";
 
 export const dataspaceUriPattern =
   /^(?:eml:\/\/\/|^eml:\/\/\/dataspace\('[^'"]*?(?:''[^'"]*?)*'\))$/;
@@ -403,6 +404,14 @@ export const createManifest = async (
         Array.from(context.references)
       );
       references.forEach(r => {
+        const s = r.split(":");
+        if (
+          s.length > 2 &&
+          s[1] === "reference-data--PropertyType" &&
+          PropertyTypesIds.has(s[2])
+        ) {
+          return;
+        }
         const rd = ResqmlOSDU.buildReference(r, context);
         if (rd !== undefined) {
           manifests.ReferenceData?.push(rd);

@@ -50,6 +50,9 @@ export class PropertyType23OSDU
     this.data = {
       ...(await this.AbstractCommonResources(context)),
 
+      Name: xml.Citation.Title,
+      Code: xml.Citation.Title,
+
       /**
        * Relationship to the parent PropertyType. The root PropertyType is called 'property' and
        * refers to itself as parent.
