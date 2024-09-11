@@ -15,6 +15,7 @@ import {
   GenericProperty
 } from "./Generated/work-product-component/GenericProperty.1.0.0";
 import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 export class GenericPropertyOSDU
   extends ResqmlWorkProductComponent<
@@ -158,13 +159,26 @@ export class GenericPropertyOSDU
       FacetIDs: undefined,
       PropertyType: pKind
         ? {
-            PropertyTypeID: context.addReferenceData(
-              "PropertyType",
-              pKind.LocalPropertyKind.UUID
-            ),
+            PropertyTypeID:
+              (await this.dorToSrn(
+                ReservoirDMSUrl,
+                pKind.LocalPropertyKind,
+                client
+              )) ?? "",
             Name: pKind.LocalPropertyKind.Title
           }
-        : undefined,
+        : {
+            PropertyTypeID: context.addReferenceData(
+              "PropertyType",
+              getPropertyTypeIDFromResqmlAlias(
+                (xml.PropertyKind as SimpleJson<resqml20.StandardPropertyKind>)
+                  .Kind
+              )
+            ),
+            Name: (
+              xml.PropertyKind as SimpleJson<resqml20.StandardPropertyKind>
+            ).Kind
+          },
       /**
        * Only populated if ValueType=="string" and the values are expected to represent record
        * ids, e.g. to a reference-data type, then this value holds the kind (optionally without

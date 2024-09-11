@@ -9,7 +9,10 @@ import {
   Data,
   PropertyType
 } from "./Generated/reference-data/PropertyType.1.0.0";
-import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
+import {
+  getPropertyTypeIDFromResqmlAlias,
+  PropertyTypesIds
+} from "./PropertyTypes";
 
 /**
  * Create OSDU PropertyType from Resqml PropertyKind
@@ -33,29 +36,33 @@ export class PropertyType23OSDU
   }
 
   public async initData(
-    _ReservoirDMSUrl: string,
-    xml: SimpleJson<eml23.PropertyKind>
+    ReservoirDMSUrl: string,
+    xml: SimpleJson<eml23.PropertyKind>,
+    client: ResqmlClient
   ): Promise<PropertyType23OSDU> {
     const context = this.__context;
     if (context === undefined) {
       return this;
     }
 
-    const kindName = xml.Parent?.Title
-      ? getPropertyTypeIDFromResqmlAlias(xml.Parent?.Title)
-      : undefined;
+    const pwlsKind = PropertyTypesIds.has(xml.Parent?.Uuid ?? "");
 
+    const ParentPropertyTypeID = pwlsKind
+      ? context.addReferenceData("PropertyType", xml.Parent?.Uuid ?? "") ?? ""
+      : (await this.dorToSrn(ReservoirDMSUrl, xml.Parent, client)) ?? "";
     const representativeUom: string | undefined = undefined; //from xml.QuantityClass
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
 
+      Name: xml.Citation.Title,
+      Code: xml.Citation.Title,
+
       /**
        * Relationship to the parent PropertyType. The root PropertyType is called 'property' and
        * refers to itself as parent.
        */
-      ParentPropertyTypeID:
-        context.addReferenceData("PropertyType", kindName) ?? "",
+      ParentPropertyTypeID,
       /**
        * The relationship to a UnitQuantity, which connects to frame of reference conversion.
        */
@@ -73,18 +80,18 @@ export class PropertyType23OSDU
 }
 
 /**
- * * Convert EML 2.3 PropertyKind to OSDU PropertyType
+ * Convert EML 2.3 PropertyKind to OSDU PropertyType
  *
  * @param {string} uri
  * @param {SimpleJson<reml23.PropertyKind>} xml
  * @param {OSDUContext} context
- * @param {ResqmlClient} _client
+ * @param {ResqmlClient} client
  * @return {Promise<PropertyType23OSDU>}
  */
 export const PropertyType23Manifest = async (
   uri: string,
   xml: SimpleJson<eml23.PropertyKind>,
   context: OSDUContext,
-  _client: ResqmlClient
+  client: ResqmlClient
 ): Promise<PropertyType23OSDU> =>
-  new PropertyType23OSDU(xml, context).initData(uri, xml);
+  new PropertyType23OSDU(xml, context).initData(uri, xml, client);
