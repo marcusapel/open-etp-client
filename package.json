@@ -143,6 +143,18 @@
     "typedoc": "~0.25.13",
     "typescript": "~5.4.5"
   },
+  "overrides": {
+    "body-parser": "1.20.3",
+    "@nestjs/core": {
+      "path-to-regexp": "3.3.0"
+    },
+    "express": {
+      "path-to-regexp": "0.1.10"
+    },
+    "@nestjs/swagger": {
+      "path-to-regexp": "3.3.0"
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
