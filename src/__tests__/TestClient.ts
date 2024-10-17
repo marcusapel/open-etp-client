@@ -1518,7 +1518,7 @@ describe.only("Rest API Transaction 2.0.1 Workflow", () => {
         ArrayType: "Float32Array"
       };
 
-      const dataSpace = "projectA/ScenarioTest1";
+      const dataSpace = "projectA/ScenarioTest2";
       await testServers[type]
         .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
