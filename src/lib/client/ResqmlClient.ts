@@ -270,7 +270,7 @@ export class ResqmlClient {
   public addMessageTracer(
     onMessage: (header: Energistics.Etp.v12.Datatypes.MessageHeader) => void
   ): void {
-    this.client.traceReceived = true;
+    this.client.enableMessageReceptionTracing = true;
     this.client.on("messageHeader", onMessage);
   }
 
