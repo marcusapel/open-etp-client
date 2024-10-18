@@ -264,6 +264,17 @@ export class ResqmlClient {
   }
 
   /**
+   * Add a callback invoked for any received message
+   * @param onMessage
+   */
+  public addMessageTracer(
+    onMessage: (header: Energistics.Etp.v12.Datatypes.MessageHeader) => void
+  ): void {
+    this.client.enableMessageReceptionTracing = true;
+    this.client.on("messageHeader", onMessage);
+  }
+
+  /**
    * Connect to a server using its URL and create a new ETP session
    *
    * @param {string} url URL of the server including port. Example 'ws://localhost:9004'

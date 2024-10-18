@@ -64,7 +64,10 @@ import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
 import { ApiProperty, ApiQueryOptions } from "@nestjs/swagger";
 import { IsUUID, Matches, MaxLength } from "class-validator";
-import e from "express";
+
+import logging from "../common/Logging";
+const logger = logging.getLogger("EtpClient");
+
 export { restApiMainUrl, restApiPort, restApiRoutePath };
 
 export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}`;
@@ -855,5 +858,14 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
       return new NotImplementedException({ description: error.message });
     }
   }
-  return new InternalServerErrorException({ description: `Unknown Error` });
+  if (error && typeof error === "object" && "message" in error) {
+    logger.error(error.message);
+  }
+  return new InternalServerErrorException({
+    description: `Unknown Error: ${
+      error && typeof error === "object" && "message" in error
+        ? error.message
+        : ""
+    }`
+  });
 };

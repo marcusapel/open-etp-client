@@ -16,7 +16,13 @@
 
 import http from "http";
 
-import { IResqmlDataObject, Resource, ResqmlClient, XmlUtils } from "..";
+import {
+  Energistics,
+  IResqmlDataObject,
+  Resource,
+  ResqmlClient,
+  XmlUtils
+} from "..";
 
 import { serverHost, serverPath, serverPort, serverProtocol } from "./Config";
 const serverUrl = `${serverProtocol}://${serverHost}:${serverPort}${serverPath}/`;
@@ -40,6 +46,11 @@ http.get(
 );
 
 const ct = new ResqmlClient();
+ct.addMessageTracer((header: Energistics.Etp.v12.Datatypes.MessageHeader) => {
+  console.log(
+    `Received message ${header.protocol}.${header.messageType} #${header.messageId}`
+  );
+});
 ct.openSession(serverUrl, XmlUtils.createDefaultJWT())
   .then(() => ct.getProjects())
   .then(d => {
