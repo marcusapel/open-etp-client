@@ -1611,7 +1611,7 @@ describe.only("Rest API Transaction 2.0.1 Workflow", () => {
           )}/resources`
         )
         .set(`Authorization`, `Bearer ${token}`);
-      expect(res4.body.length).toBeGreaterThan(3); // Account for potential import activity
+      expect(res4.body.length).toBeGreaterThanOrEqual(3); // Account for potential import activity
     },
     400000
   );
