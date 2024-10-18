@@ -61,6 +61,8 @@ import {
 import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
 import { ResourceGraph } from "src/lib/common/ResponseHandlers";
 
+import { v4 as uuidRandom } from "uuid";
+
 const jwt = XmlUtils.createDefaultJWT();
 
 const failOnUnexpectedError = (err: Error) => {
@@ -1518,7 +1520,7 @@ describe.only("Rest API Transaction 2.0.1 Workflow", () => {
         ArrayType: "Float32Array"
       };
 
-      const dataSpace = "projectA/ScenarioTest2";
+      const dataSpace = `projectA/ScenarioTest${uuidRandom()}`;
       await testServers[type]
         .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
