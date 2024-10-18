@@ -855,5 +855,11 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
       return new NotImplementedException({ description: error.message });
     }
   }
-  return new InternalServerErrorException({ description: `Unknown Error` });
+  return new InternalServerErrorException({
+    description: `Unknown Error: ${
+      error && typeof error === "object" && "message" in error
+        ? error.message
+        : ""
+    }`
+  });
 };
