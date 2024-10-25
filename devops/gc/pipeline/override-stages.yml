@@ -76,17 +76,3 @@ gc-dev2-test:
     - .gc-dev2-variables
   script:
     - !reference [.gc_postman_tests, script]
-
-gc-baremetal-deploy:
-  allow_failure: true
-  script:
-    - echo "This is a stub. oetp-client is not ready for deploying on GC baremetal"
-    - exit 1
-
-gc-baremetal-test:
-  allow_failure: true
-  extends:
-    - .gc-baremetal-variables
-  script:
-    - echo "This is a stub. Integration tests are not implemented for oetp-client"
-    - exit 1
