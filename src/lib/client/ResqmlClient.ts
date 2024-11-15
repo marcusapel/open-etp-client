@@ -201,7 +201,7 @@ export class ResqmlClient {
   );
   private readonly supportedTypes: SupportedTypesCustomer =
     new SupportedTypesCustomer(this.client);
-  private readonly store: StoreCustomer = new StoreCustomer(this.client);
+  readonly store: StoreCustomer = new StoreCustomer(this.client);
   private readonly storeNotification: StoreNotificationCustomer =
     new StoreNotificationCustomer(this.client);
   private readonly dataspace: DataspaceCustomer = new DataspaceCustomer(
