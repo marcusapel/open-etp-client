@@ -373,6 +373,7 @@ export class ETPClient extends ETPCore {
       serverAuthorizationRequired: false,
       supportedCompression: [],
       supportedDataObjects: [
+        { qualifiedType: "witsml21.*", dataObjectCapabilities },
         { qualifiedType: "resqml20.*", dataObjectCapabilities },
         { qualifiedType: "eml20.*", dataObjectCapabilities }
       ],

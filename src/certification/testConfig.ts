@@ -1,6 +1,6 @@
 import fs from "fs";
-
 import Logger from "bunyan";
+import { Energistics } from "../lib/common/Etp12";
 
 export const logger = Logger.createLogger({ name: "Certification" });
 
@@ -20,6 +20,25 @@ const config: {
   supportTransportAuthentication?: boolean;
   serverRequiresAuthorization?: boolean;
   runExperimental?: boolean;
+  protocols: {
+    discovery: {
+      supported: boolean;
+    };
+    store: {
+      supported: boolean;
+      supportsPut: boolean;
+      supportsDelete: boolean;
+      wellUriForGet: string;
+      trajectoryUriForGet: string;
+      wellBoreUriForGet: string;
+      channelUriForGet: string;
+      unsupportedDataObjectUri: string;
+      resourceNotFoundUri: string;
+      unsupportedDeleteUri: string;
+      uriForDelete1: string;
+      uriForDelete2: string;
+    };
+  };
 } = JSON.parse(fs.readFileSync(fileName, "utf8"));
 
 export const itif = (condition?: boolean) => (condition ? it : it.skip);
