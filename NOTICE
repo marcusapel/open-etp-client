@@ -44,6 +44,7 @@ The following software have components provided under the terms of this license:
 - class-validator (from https://www.npmjs.com/package/class-validator)
 - events (from https://www.npmjs.com/package/events)
 - express (from https://www.npmjs.com/package/express)
+- fast-xml-parser (from https://www.npmjs.com/package/fast-xml-parser)
 - helmet (from https://www.npmjs.com/package/helmet)
 - jsonwebtoken (from https://www.npmjs.com/package/jsonwebtoken)
 - node-fetch (from https://www.npmjs.com/package/node-fetch)
