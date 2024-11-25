@@ -154,6 +154,16 @@
     },
     "@nestjs/swagger": {
       "path-to-regexp": "3.3.0"
+    },
+    "cross-spawn": "7.0.5",
+    "npm-run-all": {
+      "cross-spawn": "7.0.5"
+    },
+    "execa": {
+      "cross-spawn": "7.0.5"
+    },
+    "lint-staged": {
+      "cross-spawn": "7.0.5"
     }
   },
   "publishConfig": {
