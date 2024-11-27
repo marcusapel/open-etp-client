@@ -65,6 +65,7 @@ First you need to set variables in **values.yaml** file using any code editor. S
 **conf.appName** | application name | string | `oetp-client` | yes
 **conf.configmap** | configmap to be used | string | `oetp-client-config` | yes
 **conf.oetpClientSecret** | secret for connection to `oetp-server` | string | `oetp-client-secret` | yes
+**conf.replicas** | Number of pods for service | integer | 2 | yes 
 
 ### Horizontal Pod Autoscaling (HPA) variables (works only if tier=PROD and autoscaling=true)
 
