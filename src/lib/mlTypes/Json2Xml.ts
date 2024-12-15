@@ -53,6 +53,8 @@ export const defaultOptions: IXMLOptions = {
   ])
 };
 
+type EmlDocument = Record<string, any>;
+
 /**
  * Build XML document from typescript and json information
  *
@@ -136,17 +138,17 @@ export class XMLBuilder {
     const document =
       qType.domainFamily === "resqml"
         ? qType.domainVersion === "2.0"
-          ? resqml20.document
-          : resqml22.document
+          ? resqml20
+          : resqml22
         : qType.domainFamily === "witsml"
-        ? witsml21.document
+        ? witsml21
         : qType.domainFamily === "prodml"
         ? qType.domainVersion === "2.3"
-          ? prodml23.document
-          : prodml22.document
+          ? prodml23
+          : prodml22
         : qType.domainVersion === "2.0"
-        ? eml20.document
-        : eml23.document;
+        ? eml20
+        : eml23;
 
     const version = qType.domainVersion as "2.0" | "2.1" | "2.2" | "2.3";
 
@@ -156,7 +158,7 @@ export class XMLBuilder {
     });
     return (
       `<?xml version="1.0" encoding="utf-8"?>\n` +
-      this.j2x(resqmlObj, 0, document, version).val
+      this.j2x(resqmlObj, 0, jObj.$type.split(".")[0], document, version).val
     );
   }
 
@@ -188,19 +190,112 @@ export class XMLBuilder {
   }
 
   /**
+   * Lookup the EML schema information
+   *
+   * @param ml name of the ML, e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
+   * @returns
+   */
+  private findEml(ml: string) {
+    let proto = undefined;
+    if (ml === "resqml20") {
+      proto = resqml20;
+    } else if (ml === "resqml22") {
+      proto = resqml22;
+    } else if (ml === "witsml21") {
+      proto = witsml21;
+    } else if (ml === "prodml22") {
+      proto = prodml22;
+    } else if (ml === "prodml23") {
+      proto = prodml23;
+    } else if (ml === "eml20") {
+      return eml20;
+    } else if (ml === "eml23") {
+      return eml23;
+    }
+    return proto;
+  }
+
+  /**
+   * Find the prefix for the namespace from the XSD namespace
+   *
+   * @param namespace in XML document
+   * @param version of the EML schema
+   * @returns name of the ML, e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
+   */
+  private findPrefix(namespace: string, version: string): string {
+    if (namespace === "http://www.energistics.org/energyml/data/resqmlv2") {
+      return "resqml" + version.replace(".", "");
+    } else if (
+      namespace === "http://www.energistics.org/energyml/data/witsmlv2"
+    ) {
+      return "witsml" + version.replace(".", "");
+    } else if (
+      namespace === "http://www.energistics.org/energyml/data/prodmlv2"
+    ) {
+      return "prodml" + version.replace(".", "");
+    }
+    return version === "2.0" ? "eml20" : "eml23";
+  }
+
+  /**
+   * Get the xsi:type for the XML node information
+   *
+   * @param curType XML node information
+   * @param version version of the EML schema
+   * @returns
+   */
+  private xsiType(curType: any, version: string): string {
+    if (!curType) {
+      return "";
+    }
+    if (curType.typeSpecList?.length === 1) {
+      const spec = curType.typeSpecList[0];
+      const namespace = spec.namespace.name;
+      const typename = spec.name;
+      if (namespace === "xml-primitives") {
+        if (typename === "Date") {
+          return "xsd:dateTime";
+        } else if (typename === "number") {
+          return "";
+        }
+        return `xsd:${typename}`;
+      }
+      return `${this.findPrefix(namespace, "2.0")}:${typename}`;
+    }
+    if (!curType.rule) {
+      return "";
+    }
+    if (curType.rule.isPrimitive) {
+      if (curType.rule.primitiveType === "Date") {
+        return "xsd:dateTime";
+      }
+      if (curType.rule.primitiveType === "number") {
+        return "";
+      }
+      return `xsd:${curType.rule.primitiveType}`;
+    } else {
+      return `${this.findPrefix(curType.rule.namespace.name, version)}:${
+        curType.name
+      }`;
+    }
+  }
+
+  /**
    * Main conversion function, recursive
    *
    * @private
    * @param {Record<string, unknown>} jObj
    * @param {number} level
-   * @param {*} xmlType
+   * @param {EmlDocument} xmlType
+   * @param {string} version
    * @returns {{ attrStr: string; val: string }}
    * @memberof XMLBuilder
    */
   private j2x(
     jObj: Record<string, any>,
     level: number,
-    xmlType: any,
+    ml: string,
+    xmlType: EmlDocument,
     version: "2.0" | "2.1" | "2.2" | "2.3"
   ): { attrStr: string; val: string } {
     let attrStr = "";
@@ -211,48 +306,80 @@ export class XMLBuilder {
         attrStr += ` xmlns:${v}="${k}"`;
       }
     }
+
+    let mlTypes: Record<string, any> | undefined = this.findEml(ml);
+
+    // If type is explicitly defined in the JSON object, because of polymorphism
     let type = jObj._type;
     if (!type && jObj["$type"]) {
       type = jObj["$type"].replace(".", ":");
     }
     if (type) {
+      mlTypes = this.findEml(type?.split(":")[0]);
+      if (mlTypes) {
+        xmlType = mlTypes[type.split(":")[1]];
+      }
       attrStr += ` xsi:type="${type}"`;
+    } else {
+      attrStr += ` xsi:type="${this.xsiType(xmlType, version)}"`;
     }
-    const defaultNamespace = type ? type.split(":")[0] : "";
+
+    const rule = xmlType?.rule;
 
     let val = "";
     const props = this.orderedProps(jObj);
     for (const key of props) {
+      if (key.startsWith(this.attributeNamePrefix) || key === "$type") {
+        // Skip $type attributes, that will not be explicitly defined in the XML
+        continue;
+      }
       if (jObj[key] && jObj[key]._exists === false) {
         continue;
       }
-      let namespace = defaultNamespace;
-      // Since object is result of multiple inheritance, find the namespace responsible for this key
-      let proto = xmlType ? Object.getPrototypeOf(xmlType) : null;
-      while (proto) {
-        if (Object.hasOwnProperty.call(proto, key)) {
-          namespace = rMap.get(proto._namespace);
-          proto = null;
+
+      // Get the node information from the XML schema
+      let ruleKey = undefined;
+      let child = undefined;
+      let curMl = ml;
+      if (rule) {
+        if (rule.childTbl["1:" + key] === undefined) {
+          if (rule.childTbl["2:" + key] !== undefined) {
+            ruleKey = "2:" + key;
+          }
         } else {
-          proto = Object.getPrototypeOf(proto);
+          ruleKey = "1:" + key;
+        }
+
+        if (ruleKey) {
+          child = rule.childTbl[ruleKey];
+        }
+
+        // Attempt to find the namespace of the child node, need to identify the base class that provides the namespace
+        let curHandler = rule.handler;
+        while (curHandler?.rule && ruleKey) {
+          if (Object.prototype.hasOwnProperty.call(curHandler, ruleKey)) {
+            curMl = this.findPrefix(curHandler.rule.namespace.name, version);
+            break;
+          }
+          curHandler = Object.getPrototypeOf(curHandler);
         }
       }
-      const curKey = jObj[key]?._name ?? `${namespace}:${key}`;
-      if (key.startsWith(this.attributeNamePrefix) || key === "$type") {
-        // Nothing to do
-      } else if (typeof jObj[key] === "undefined") {
+
+      const curType = child ? child.member : undefined;
+
+      const curKey = jObj[key]?._name ?? `${curMl}:${key}`;
+
+      // Compute the xsi:type for the node
+      const xsiType = this.xsiType(curType, version);
+      const xsdType = xsiType === "" ? "" : ` xsi:type="${xsiType}"`;
+
+      if (typeof jObj[key] === "undefined") {
         // suppress undefined node
       } else if (jObj[key] === null) {
+        // Process null node
         val += `${this.indentBy(level)}<${curKey}/>\n`;
-      } else if (jObj[key] instanceof Date) {
-        val += this.buildTextValueNode(
-          jObj[key].toISOString(),
-          curKey,
-          "",
-          level
-        );
-      } else if (typeof jObj[key] !== "object") {
-        // Primitive type
+      } else if (typeof jObj[key] !== "object" || jObj[key] instanceof Date) {
+        // Process primitive type
 
         // Check if it is an attribute
         const attr = this.isAttribute(key, level);
@@ -262,7 +389,7 @@ export class XMLBuilder {
           attrStr += ` ${attr}="${newVal}"`;
         } else {
           // Tag value
-          val += this.buildTextValueNode(jObj[key], curKey, "", level);
+          val += this.buildTextValueNode(jObj[key], curKey, xsdType, level);
         }
       } else if (Array.isArray(jObj[key])) {
         // Repeated nodes
@@ -270,7 +397,7 @@ export class XMLBuilder {
           val += this.buildTextValueNode(
             jObj[key].join(" "),
             curKey,
-            "",
+            xsdType,
             level
           );
         } else {
@@ -286,18 +413,19 @@ export class XMLBuilder {
                 item,
                 curKey,
                 level,
-                xmlType && xmlType[key] ? xmlType[key][0] : null,
+                curMl,
+                curType,
                 version
               );
             } else {
-              val += this.buildTextValueNode(item, curKey, "", level);
+              val += this.buildTextValueNode(item, curKey, xsdType, level);
             }
           }
         }
       } else {
         // Nested node
 
-        // Identify the node corresponding to "single value + attributes" in xml
+        // Identify nodes corresponding to "single value + attributes" in xml
         const isAttributeGroup = jObj[key]["_"] !== undefined;
         if (isAttributeGroup) {
           let attr2 = "";
@@ -315,11 +443,13 @@ export class XMLBuilder {
           }
           val += this.buildTextValueNode(jObj[key]["_"], curKey, attr2, level);
         } else {
+          // Process complex XML node (structure)
           val += this.processTextOrObjectNode(
             jObj[key],
             curKey,
             level,
-            xmlType ? xmlType[key] : null,
+            curMl,
+            curType,
             version
           );
         }
@@ -335,7 +465,8 @@ export class XMLBuilder {
    * @param {Record<string, unknown>} object
    * @param {string} key
    * @param {number} level
-   * @param {*} xmlType
+   * @param {string} prefix
+   * @param {EmlDocument} xmlType
    * @returns
    * @memberof XMLBuilder
    */
@@ -343,13 +474,14 @@ export class XMLBuilder {
     object: Record<string, unknown>,
     key: string,
     level: number,
-    xmlType: any,
+    prefix: string,
+    xmlType: EmlDocument,
     version: "2.0" | "2.1" | "2.2" | "2.3"
   ) {
     if (object["_exists"] === false) {
       return "";
     }
-    const result = this.j2x(object, level + 1, xmlType, version);
+    const result = this.j2x(object, level + 1, prefix, xmlType, version);
     if (result.val === "") {
       return "";
     }
@@ -384,6 +516,48 @@ export class XMLBuilder {
   }
 
   /**
+   * Create a Date object from an XSD DateTime string
+   *
+   * @param xsdDateTimeString
+   * @returns
+   */
+  private createDateFromXsdDateTime(xsdDateTimeString: string): Date {
+    const dateTimeRegex =
+      /(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{3}))?(Z|[+-]\d{2}:\d{2})?/;
+    const match = dateTimeRegex.exec(xsdDateTimeString);
+
+    if (!match) {
+      throw new Error("Invalid XSD DateTime format");
+    }
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1; // JavaScript months are 0-indexed
+    const day = parseInt(match[3], 10);
+    const hours = parseInt(match[4], 10);
+    const minutes = parseInt(match[5], 10);
+    const seconds = parseInt(match[6], 10);
+    const milliseconds = match[7] ? parseInt(match[7], 10) : 0;
+    const timezoneOffset = match[8];
+
+    if (timezoneOffset === "Z") {
+      // UTC time
+      return new Date(
+        Date.UTC(year, month, day, hours, minutes, seconds, milliseconds)
+      );
+    } else {
+      // Timezone offset provided
+      const offsetHours = parseInt(timezoneOffset.slice(1, 3), 10);
+      const offsetMinutes = parseInt(timezoneOffset.slice(4), 10);
+      const offsetMilliseconds = (offsetHours * 60 + offsetMinutes) * 60 * 1000;
+
+      return new Date(
+        Date.UTC(year, month, day, hours, minutes, seconds, milliseconds) +
+          offsetMilliseconds
+      );
+    }
+  }
+
+  /**
    * Create an XML text node
    *
    * @private
@@ -400,6 +574,17 @@ export class XMLBuilder {
     attrStr: string,
     level: number
   ) {
+    if (
+      attrStr === ' xsi:type="xsd:dateTime"' ||
+      attrStr === ' xsi:type="eml20:TimeStamp"'
+    ) {
+      try {
+        this.createDateFromXsdDateTime(value);
+      } catch (e) {
+        // Invalid date format
+        value = new Date(value).toISOString().split(".")[0] + "Z";
+      }
+    }
     const textValue = this.replaceEntitiesValue(value);
 
     return `${this.indentBy(level)}<${key}${attrStr}>${textValue}</${key}>\n`;

@@ -52,7 +52,12 @@ fs.readdirSync(xmlSchemaDir).forEach(file => {
       xml.indexOf("http://www.energistics.org/energyml/data/") + 41;
     const substr = xml.substring(mlIndex);
 
-    let xsType = xml.substring(xml.indexOf(`xsi:type="`) + 19);
+    let xsType = xml.substring(xml.indexOf(`xsi:type="`) + 10); //19
+    if (xsType.startsWith("eml")) {
+      xsType = xsType.substring(6);
+    } else {
+      xsType = xsType.substring(9);
+    }
     xsType = xsType.substring(0, xsType.indexOf(`"`));
 
     const schemaIndex = xml.indexOf(`schemaVersion="`) + 15;

@@ -20,7 +20,6 @@ import {
   Controller,
   Delete,
   HttpCode,
-  InternalServerErrorException,
   Param,
   Put,
   Query,
@@ -685,7 +684,12 @@ export default class MutationsAPI {
                 ErrorCode.EINVALID_ARGUMENT
               );
             }
+            let fullArray = true;
             for (let d = 0; d < a.Dimensions.length; d++) {
+              if (a.Starts[d] !== 0 || a.Counts[d] !== a.Dimensions[d]) {
+                fullArray = false;
+                break;
+              }
               if (a.Starts[d] + a.Counts[d] > a.Dimensions[d]) {
                 throw new EtpError(
                   `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`,
@@ -702,7 +706,9 @@ export default class MutationsAPI {
               );
             }
             try {
-              return c!.putDataSubArray(dataArray, a.Starts, a.Counts, dataArr);
+              return fullArray
+                ? c!.putDataArray(dataArray, a.Dimensions, dataArr)
+                : c!.putDataSubArray(dataArray, a.Starts, a.Counts, dataArr);
             } catch (err) {
               logger.error(err);
               throw err;
