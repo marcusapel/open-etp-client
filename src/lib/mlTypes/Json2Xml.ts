@@ -357,7 +357,12 @@ export class XMLBuilder {
         // Attempt to find the namespace of the child node, need to identify the base class that provides the namespace
         let curHandler = rule.handler;
         while (curHandler?.rule && ruleKey) {
-          if (Object.prototype.hasOwnProperty.call(curHandler, ruleKey)) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              curHandler.rule.childTbl,
+              ruleKey
+            )
+          ) {
             curMl = this.findPrefix(curHandler.rule.namespace.name, version);
             break;
           }
