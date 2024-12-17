@@ -172,7 +172,8 @@ export class StoreCustomer extends BaseHandler {
           messageBody as Energistics.Etp.v12.Protocol.Store.GetDataObjectsResponse;
         this.onGetDataObjectsResponse(messageHeader, body);
         this.emit(EventName.GET_DATA_OBJECT_RESPONSE, {
-          header: messageHeader, body
+          header: messageHeader,
+          body
         });
         break;
       }
@@ -186,8 +187,9 @@ export class StoreCustomer extends BaseHandler {
           this.successResolve
         );
         this.emit(EventName.PUT_DATA_OBJECTS_RESPONSE, {
-          header: messageHeader, body: messageBody
-        })
+          header: messageHeader,
+          body: messageBody
+        });
         break;
       }
       case Store.MsgDeleteDataObjectsResponse: {
@@ -200,8 +202,9 @@ export class StoreCustomer extends BaseHandler {
           this.successResolve
         );
         this.emit(EventName.DELETE_DATA_OBJECTS_RESPONSE, {
-          header: messageHeader, body: messageBody
-        })
+          header: messageHeader,
+          body: messageBody
+        });
         break;
       }
       case Store.MsgChunk: {
@@ -222,7 +225,8 @@ export class StoreCustomer extends BaseHandler {
           messageBody as Energistics.Etp.v12.Protocol.Core.ProtocolException;
         this.onDataObjectsError(messageHeader, errorMessage);
         this.emit(EventName.PROTOCOL_EXCEPTION, {
-          header: messageHeader, body: errorMessage
+          header: messageHeader,
+          body: errorMessage
         });
         break;
       }
@@ -491,7 +495,8 @@ export class StoreCustomer extends BaseHandler {
    * @memberof StoreCustomer
    */
   public deleteObjectsWithPrune(
-    uriString: string[], pruneContainedObjects: boolean
+    uriString: string[],
+    pruneContainedObjects: boolean
   ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
     this.logTrace(`Deleting ${uriString} from store`);
     const header = this.sessionManager.createFinalMessageHeader(

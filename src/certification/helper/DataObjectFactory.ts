@@ -10,7 +10,6 @@ const xmlParser = new XMLParser({
   attributeNamePrefix: ""
 });
 
-
 class DataObjectFactory {
   static generateDataObjectForErrorMessages(): DataObject[] {
     const inputObject = new PutDataObjects();
@@ -36,7 +35,12 @@ class DataObjectFactory {
       dataObject.data = Buffer.from(fileContent);
       const jObj = xmlParser.parse(fileContent);
       const dataObjectType = Object.keys(jObj)[0];
-      let uri = "eml:///witsml20." + dataObjectType + "(" + jObj[dataObjectType].uuid + ")";
+      let uri =
+        "eml:///witsml20." +
+        dataObjectType +
+        "(" +
+        jObj[dataObjectType].uuid +
+        ")";
       if (index === 0) {
         uri = "eml:///witsml20." + dataObjectType + "(wronguuidformat)";
       }
@@ -62,20 +66,27 @@ class DataObjectFactory {
     const folderPath = path.join(__dirname, "/data/21");
     const files = fs.readdirSync(folderPath);
     let index = 0;
-    for(const file of files) {
+    for (const file of files) {
       const dataObject = new DataObject();
       const filepath = folderPath + "/" + file;
       const fileContent = fs.readFileSync(filepath);
       dataObject.data = Buffer.from(fileContent);
       const jObj = xmlParser.parse(fileContent);
-      const dataObjectType = Object.keys(jObj).length == 1 ? Object.keys(jObj)[0] : Object.keys(jObj)[1];
-      dataObject.resource.uri = `eml:///witsml${jObj[dataObjectType].schemaVersion.replace(".", "")}
-                                          .${dataObjectType}(${jObj[dataObjectType].uuid})`;
+      const dataObjectType =
+        Object.keys(jObj).length == 1
+          ? Object.keys(jObj)[0]
+          : Object.keys(jObj)[1];
+      dataObject.resource.uri = `eml:///witsml${jObj[
+        dataObjectType
+      ].schemaVersion.replace(".", "")}
+                                          .${dataObjectType}(${
+                                            jObj[dataObjectType].uuid
+                                          })`;
       inputObject.dataObjects.set(index.toString(), dataObject);
       index++;
     }
 
-    return  Array.from(inputObject.dataObjects.values());
+    return Array.from(inputObject.dataObjects.values());
   }
 }
 export { DataObjectFactory };
