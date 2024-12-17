@@ -104,7 +104,54 @@ export class XMLBuilder {
   }
 
   /**
-   * Convert from JSON to JSONtoEnergistics XML document
+   * Check if type is valid
+   *
+   * @private
+   * @param {string} emlType
+   * @return {boolean}
+   * @memberof XMLBuilder
+   */
+  private isValidType(emlType: string): boolean {
+    if (!emlType) {
+      return false;
+    }
+    return (
+      emlType.startsWith("resqml20") ||
+      emlType.startsWith("resqml22") ||
+      emlType.startsWith("witsml21") ||
+      emlType.startsWith("prodml22") ||
+      emlType.startsWith("prodml23") ||
+      emlType.startsWith("eml20") ||
+      emlType.startsWith("eml23")
+    );
+  }
+
+  /**
+   * Get the schema document corresponding to the qualified type
+   *
+   * @private
+   * @param {EtpQualifiedType} qType
+   * @return {*}
+   * @memberof XMLBuilder
+   */
+  private emlDocument(qType: EtpQualifiedType): any {
+    return qType.domainFamily === "resqml"
+      ? qType.domainVersion === "2.0"
+        ? resqml20
+        : resqml22
+      : qType.domainFamily === "witsml"
+      ? witsml21
+      : qType.domainFamily === "prodml"
+      ? qType.domainVersion === "2.3"
+        ? prodml23
+        : prodml22
+      : qType.domainVersion === "2.0"
+      ? eml20
+      : eml23;
+  }
+
+  /**
+   * Convert from JSON to Energistics XML document
    *
    * @param {string} json
    * @returns {string}
@@ -112,18 +159,7 @@ export class XMLBuilder {
    */
   public JSONtoEnergistics(json: string): string {
     const jObj = parseJSON(json);
-    if (
-      !jObj.$type ||
-      !(
-        jObj.$type.startsWith("resqml20") ||
-        jObj.$type.startsWith("resqml22") ||
-        jObj.$type.startsWith("witsml21") ||
-        jObj.$type.startsWith("prodml22") ||
-        jObj.$type.startsWith("prodml23") ||
-        jObj.$type.startsWith("eml20") ||
-        jObj.$type.startsWith("eml23")
-      )
-    ) {
+    if (!this.isValidType(jObj.$type)) {
       return "";
     }
 
@@ -135,30 +171,17 @@ export class XMLBuilder {
     const resqmlObj: Record<string, any> = {};
     resqmlObj[name] = jObj;
 
-    const document =
-      qType.domainFamily === "resqml"
-        ? qType.domainVersion === "2.0"
-          ? resqml20
-          : resqml22
-        : qType.domainFamily === "witsml"
-        ? witsml21
-        : qType.domainFamily === "prodml"
-        ? qType.domainVersion === "2.3"
-          ? prodml23
-          : prodml22
-        : qType.domainVersion === "2.0"
-        ? eml20
-        : eml23;
-
     const version = qType.domainVersion as "2.0" | "2.1" | "2.2" | "2.3";
 
     Object.defineProperty(resqmlObj[name], "_name", {
       enumerable: false,
       value: `${jObj.$type.split(".")[0]}:${name}`
     });
+    const document = this.emlDocument(qType);
+
     return (
       `<?xml version="1.0" encoding="utf-8"?>\n` +
-      this.j2x(resqmlObj, 0, jObj.$type.split(".")[0], document, version).val
+      this.j2x(resqmlObj, 0, jObj.$type.split(".")[0], document).val
     );
   }
 
@@ -167,10 +190,10 @@ export class XMLBuilder {
    *
    * @private
    * @param {Record<string, unknown>} obj
-   * @returns
+   * @returns {string[]}
    * @memberof XMLBuilder
    */
-  private orderedProps(obj: Record<string, unknown>) {
+  private orderedProps(obj: Record<string, unknown>): string[] {
     let p: string[] = [];
     const p3: string[] = [];
     for (const key in obj) {
@@ -195,7 +218,17 @@ export class XMLBuilder {
    * @param ml name of the ML, e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
    * @returns
    */
-  private findEml(ml: string) {
+  private findEml(
+    ml: string
+  ):
+    | typeof resqml20
+    | typeof resqml22
+    | typeof witsml21
+    | typeof prodml22
+    | typeof prodml23
+    | typeof eml20
+    | typeof eml23
+    | undefined {
     let proto = undefined;
     if (ml === "resqml20") {
       proto = resqml20;
@@ -220,7 +253,7 @@ export class XMLBuilder {
    *
    * @param namespace in XML document
    * @param version of the EML schema
-   * @returns name of the ML, e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
+   * @returns {string} name of the ML, e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
    */
   private findPrefix(namespace: string, version: string): string {
     if (namespace === "http://www.energistics.org/energyml/data/resqmlv2") {
@@ -242,7 +275,7 @@ export class XMLBuilder {
    *
    * @param curType XML node information
    * @param version version of the EML schema
-   * @returns
+   * @returns {string} xsi:type
    */
   private xsiType(curType: any, version: string): string {
     if (!curType) {
@@ -281,13 +314,13 @@ export class XMLBuilder {
   }
 
   /**
-   * Main conversion function, recursive
+   * Main conversion function, recursive function to convert JSON to XML
    *
    * @private
-   * @param {Record<string, unknown>} jObj
+   * @param {Record<string, any>} jObj
    * @param {number} level
-   * @param {EmlDocument} xmlType
-   * @param {string} version
+   * @param {string} ml identifier of the ML. e.g. resqml20, resqml22, witsml21, prodml22, prodml23, eml20, eml23
+   * @param {EmlDocument} xmlType schema information
    * @returns {{ attrStr: string; val: string }}
    * @memberof XMLBuilder
    */
@@ -295,10 +328,10 @@ export class XMLBuilder {
     jObj: Record<string, any>,
     level: number,
     ml: string,
-    xmlType: EmlDocument,
-    version: "2.0" | "2.1" | "2.2" | "2.3"
+    xmlType: EmlDocument
   ): { attrStr: string; val: string } {
     let attrStr = "";
+    const version = ml.slice(-2).split("").join(".");
     const rMap = this.reverseNamespace.get(version) || new Map();
     if (level === 1) {
       attrStr = ` xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"`;
@@ -419,8 +452,7 @@ export class XMLBuilder {
                 curKey,
                 level,
                 curMl,
-                curType,
-                version
+                curType
               );
             } else {
               val += this.buildTextValueNode(item, curKey, xsdType, level);
@@ -454,8 +486,7 @@ export class XMLBuilder {
             curKey,
             level,
             curMl,
-            curType,
-            version
+            curType
           );
         }
       }
@@ -472,7 +503,7 @@ export class XMLBuilder {
    * @param {number} level
    * @param {string} prefix
    * @param {EmlDocument} xmlType
-   * @returns
+   * @returns {string}
    * @memberof XMLBuilder
    */
   private processTextOrObjectNode(
@@ -480,13 +511,12 @@ export class XMLBuilder {
     key: string,
     level: number,
     prefix: string,
-    xmlType: EmlDocument,
-    version: "2.0" | "2.1" | "2.2" | "2.3"
-  ) {
+    xmlType: EmlDocument
+  ): string {
     if (object["_exists"] === false) {
       return "";
     }
-    const result = this.j2x(object, level + 1, prefix, xmlType, version);
+    const result = this.j2x(object, level + 1, prefix, xmlType);
     if (result.val === "") {
       return "";
     }
@@ -501,7 +531,7 @@ export class XMLBuilder {
    * @param {string} key
    * @param {string} attrStr
    * @param {number} level
-   * @returns
+   * @returns {string}
    * @memberof XMLBuilder
    */
   private buildObjectNode(
@@ -509,7 +539,7 @@ export class XMLBuilder {
     key: string,
     attrStr: string,
     level: number
-  ) {
+  ): string {
     if (attrStr && value.indexOf("<") === -1) {
       return `${this.indentBy(level)}<${key}${attrStr}>${value}
         </${key}>\n`;
@@ -524,7 +554,7 @@ export class XMLBuilder {
    * Create a Date object from an XSD DateTime string
    *
    * @param xsdDateTimeString
-   * @returns
+   * @returns {Date}
    */
   private createDateFromXsdDateTime(xsdDateTimeString: string): Date {
     const dateTimeRegex =
@@ -570,7 +600,7 @@ export class XMLBuilder {
    * @param {string} key name of the node
    * @param {string} attrStr attribute string of the node
    * @param {number} level of indentation
-   * @returns
+   * @returns {string}
    * @memberof XMLBuilder
    */
   private buildTextValueNode(
@@ -578,7 +608,7 @@ export class XMLBuilder {
     key: string,
     attrStr: string,
     level: number
-  ) {
+  ): string {
     if (
       attrStr === ' xsi:type="xsd:dateTime"' ||
       attrStr === ' xsi:type="eml20:TimeStamp"'
@@ -587,7 +617,7 @@ export class XMLBuilder {
         this.createDateFromXsdDateTime(value);
       } catch (e) {
         // Invalid date format
-        value = new Date(value).toISOString().split(".")[0] + "Z";
+        value = new Date(value).toISOString();
       }
     }
     const textValue = this.replaceEntitiesValue(value);
@@ -600,10 +630,10 @@ export class XMLBuilder {
    *
    * @private
    * @param {string} textValue
-   * @returns
+   * @returns {string}
    * @memberof XMLBuilder
    */
-  private replaceEntitiesValue(textValue: string) {
+  private replaceEntitiesValue(textValue: string): string {
     const entities: { regex: RegExp; val: string }[] = [
       { regex: />/g, val: "&gt;" },
       { regex: /</g, val: "&lt;" },
@@ -623,10 +653,10 @@ export class XMLBuilder {
    *
    * @private
    * @param {number} level of indentation
-   * @returns
+   * @returns {string}
    * @memberof XMLBuilder
    */
-  private indentBy(level: number) {
+  private indentBy(level: number): string {
     return this.indentString.repeat(level);
   }
 
