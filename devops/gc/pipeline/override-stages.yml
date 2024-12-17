@@ -25,7 +25,7 @@ gc-containerize-bootstrap-gcr:
 .gc_postman_tests:
   before_script:
     - curl https://community.opengroup.org/api/v4/projects/1410/packages/generic/gc_auth_token/master/gc_auth_token -o gc_auth_token && chmod +x gc_auth_token
-    - echo $GC_INTEGRATION_TESTER > key-file.json && export GOOGLE_APPLICATION_CREDENTIALS="key-file.json"
+    - export GOOGLE_APPLICATION_CREDENTIALS="$GC_INTEGRATION_TESTER_SA_FILE"
     - git clone https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server.git
     - >
       function oetp_sslclient() {
@@ -76,17 +76,3 @@ gc-dev2-test:
     - .gc-dev2-variables
   script:
     - !reference [.gc_postman_tests, script]
-
-gc-baremetal-deploy:
-  allow_failure: true
-  script:
-    - echo "This is a stub. oetp-client is not ready for deploying on GC baremetal"
-    - exit 1
-
-gc-baremetal-test:
-  allow_failure: true
-  # extends:   // broke the pipeline
-  #   - .gc-baremetal-variables
-  script:
-    - echo "This is a stub. Integration tests are not implemented for oetp-client"
-    - exit 1

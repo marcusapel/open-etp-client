@@ -83,6 +83,7 @@
     "class-validator": "~0.14.1",
     "events": "~3.3.0",
     "express": "~4.19.2",
+    "fast-xml-parser": "~4.5.0",
     "glob": "~10.3.12",
     "helmet": "~7.0.0",
     "jsonwebtoken": "~9.0.2",
@@ -153,6 +154,16 @@
     },
     "@nestjs/swagger": {
       "path-to-regexp": "3.3.0"
+    },
+    "cross-spawn": "7.0.5",
+    "npm-run-all": {
+      "cross-spawn": "7.0.5"
+    },
+    "execa": {
+      "cross-spawn": "7.0.5"
+    },
+    "lint-staged": {
+      "cross-spawn": "7.0.5"
     }
   },
   "publishConfig": {

@@ -76,7 +76,7 @@ import {
   uuidPattern
 } from "../ControllerUtils";
 
-import { Integer32 } from "../../common/Etp12";
+import { AvroString, Integer32 } from "../../common/Etp12";
 
 import { XMLBuilder } from "../../mlTypes/Json2Xml";
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
@@ -418,6 +418,31 @@ export default class MutationsAPI {
           m?.groups?.dataType ?? "",
           b.Uuid
         ).uri;
+        const customData = new Map<
+          AvroString,
+          Energistics.Etp.v12.Datatypes.DataValue
+        >();
+        if (
+          // Check if _ResourceCustomData of the right type exists
+          "_ResourceCustomData" in b &&
+          typeof b._ResourceCustomData === "object" &&
+          b._ResourceCustomData !== null &&
+          !Array.isArray(b._ResourceCustomData) &&
+          Object.keys(b._ResourceCustomData).every(
+            key => typeof key === "string"
+          ) &&
+          Object.values(b._ResourceCustomData).every(
+            val => typeof val === "string"
+          )
+        ) {
+          const cData = b._ResourceCustomData as Record<string, string>;
+          for (const k of Object.keys(cData)) {
+            customData.set(k, {
+              item: { __keyName: "_string", _string: cData[k] }
+            });
+          }
+          delete b._ResourceCustomData;
+        }
         const xml = builder.JSONtoEnergistics(
           JSON.stringify(b, bigIntToString)
         );
@@ -433,7 +458,7 @@ export default class MutationsAPI {
             storeLastWrite: BigInt(0),
             activeStatus:
               Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
-            customData: new Map()
+            customData
           },
           data: Buffer.from(xml),
           format: "xml",

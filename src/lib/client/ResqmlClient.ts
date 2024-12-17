@@ -201,7 +201,7 @@ export class ResqmlClient {
   );
   private readonly supportedTypes: SupportedTypesCustomer =
     new SupportedTypesCustomer(this.client);
-  private readonly store: StoreCustomer = new StoreCustomer(this.client);
+  readonly store: StoreCustomer = new StoreCustomer(this.client);
   private readonly storeNotification: StoreNotificationCustomer =
     new StoreNotificationCustomer(this.client);
   private readonly dataspace: DataspaceCustomer = new DataspaceCustomer(
@@ -261,6 +261,17 @@ export class ResqmlClient {
     if (opt) {
       this.options = opt;
     }
+  }
+
+  /**
+   * Add a callback invoked for any received message
+   * @param onMessage
+   */
+  public addMessageTracer(
+    onMessage: (header: Energistics.Etp.v12.Datatypes.MessageHeader) => void
+  ): void {
+    this.client.enableMessageReceptionTracing = true;
+    this.client.on("messageHeader", onMessage);
   }
 
   /**

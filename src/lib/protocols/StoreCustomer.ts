@@ -33,6 +33,7 @@ import { Energistics, Integer64 } from "../common/Etp12";
 import { EtpUri } from "../common/EtpUri";
 
 import { v4 as uuidRandom } from "uuid";
+import { EventName } from "../../certification/helper/constants";
 
 const Core = Energistics.Etp.v12.Protocol.Core;
 const Store = Energistics.Etp.v12.Protocol.Store;
@@ -170,6 +171,10 @@ export class StoreCustomer extends BaseHandler {
         const body =
           messageBody as Energistics.Etp.v12.Protocol.Store.GetDataObjectsResponse;
         this.onGetDataObjectsResponse(messageHeader, body);
+        this.emit(EventName.GET_DATA_OBJECT_RESPONSE, {
+          header: messageHeader,
+          body
+        });
         break;
       }
       case Store.MsgPutDataObjectsResponse: {
@@ -181,6 +186,10 @@ export class StoreCustomer extends BaseHandler {
           messageBody as Energistics.Etp.v12.Protocol.Store.PutDataObjectsResponse,
           this.successResolve
         );
+        this.emit(EventName.PUT_DATA_OBJECTS_RESPONSE, {
+          header: messageHeader,
+          body: messageBody
+        });
         break;
       }
       case Store.MsgDeleteDataObjectsResponse: {
@@ -192,6 +201,10 @@ export class StoreCustomer extends BaseHandler {
           messageBody as Energistics.Etp.v12.Protocol.Store.DeleteDataObjectsResponse,
           this.successResolve
         );
+        this.emit(EventName.DELETE_DATA_OBJECTS_RESPONSE, {
+          header: messageHeader,
+          body: messageBody
+        });
         break;
       }
       case Store.MsgChunk: {
@@ -211,6 +224,10 @@ export class StoreCustomer extends BaseHandler {
         const errorMessage =
           messageBody as Energistics.Etp.v12.Protocol.Core.ProtocolException;
         this.onDataObjectsError(messageHeader, errorMessage);
+        this.emit(EventName.PROTOCOL_EXCEPTION, {
+          header: messageHeader,
+          body: errorMessage
+        });
         break;
       }
       default: {
@@ -466,6 +483,21 @@ export class StoreCustomer extends BaseHandler {
   public deleteObjects(
     uriString: string[]
   ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
+    return this.deleteObjectsWithPrune(uriString, false);
+  }
+
+  /**
+   * Delete a series of objects
+   *
+   * @param {string[]} uriString
+   * @param {pruneContainedObjects} boolean
+   * @returns {Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]>}
+   * @memberof StoreCustomer
+   */
+  public deleteObjectsWithPrune(
+    uriString: string[],
+    pruneContainedObjects: boolean
+  ): Promise<Energistics.Etp.v12.Datatypes.ErrorInfo[]> {
     this.logTrace(`Deleting ${uriString} from store`);
     const header = this.sessionManager.createFinalMessageHeader(
       PROTOCOL.Store,
@@ -480,7 +512,7 @@ export class StoreCustomer extends BaseHandler {
     });
     const deleteDataObject: Energistics.Etp.v12.Protocol.Store.DeleteDataObjects =
       {
-        pruneContainedObjects: false,
+        pruneContainedObjects: pruneContainedObjects,
         uris
       };
 
@@ -505,7 +537,7 @@ export class StoreCustomer extends BaseHandler {
         }
         const deleteDataObject2: Energistics.Etp.v12.Protocol.Store.DeleteDataObjects =
           {
-            pruneContainedObjects: false,
+            pruneContainedObjects: pruneContainedObjects,
             uris: uriMap
           };
         const data2 = this.sessionManager.computeData(
