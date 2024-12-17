@@ -85,8 +85,8 @@ gc-baremetal-deploy:
 
 gc-baremetal-test:
   allow_failure: true
-  extends:
-    - .gc-baremetal-variables
+  # extends:   // broke the pipeline
+  #   - .gc-baremetal-variables
   script:
     - echo "This is a stub. Integration tests are not implemented for oetp-client"
     - exit 1
