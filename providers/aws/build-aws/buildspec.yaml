@@ -27,6 +27,8 @@ env:
     SONAR_URL: /osdu/devops/sonar_url
 phases:
   install:
+    runtime-versions:
+      nodejs: 18
     commands:
       # fix error noted here: https://github.com/yarnpkg/yarn/issues/7866
       - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
@@ -34,8 +36,7 @@ phases:
       - export AWS_ACCOUNT_ID=`aws sts get-caller-identity | grep Account | cut -d':' -f 2 | cut -d'"' -f 2`
       - aws codeartifact login --tool npm --domain osdu-dev --domain-owner ${AWS_ACCOUNT_ID} --repository osdu-npm
       - export REPO_NAME=${PWD##*/}
-      - n 18
-      - npm install -g npm@9
+      - npm install -g npm@9.9.4
       - npm install
       - wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472.zip
       - unzip -q ./sonar-scanner-cli-4.6.2.2472.zip
@@ -76,12 +77,10 @@ phases:
           -Dsonar.coverage.exclusions=**/examples/*,**/__tests__/*,**/__azure__/*,**/__google__/* \
           -Dsonar.typescript.tsconfigPath=./providers/aws/build-aws/tsconfig.json
 
-      - echo "Building docker image..."
-      - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} .
-      - docker tag  ${ECR_IMAGE_PROD} ${ECR_IMAGE_BRANCH_LATEST}
-      - echo "Pushing docker image..."
-      - docker push ${ECR_IMAGE_PROD}
-      - docker push ${ECR_IMAGE_BRANCH_LATEST}
+      - echo "Build and push docker image..."
+      - docker buildx create --driver docker-container --use
+      - docker buildx inspect --bootstrap
+      - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} -t ${ECR_IMAGE_BRANCH_LATEST} .
 
       - sed -i "s|__CONTAINER__|$ECR_IMAGE_PROD|"  devops/aws/chart/values.yaml
       - echo "--Copying Helm Charts to ${OUTPUT_DIR:-dist}--"

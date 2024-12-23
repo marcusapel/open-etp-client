@@ -25,12 +25,11 @@ aws-containerize:
   needs: ["compile-and-unit-test"]
   stage: containerize
   script:
-    - docker build --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t $LOCAL_IMAGE_TAG .
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - $(aws ecr get-login --no-include-email --region $AWS_ECR_REGION)
-    - docker tag $LOCAL_IMAGE_TAG $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA
-    - docker tag $LOCAL_IMAGE_TAG $AWS_IMAGE_TAG_BASE:latest
-    - docker push $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA
-    - docker push $AWS_IMAGE_TAG_BASE:latest
+    - docker buildx create --driver docker-container --use
+    - docker buildx inspect --bootstrap
+    - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push -f devops/osdu/docker/Dockerfile.runtime --build-arg DIST=dist.tgz -t $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA -t $AWS_IMAGE_TAG_BASE:latest .
   only:
     variables:
       - $AWS == '1'
