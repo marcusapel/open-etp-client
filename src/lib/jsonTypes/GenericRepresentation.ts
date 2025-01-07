@@ -1,6 +1,10 @@
 import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
-import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
+import {
+  EtpUri,
+  IResqmlDataObject,
+  ResqmlClient
+} from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
 import {
@@ -11,7 +15,9 @@ import {
 import {
   Data,
   GenericRepresentation
-} from "./Generated/work-product-component/GenericRepresentation.1.1.0";
+} from "./Generated/work-product-component/GenericRepresentation.1.2.0";
+
+import { SeismicFaultOSDU } from "./SeismicFault";
 
 export class GenericRepresentationOSDU
   extends ResqmlWorkProductComponent<
@@ -25,7 +31,7 @@ export class GenericRepresentationOSDU
     xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericRepresentation.1.1.0");
+    super(xml, context, "GenericRepresentation.1.2.0");
   }
 
   private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
@@ -166,10 +172,39 @@ export class GenericRepresentationOSDU
   }
 }
 
+/**
+ * Identify OSDU kind for Representation, can create either a SeismicFault, SeismicHorizon or GenericRepresentation
+ *
+ * @param {IResqmlDataObject} xml
+ * @return {string}
+ */
+export const GenericRepresentationToOsduKind = (
+  xml: IResqmlDataObject
+): string => {
+  const genRep = xml as SimpleJson<resqml20.AbstractRepresentation>;
+  if (
+    genRep.RepresentedInterpretation?.ContentType ===
+    "application/x-resqml+xml;version=2.0;type=obj_FaultInterpretation"
+  ) {
+    const geometries = getGeometries(xml);
+    for (const p of geometries) {
+      if (p.SeismicCoordinates !== undefined) {
+        return "osdu:wks:work-product-component--SeismicFault.1.3.0";
+      }
+    }
+  }
+  return "osdu:wks:work-product-component--GenericRepresentation:1.1.0";
+};
+
 export const GenericRepresentationManifest = async (
   uri: string,
   xml: SimpleJson<resqml20.AbstractSurfaceRepresentation>,
   context: OSDUContext,
   client: ResqmlClient
-): Promise<GenericRepresentationOSDU> =>
-  new GenericRepresentationOSDU(xml, context).initData(uri, xml, client);
+): Promise<GenericRepresentationOSDU | SeismicFaultOSDU> => {
+  const kind = GenericRepresentationToOsduKind(xml);
+  if (kind === "osdu:wks:work-product-component--SeismicFault.1.3.0") {
+    return new SeismicFaultOSDU(xml, context).initData(uri, xml, client);
+  }
+  return new GenericRepresentationOSDU(xml, context).initData(uri, xml, client);
+};

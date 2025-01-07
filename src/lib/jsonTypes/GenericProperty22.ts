@@ -14,8 +14,8 @@ import {
 import {
   Data,
   GenericProperty
-} from "./Generated/work-product-component/GenericProperty.1.0.0";
-import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+} from "./Generated/work-product-component/GenericProperty.1.2.0";
+import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.2.0";
 
 export class GenericProperty22OSDU
   extends ResqmlWorkProductComponent<
@@ -134,7 +134,7 @@ export class GenericProperty22OSDU
     xml: SimpleJson<resqml22.AbstractValuesProperty>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericProperty.1.1.0");
+    super(xml, context, "GenericProperty.1.2.0");
   }
 
   public async initData(

@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   GeobodyBoundaryInterpretation
-} from "./Generated/work-product-component/GeobodyBoundaryInterpretation.1.1.0";
+} from "./Generated/work-product-component/GeobodyBoundaryInterpretation.1.2.0";
 
 export class GeobodyBoundaryInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class GeobodyBoundaryInterpretationOSDU
     xml: SimpleJson<resqml20.obj_GeobodyBoundaryInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GeobodyBoundaryInterpretation.1.1.0");
+    super(xml, context, "GeobodyBoundaryInterpretation.1.2.0");
   }
 
   public async initData(

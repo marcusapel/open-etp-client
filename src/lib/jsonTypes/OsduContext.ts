@@ -206,7 +206,9 @@ export class OSDUContext {
     if (value === undefined) {
       return undefined;
     }
-    const ref = `${this.partition}:reference-data--${referenceType}:${value}:`;
+    const ref = `${
+      this.partition
+    }:reference-data--${referenceType}:${encodeURIComponent(value)}:`;
     if (referenceType !== "PropertyType" || PropertyTypesIds.has(value)) {
       // Do not create reference for Standards Resqml PropertyTypes
       this.references.add(ref);

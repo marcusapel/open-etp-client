@@ -1,4 +1,4 @@
-import * as Primitive from "./xml-primitives";
+import * as Primitive from "../../../xml-primitives";
 import * as eml from "./commonv2";
 
 // Source files:

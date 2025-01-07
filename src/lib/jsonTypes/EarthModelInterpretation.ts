@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   EarthModelInterpretation
-} from "./Generated/work-product-component/EarthModelInterpretation.1.1.0";
+} from "./Generated/work-product-component/EarthModelInterpretation.1.2.0";
 
 export class EarthModelInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class EarthModelInterpretationOSDU
     xml: SimpleJson<resqml20.obj_EarthModelInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "EarthModelInterpretation.1.0.0");
+    super(xml, context, "EarthModelInterpretation.1.2.0");
     this.data = {};
   }
   public async initData(

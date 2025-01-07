@@ -1,5 +1,4 @@
 import * as resqml22 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/resqmlv2";
-import * as eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
 
@@ -9,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SeismicHorizon
-} from "./Generated/work-product-component/SeismicHorizon.1.2.0";
+} from "./Generated/work-product-component/SeismicHorizon.2.0.0";
 
 /**
  * Extract SeismicHorizon information from a Resqml 2.2 2D grid
@@ -29,7 +28,7 @@ export class SeismicHorizon22OSDU
     xml: SimpleJson<resqml22.Grid2dRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SeismicHorizon.1.2.0");
+    super(xml, context, "SeismicHorizon.2.0.0");
   }
 
   /**
@@ -54,9 +53,11 @@ export class SeismicHorizon22OSDU
       return false;
     }
 
-    return (
-      xml.RepresentedObject?._data?.$type === "resqml22.HorizonInterpretation"
-    );
+    if (xml.RepresentedObject?.QualifiedType === undefined) {
+      return false;
+    }
+    const ct = xml.RepresentedObject.QualifiedType.split(".");
+    return ct.length === 2 && ct[1] === "obj_HorizonInterpretation";
   }
 
   public getGeometries(
@@ -64,52 +65,6 @@ export class SeismicHorizon22OSDU
   ): SimpleJson<resqml22.PointGeometry>[] {
     xml as SimpleJson<resqml22.Grid2dRepresentation>;
     return [xml.Geometry];
-  }
-
-  /**
-   * Compute the coverage binGrid
-   * @param {SimpleJson<resqml22.SeismicLatticeFeature> | undefined} feat lattice feature
-   * @param {SimpleJson<resqml22.Point3dFromRepresentationLatticeArray>} lat lattice coordinates
-   * @returns
-   */
-  private coverage(
-    feat: SimpleJson<resqml22.SeismicLatticeFeature> | undefined,
-    lat: SimpleJson<resqml22.Point3dFromRepresentationLatticeArray>
-  ) {
-    let NI = undefined;
-    let NJ = undefined;
-    let dI = undefined;
-    let dJ = undefined;
-    let BinGridCoveragePercent = undefined;
-    if (
-      feat &&
-      lat.NodeIndicesOnSupportingRepresentation.$type ==
-        "eml23.IntegerLatticeArray"
-    ) {
-      const offset =
-        lat.NodeIndicesOnSupportingRepresentation as SimpleJson<eml23.IntegerLatticeArray>;
-      if (offset.Offset.length === 2) {
-        const inlineCount = feat.InlineLabels?.Offset[0].Count ?? 1;
-        const crosslineCount = feat.CrosslineLabels?.Offset[0].Count ?? 1;
-
-        if (
-          offset.Offset[0].$type == "eml23.IntegerConstantArray" &&
-          offset.Offset[1].$type == "eml23.IntegerConstantArray"
-        ) {
-          const iOffset = offset
-            .Offset[0] as SimpleJson<eml23.IntegerConstantArray>;
-          const jOffset = offset
-            .Offset[1] as SimpleJson<eml23.IntegerConstantArray>;
-          NI = iOffset.Count + 1;
-          dI = iOffset.Value;
-          NJ = jOffset.Count + 1;
-          dJ = jOffset.Value;
-          BinGridCoveragePercent =
-            (100.0 * (NI * dI * NJ * dJ)) / (inlineCount * crosslineCount);
-        }
-      }
-    }
-    return BinGridCoveragePercent;
   }
 
   public async initData(
@@ -136,8 +91,12 @@ export class SeismicHorizon22OSDU
       return this;
     }
 
-    const interpretation = xml.RepresentedObject
-      ?._data as SimpleJson<resqml22.HorizonInterpretation>;
+    const interpretation =
+      xml.RepresentedObject?.QualifiedType ===
+      "resqml22.obj_HorizonInterpretation"
+        ? (xml.RepresentedObject
+            ?._data as SimpleJson<resqml22.HorizonInterpretation>)
+        : undefined;
 
     const lat =
       p.SupportingGeometry as SimpleJson<resqml22.Point3dFromRepresentationLatticeArray>;
@@ -159,60 +118,72 @@ export class SeismicHorizon22OSDU
     const startCrossline =
       lat.NodeIndicesOnSupportingRepresentation.StartValue / inlineCount;
 
-    const BinGridCoveragePercent = this.coverage(feat, lat);
+    let Role = undefined;
+    if ("SurfaceRole" in xml) {
+      Role = (xml as any).SurfaceRole;
+    } else if ("LineRole" in xml) {
+      Role = (xml as any).LineRole;
+    }
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      BinGridCoveragePercent,
-      BinGridID: await this.dorToSrn(
-        ReservoirDMSUrl,
-        lat.SupportingRepresentation,
-        client
-      ),
-      CrosslineMin: startCrossline,
-      CrosslineMax:
-        startCrossline +
-        (feat.CrosslineLabels?.Offset[0].Value ?? 1) * xml.SlowestAxisCount,
-      GeologicalUnitAgePeriod: undefined,
-      GeologicalUnitAgeYear: undefined,
-      GeologicalUnitName: interpretation.InterpretedFeature.Title,
-      IndexableElementCount: undefined,
-      InlineMax:
-        startInline +
-        (feat.InlineLabels?.Offset[0].Value ?? 1) * xml.FastestAxisCount,
-      InlineMin: startInline,
+      IndexableElementCount: [
+        {
+          Count: xml.SlowestAxisCount * xml.FastestAxisCount,
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "Nodes"
+          )
+        }
+      ],
       InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
         client
       ),
-      InterpretationName: interpretation.Citation.Title,
-      Interpreter: undefined,
+      InterpretationName: interpretation?.Citation.Title,
       LocalModelCompoundCrsID: await this.dorToSrn(
         ReservoirDMSUrl,
         geo.LocalCrs,
         client
       ),
-      PetroleumSystemElementTypeID: undefined,
-      ReplacementVelocity: undefined,
       RealizationIndex: undefined,
-      Role: undefined,
+      TimeSeries: undefined,
+      BinGridID: await this.dorToSrn(
+        ReservoirDMSUrl,
+        lat.SupportingRepresentation,
+        client
+      ),
+      CrosslineMax:
+        startCrossline +
+        (feat.CrosslineLabels?.Offset[0].Value ?? 1) * xml.SlowestAxisCount,
+      CrosslineMin: startCrossline,
+      DomainTypeID: undefined,
+      GeologicalUnitName: interpretation?.InterpretedFeature.Title,
+      InlineMax:
+        startInline +
+        (feat.InlineLabels?.Offset[0].Value ?? 1) * xml.FastestAxisCount,
+      InlineMin: startInline,
+      Interpreter: xml.Citation.Originator,
+      PetroleumSystemElementTypeID: undefined,
+      Remark: undefined,
+      RepresentationRole: context.addReferenceData(
+        "RepresentationRole",
+        this.capitalize(Role)
+      ),
+      RepresentationType: context.addReferenceData(
+        "RepresentationType",
+        xml.$type?.split(".")[1].slice(4)
+      ),
       Seismic2DInterpretationSetID: undefined,
       Seismic3DInterpretationSetID: undefined,
-      SeismicAttributes: undefined,
-      SeismicDomainTypeID: undefined,
-      SeismicDomainUOM: undefined,
       SeismicHorizonTypeID: undefined,
       SeismicLineGeometryIDs: undefined,
       SeismicPickingTypeID: undefined,
-      SeismicTraceDataID: undefined,
-      SeismicVelocityModelID: undefined,
-      TimeSeries: undefined,
-      Type: undefined,
-      VerticalDatumOffset: undefined,
-      VerticalMeasurementTypeID: undefined,
+      SeismicTraceDataIDs: undefined,
+      SubjectiveClassificationRatingIDs: undefined,
       ExtensionProperties: undefined
     };
 
@@ -221,10 +192,17 @@ export class SeismicHorizon22OSDU
       const dataspaceUri = EtpUri.createDataSpaceUri(
         new EtpUri(ReservoirDMSUrl).dataSpace
       );
-      const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, NodeCount } =
-        await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
 
-      this.data.SpatialPoint = SpatialPoint;
+      const {
+        SpatialPoint,
+        SpatialArea,
+        FrameOfReferenceCRS,
+        NodeCount,
+        Domain
+      } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+
+      (this.data.DomainTypeID = context.addReferenceData("DomainType", Domain)),
+        (this.data.SpatialPoint = SpatialPoint);
       this.data.SpatialArea = SpatialArea;
       this.meta = [FrameOfReferenceCRS];
 

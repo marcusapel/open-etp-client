@@ -15,7 +15,7 @@ import {
   Abstract,
   IjkGridRepresentation,
   StratigraphicUnits
-} from "./Generated/work-product-component/IjkGridRepresentation.1.1.0";
+} from "./Generated/work-product-component/IjkGridRepresentation.1.2.0";
 
 enum ExpansionInDirection {
   I = "I",
@@ -129,13 +129,6 @@ export class IjkGridRepresentation22OSDU
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
             "Cells"
-          )
-        },
-        {
-          Count: (xml.Ni - 1) * (xml.Nj - 1) * (xml.Nk - 1),
-          IndexableElementID: context.addReferenceData(
-            "IndexableElement",
-            "Nodes"
           )
         }
       ],

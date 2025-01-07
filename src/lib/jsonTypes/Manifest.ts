@@ -312,7 +312,7 @@ export const createManifest = async (
                       } else {
                         generatedSrn.set(`${srn}`, res);
                       }
-                      resolve();
+                      return resolve();
                     })
               );
             })

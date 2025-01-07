@@ -11,7 +11,7 @@ import {
 import {
   Data,
   GenericRepresentation
-} from "./Generated/work-product-component/GenericRepresentation.1.1.0";
+} from "./Generated/work-product-component/GenericRepresentation.1.2.0";
 
 export class GenericRepresentation22OSDU
   extends ResqmlWorkProductComponent<
@@ -25,7 +25,7 @@ export class GenericRepresentation22OSDU
     xml: SimpleJson<resqml22.AbstractSurfaceRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericRepresentation.1.1.0");
+    super(xml, context, "GenericRepresentation.1.2.0");
   }
 
   private elementCount(xml: SimpleJson<resqml22.AbstractRepresentation>):

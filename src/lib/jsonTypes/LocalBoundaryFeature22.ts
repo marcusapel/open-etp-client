@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalBoundaryFeature
-} from "./Generated/work-product-component/LocalBoundaryFeature.1.1.0";
+} from "./Generated/work-product-component/LocalBoundaryFeature.1.2.0";
 
 export class LocalBoundaryFeature22OSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml22.BoundaryFeature>>
@@ -17,7 +17,7 @@ export class LocalBoundaryFeature22OSDU
   public data: Data = {};
 
   constructor(xml: SimpleJson<resqml22.BoundaryFeature>, context: OSDUContext) {
-    super(xml, context, "LocalBoundaryFeature.1.1.0");
+    super(xml, context, "LocalBoundaryFeature.1.2.0");
   }
 
   public async initData(

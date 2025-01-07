@@ -10,7 +10,7 @@ import {
   Activity,
   Data,
   ParameterKey
-} from "./Generated/work-product-component/Activity.1.2.0";
+} from "./Generated/work-product-component/Activity.1.4.0";
 
 /**
  * Extract OSDU Activity information from Activity
@@ -29,7 +29,7 @@ export class Activity23OSDU
   };
 
   constructor(xml: SimpleJson<eml23.Activity>, context: OSDUContext) {
-    super(xml, context, "Activity.1.2.0");
+    super(xml, context, "Activity.1.4.0");
   }
 
   public async getKeys(

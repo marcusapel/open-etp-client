@@ -12,7 +12,7 @@ import {
   AbstractGridRepresentation,
   StratigraphicUnits,
   UnstructuredGridRepresentation
-} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.1.0";
+} from "./Generated/work-product-component/UnstructuredGridRepresentation.1.2.0";
 
 export class UnstructuredGridRepresentation22OSDU
   extends ResqmlWorkProductComponent<
@@ -26,7 +26,7 @@ export class UnstructuredGridRepresentation22OSDU
     xml: SimpleJson<resqml22.UnstructuredGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "UnstructuredGridRepresentation.1.1.0");
+    super(xml, context, "UnstructuredGridRepresentation.1.2.0");
   }
 
   private async stratigraphicUnits(

@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   ColumnBasedTable,
   Data
-} from "./Generated/work-product-component/ColumnBasedTable.1.1.0";
+} from "./Generated/work-product-component/ColumnBasedTable.1.3.0";
 
 export class ColumnBasedTable23OSDU
   extends ResqmlWorkProductComponent<SimpleJson<eml23.ColumnBasedTable>>
@@ -17,7 +17,7 @@ export class ColumnBasedTable23OSDU
   public data: Data = {};
 
   constructor(xml: SimpleJson<eml23.ColumnBasedTable>, context: OSDUContext) {
-    super(xml, context, "ColumnBasedTable.1.1.0");
+    super(xml, context, "ColumnBasedTable.1.3.0");
   }
 
   public async initData(

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const cxml = require("../../../../../cxml/cxml");
-const Primitive = require("./xml-primitives");
+const Primitive = require("../../../xml-primitives");
 
 cxml.register(
   cxml.context("witsml21"),

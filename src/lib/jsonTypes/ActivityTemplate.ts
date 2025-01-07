@@ -9,7 +9,7 @@ import {
   ActivityTemplate,
   Data,
   ParameterTemplate
-} from "./Generated/master-data/ActivityTemplate.1.0.0";
+} from "./Generated/master-data/ActivityTemplate.1.1.0";
 
 /**
  * Extract OSDU ActivityTemplate information from ActivityTemplate
