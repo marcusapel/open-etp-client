@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   GridConnectionSetRepresentation
-} from "./Generated/work-product-component/GridConnectionSetRepresentation.1.1.0";
+} from "./Generated/work-product-component/GridConnectionSetRepresentation.1.2.0";
 
 /**
  * Extract OSDU GridConnectionSetRepresentation information from RESQML GridConnectionSetRepresentation
@@ -30,7 +30,7 @@ export class GridConnectionSetRepresentationOSDU
     xml: SimpleJson<resqml20.obj_GridConnectionSetRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "GridConnectionSetRepresentation.1.1.0");
+    super(xml, context, "GridConnectionSetRepresentation.1.2.0");
   }
 
   public async initData(

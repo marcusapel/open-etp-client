@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   HorizonInterpretation
-} from "./Generated/work-product-component/HorizonInterpretation.1.1.0";
+} from "./Generated/work-product-component/HorizonInterpretation.1.2.0";
 
 export class HorizonInterpretationOSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class HorizonInterpretationOSDU
     xml: SimpleJson<resqml20.obj_HorizonInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "HorizonInterpretation.1.1.0");
+    super(xml, context, "HorizonInterpretation.1.2.0");
   }
 
   public async initData(

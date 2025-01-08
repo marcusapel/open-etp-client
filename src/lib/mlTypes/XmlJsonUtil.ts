@@ -342,7 +342,8 @@ const xmlDocument = (dataObjectType: string) => {
  */
 export const xml2typescript = async (
   xml: string,
-  dataObjectType: string
+  dataObjectType: string,
+  usingSchema = true
 ): Promise<
   SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>
 > => {
@@ -647,7 +648,6 @@ export class InterfaceTypeUtils {
     // For readability, prefer no single return statement
     /* eslint-disable-next-line */
     if (!t || !this.checkValueType(val, t, interfaceName)) {
-      this.checkValueType(val, t, interfaceName);
       return false;
     }
 
@@ -1179,10 +1179,10 @@ export class ResqmlTypeUtils extends InterfaceTypeUtils {
 
 export class Resqml22TypeUtils extends InterfaceTypeUtils {
   /**
-   * Creates an instance of ResqmlInterfaceValidator.
+   * Creates an instance of Resqml22TypeUtils.
    *
    * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
-   * @memberof ResqmlInterfaceValidator
+   * @memberof Resqml22TypeUtils
    */
   constructor(allowResolvedReferences = true) {
     super(allowResolvedReferences);
@@ -1205,10 +1205,10 @@ export class Resqml22TypeUtils extends InterfaceTypeUtils {
 
 export class Prodml22TypeUtils extends InterfaceTypeUtils {
   /**
-   * Creates an instance of ResqmlInterfaceValidator.
+   * Creates an instance of Prodml22TypeUtils.
    *
    * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
-   * @memberof ResqmlInterfaceValidator
+   * @memberof Prodml22TypeUtils
    */
   constructor(allowResolvedReferences = true) {
     super(allowResolvedReferences);
@@ -1231,10 +1231,10 @@ export class Prodml22TypeUtils extends InterfaceTypeUtils {
 
 export class Prodml23TypeUtils extends InterfaceTypeUtils {
   /**
-   * Creates an instance of ResqmlInterfaceValidator.
+   * Creates an instance of Prodml23TypeUtils.
    *
    * @param {boolean} [allowResolvedReferences=true] if true DataObjectReference can be replaced by resolved objects
-   * @memberof ResqmlInterfaceValidator
+   * @memberof Prodml23TypeUtils
    */
   constructor(allowResolvedReferences = true) {
     super(allowResolvedReferences);

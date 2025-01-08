@@ -12,7 +12,10 @@ import { FaultInterpretation22Manifest } from "./FaultInterpretation22";
 import { GenericProperty22Manifest } from "./GenericProperty22";
 import { GenericPropertyManifest } from "./GenericProperty";
 import { GenericRepresentation22Manifest } from "./GenericRepresentation22";
-import { GenericRepresentationManifest } from "./GenericRepresentation";
+import {
+  GenericRepresentationManifest,
+  GenericRepresentationToOsduKind
+} from "./GenericRepresentation";
 import { GeobodyBoundaryInterpretationManifest } from "./GeobodyBoundaryInterpretation";
 import { GeobodyBoundaryInterpretation22Manifest } from "./GeobodyBoundaryInterpretation22";
 import { GeobodyInterpretationManifest } from "./GeobodyInterpretation";
@@ -226,22 +229,22 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_PolylineRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  GenericRepresentationToOsduKind,
   GenericRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.PolylineRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  GenericRepresentationToOsduKind,
   GenericRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_PolylineSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  GenericRepresentationToOsduKind,
   GenericRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.PolylineSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  GenericRepresentationToOsduKind,
   GenericRepresentation22Manifest
 );
 ResqmlOSDU.add(

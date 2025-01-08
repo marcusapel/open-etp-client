@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicColumn
-} from "./Generated/work-product-component/StratigraphicColumn.1.1.0";
+} from "./Generated/work-product-component/StratigraphicColumn.1.2.0";
 
 /**
  * Create OSDU StratigraphicColumn from Resqml 2.2 StratigraphicColumn
@@ -28,7 +28,7 @@ export class StratigraphicColumn22OSDU
     xml: SimpleJson<resqml22.StratigraphicColumn>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicColumn.1.1.0");
+    super(xml, context, "StratigraphicColumn.1.2.0");
   }
   public async initData(
     ReservoirDMSUrl: string,

@@ -14,7 +14,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SeismicBinGrid
-} from "./Generated/work-product-component/SeismicBinGrid.1.2.0";
+} from "./Generated/work-product-component/SeismicBinGrid.1.3.0";
 
 import { GenericRepresentation22OSDU } from "./GenericRepresentation22";
 
@@ -40,7 +40,7 @@ export class SeismicBinGrid22OSDU
     xml: SimpleJson<resqml22.Grid2dRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SeismicBinGrid.1.2.0");
+    super(xml, context, "SeismicBinGrid.1.3.0");
   }
 
   /**

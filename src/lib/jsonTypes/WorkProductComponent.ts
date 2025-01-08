@@ -1439,6 +1439,7 @@ export class ResqmlWorkProductComponent<
     SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
     NodeCount: number;
+    Domain: string;
   }> {
     const context = this.__context;
     if (context === undefined) {
@@ -1475,6 +1476,16 @@ export class ResqmlWorkProductComponent<
     if (!crs) {
       return Promise.reject(new Error("Invalid CRS"));
     }
+
+    const Domain =
+      crsObj?.$type === "resqml20.obj_LocalDepth3dCrs"
+        ? "Depth"
+        : crsObj?.$type === "resqml20.obj_LocalTime3dCrs"
+        ? "Time"
+        : (crsObj as SimpleJson<eml23.LocalEngineeringCompoundCrs>).VerticalAxis
+            .IsTime
+        ? "Time"
+        : "Depth";
 
     let aMinX: number = Number.POSITIVE_INFINITY;
     let aMaxX: number = Number.NEGATIVE_INFINITY;
@@ -1514,7 +1525,8 @@ export class ResqmlWorkProductComponent<
       SpatialPoint,
       SpatialArea,
       FrameOfReferenceCRS,
-      NodeCount
+      NodeCount,
+      Domain
     };
   }
 
@@ -1775,7 +1787,6 @@ export class ResqmlWorkProductComponent<
   ): Promise<AbstractWPCGroupType> {
     return {
       Artefacts: undefined,
-      Datasets: context.datasets(ReservoirDMSUrl),
       DDMSDatasets: [
         ReservoirDMSUrl.replace("eml:///", `eml://${context.rddmsId}/`)
       ],

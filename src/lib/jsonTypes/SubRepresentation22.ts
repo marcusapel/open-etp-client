@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SubRepresentation
-} from "./Generated/work-product-component/SubRepresentation.1.1.0";
+} from "./Generated/work-product-component/SubRepresentation.1.2.0";
 
 export class SubRepresentation22OSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml22.SubRepresentation>>
@@ -20,7 +20,7 @@ export class SubRepresentation22OSDU
     xml: SimpleJson<resqml22.SubRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SubRepresentation.1.1.0");
+    super(xml, context, "SubRepresentation.1.2.0");
   }
 
   public async initData(

@@ -13,8 +13,8 @@ import {
 import {
   Data,
   GenericProperty
-} from "./Generated/work-product-component/GenericProperty.1.0.0";
-import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.0.0";
+} from "./Generated/work-product-component/GenericProperty.1.2.0";
+import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.2.0";
 import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 export class GenericPropertyOSDU
@@ -55,8 +55,7 @@ export class GenericPropertyOSDU
       values: boolean[] | number[] | bigint[],
       _data: IDataSubarray
     ) => {
-      const v = values as number[];
-      for (const n of v) {
+      for (const n of values) {
         if (nullValue !== undefined) {
           if (n === nullValue) {
             continue;
@@ -65,10 +64,12 @@ export class GenericPropertyOSDU
           continue;
         }
         ValueCount++;
-        MinValue = Math.min(n, MinValue);
-        MaxValue = Math.max(n, MaxValue);
-        MeanValue += n;
-        SqrValue += n * n;
+        // convert to double even if it is an integer or bigint
+        const d: number = typeof n === "bigint" ? Number(n) : (n as number);
+        MinValue = Math.min(d, MinValue);
+        MaxValue = Math.max(d, MaxValue);
+        MeanValue += d;
+        SqrValue += d * d;
       }
     };
 
@@ -116,7 +117,7 @@ export class GenericPropertyOSDU
     xml: SimpleJson<resqml20.AbstractValuesProperty>,
     context: OSDUContext
   ) {
-    super(xml, context, "GenericProperty.1.1.0");
+    super(xml, context, "GenericProperty.1.2.0");
   }
 
   public async initData(

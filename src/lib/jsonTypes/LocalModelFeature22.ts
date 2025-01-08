@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalModelFeature
-} from "./Generated/work-product-component/LocalModelFeature.1.1.0";
+} from "./Generated/work-product-component/LocalModelFeature.1.2.0";
 
 export class LocalModelFeature22OSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml22.Model>>
@@ -17,7 +17,7 @@ export class LocalModelFeature22OSDU
   public data: Data = {};
 
   constructor(xml: SimpleJson<resqml22.Model>, context: OSDUContext) {
-    super(xml, context, "LocalModelFeature.1.1.0");
+    super(xml, context, "LocalModelFeature.1.2.0");
   }
   public async initData(
     ReservoirDMSUrl: string,

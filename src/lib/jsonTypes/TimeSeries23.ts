@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   TimeSeries
-} from "./Generated/work-product-component/TimeSeries.1.1.0";
+} from "./Generated/work-product-component/TimeSeries.1.2.0";
 
 export class TimeSeries23OSDU
   extends ResqmlWorkProductComponent<SimpleJson<eml23.TimeSeries>>
@@ -17,7 +17,7 @@ export class TimeSeries23OSDU
   public data: Data = {};
 
   constructor(xml: SimpleJson<eml23.TimeSeries>, context: OSDUContext) {
-    super(xml, context, "TimeSeries.1.1.0");
+    super(xml, context, "TimeSeries.1.2.0");
   }
 
   public async initData(

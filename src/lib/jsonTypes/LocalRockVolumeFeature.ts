@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalRockVolumeFeature
-} from "./Generated/work-product-component/LocalRockVolumeFeature.1.1.0";
+} from "./Generated/work-product-component/LocalRockVolumeFeature.1.2.0";
 
 export class LocalRockVolumeFeatureOSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml20.obj_BoundaryFeature>>
@@ -20,7 +20,7 @@ export class LocalRockVolumeFeatureOSDU
     xml: SimpleJson<resqml20.obj_BoundaryFeature>,
     context: OSDUContext
   ) {
-    super(xml, context, "LocalRockVolumeFeature.1.1.0");
+    super(xml, context, "LocalRockVolumeFeature.1.2.0");
   }
   public async initData(
     ReservoirDMSUrl: string,

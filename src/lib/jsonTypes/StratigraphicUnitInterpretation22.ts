@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicUnitInterpretation
-} from "./Generated/work-product-component/StratigraphicUnitInterpretation.1.1.0";
+} from "./Generated/work-product-component/StratigraphicUnitInterpretation.1.3.0";
 
 const RESQML20_STRAT_COLUMN_RANK =
   "resqml22.StratigraphicColumnRankInterpretation";
@@ -25,7 +25,7 @@ export class StratigraphicUnitInterpretation22OSDU
     xml: SimpleJson<resqml22.StratigraphicUnitInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicUnitInterpretation.1.1.0");
+    super(xml, context, "StratigraphicUnitInterpretation.1.3.0");
   }
 
   private async getContacts(

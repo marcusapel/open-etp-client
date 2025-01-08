@@ -12,7 +12,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SeismicBinGrid
-} from "./Generated/work-product-component/SeismicBinGrid.1.2.0";
+} from "./Generated/work-product-component/SeismicBinGrid.1.3.0";
 
 import { GenericRepresentationOSDU } from "./GenericRepresentation";
 
@@ -40,7 +40,7 @@ export class SeismicBinGridOSDU
     xml: SimpleJson<resqml20.obj_Grid2dRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SeismicBinGrid.1.2.0");
+    super(xml, context, "SeismicBinGrid.1.3.0");
   }
 
   /**
@@ -236,15 +236,15 @@ export class SeismicBinGridOSDU
  */
 export const Grid2dToOsduKind = (xml: IResqmlDataObject): string => {
   if (xml.$type !== "resqml20.obj_Grid2dRepresentation") {
-    return "osdu:wks:work-product-component--GenericRepresentation:1.1.0";
+    return "osdu:wks:work-product-component--GenericRepresentation:1.2.0";
   }
   const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
   if (SeismicBinGridOSDU.matchType(grid2d)) {
-    return "osdu:wks:work-product-component--SeismicBinGrid:1.2.0";
+    return "osdu:wks:work-product-component--SeismicBinGrid:1.3.0";
   } else if (SeismicHorizonOSDU.matchType(grid2d)) {
-    return "osdu:wks:work-product-component--SeismicHorizon:1.1.0";
+    return "osdu:wks:work-product-component--SeismicHorizon.2.0.0";
   }
-  return "osdu:wks:work-product-component--GenericRepresentation:1.1.0";
+  return "osdu:wks:work-product-component--GenericRepresentation:1.2.0";
 };
 
 /**
@@ -265,9 +265,9 @@ export const Grid2dRepresentationManifest = async (
   GenericRepresentationOSDU | SeismicBinGridOSDU | SeismicHorizonOSDU
 > => {
   const kind = Grid2dToOsduKind(xml);
-  if (kind === "osdu:wks:work-product-component--SeismicBinGrid:1.2.0") {
+  if (kind === "osdu:wks:work-product-component--SeismicBinGrid:1.3.0") {
     return new SeismicBinGridOSDU(xml, context).initData(uri, xml, client);
-  } else if (kind === "osdu:wks:work-product-component--SeismicHorizon:1.1.0") {
+  } else if (kind === "osdu:wks:work-product-component--SeismicHorizon.2.0.0") {
     return new SeismicHorizonOSDU(xml, context).initData(uri, xml, client);
   }
   return new GenericRepresentationOSDU(xml, context).initData(uri, xml, client);

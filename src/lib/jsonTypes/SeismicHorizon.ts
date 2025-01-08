@@ -1,6 +1,6 @@
 import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/resqmlv2";
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
-import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
+import { EtpContentType, EtpUri, ResqmlClient } from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
 import { ResqmlWorkProductComponent } from "./WorkProductComponent";
@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   SeismicHorizon
-} from "./Generated/work-product-component/SeismicHorizon.1.2.0";
+} from "./Generated/work-product-component/SeismicHorizon.2.0.0";
 
 /**
  * Extract SeismicHorizon information from a 2D grid
@@ -30,7 +30,7 @@ export class SeismicHorizonOSDU
     xml: SimpleJson<resqml20.obj_Grid2dRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SeismicHorizon.1.2.0");
+    super(xml, context, "SeismicHorizon.2.0.0");
   }
 
   /**
@@ -57,10 +57,11 @@ export class SeismicHorizonOSDU
       return false;
     }
 
-    return (
-      xml.RepresentedInterpretation?._data?.$type ===
-      "resqml20.obj_HorizonInterpretation"
-    );
+    if (xml.RepresentedInterpretation?.ContentType === undefined) {
+      return false;
+    }
+    const ct = new EtpContentType(xml.RepresentedInterpretation?.ContentType);
+    return ct.dataType === "obj_HorizonInterpretation";
   }
 
   public getGeometries(
@@ -138,6 +139,13 @@ export class SeismicHorizonOSDU
       return this;
     }
 
+    let Role = undefined;
+    if ("SurfaceRole" in xml) {
+      Role = (xml as any).SurfaceRole;
+    } else if ("LineRole" in xml) {
+      Role = (xml as any).LineRole;
+    }
+
     const interpretation = xml.RepresentedInterpretation
       ?._data as SimpleJson<resqml20.obj_HorizonInterpretation>;
 
@@ -159,60 +167,57 @@ export class SeismicHorizonOSDU
     const startCrossline =
       lat.NodeIndicesOnSupportingRepresentation.StartValue / feat.InlineCount;
 
-    const BinGridCoveragePercent = this.coverage(feat, lat);
-
     this.data = {
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      BinGridCoveragePercent,
-      BinGridID: await this.dorToSrn(
-        ReservoirDMSUrl,
-        lat.SupportingRepresentation,
-        client
-      ),
-      CrosslineMin: startCrossline,
-      CrosslineMax:
-        startCrossline +
-        feat.CrosslineIndexIncrement * xml.Grid2dPatch.SlowestAxisCount,
-      GeologicalUnitAgePeriod: undefined,
-      GeologicalUnitAgeYear: undefined,
-      GeologicalUnitName: interpretation.InterpretedFeature.Title,
       IndexableElementCount: undefined,
-      InlineMax:
-        startInline +
-        feat.InlineIndexIncrement * xml.Grid2dPatch.FastestAxisCount,
-      InlineMin: startInline,
       InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
         client
       ),
       InterpretationName: interpretation.Citation.Title,
-      Interpreter: undefined,
       LocalModelCompoundCrsID: await this.dorToSrn(
         ReservoirDMSUrl,
         geo.LocalCrs,
         client
       ),
-      PetroleumSystemElementTypeID: undefined,
-      ReplacementVelocity: undefined,
       RealizationIndex: undefined,
-      Role: undefined,
+      TimeSeries: undefined,
+      BinGridID: await this.dorToSrn(
+        ReservoirDMSUrl,
+        lat.SupportingRepresentation,
+        client
+      ),
+      CrosslineMax:
+        startCrossline +
+        feat.CrosslineIndexIncrement * xml.Grid2dPatch.SlowestAxisCount,
+      CrosslineMin: startCrossline,
+      DomainTypeID: undefined,
+      GeologicalUnitName: interpretation.InterpretedFeature.Title,
+      InlineMax:
+        startInline +
+        feat.InlineIndexIncrement * xml.Grid2dPatch.FastestAxisCount,
+      InlineMin: startInline,
+      Interpreter: xml.Citation.Originator,
+      PetroleumSystemElementTypeID: undefined,
+      Remark: undefined,
+      RepresentationRole: context.addReferenceData(
+        "RepresentationRole",
+        this.capitalize(Role)
+      ),
+      RepresentationType: context.addReferenceData(
+        "RepresentationType",
+        xml.$type?.split(".")[1].slice(4)
+      ),
       Seismic2DInterpretationSetID: undefined,
       Seismic3DInterpretationSetID: undefined,
-      SeismicAttributes: undefined,
-      SeismicDomainTypeID: undefined,
-      SeismicDomainUOM: undefined,
       SeismicHorizonTypeID: undefined,
       SeismicLineGeometryIDs: undefined,
       SeismicPickingTypeID: undefined,
-      SeismicTraceDataID: undefined,
-      SeismicVelocityModelID: undefined,
-      TimeSeries: undefined,
-      Type: undefined,
-      VerticalDatumOffset: undefined,
-      VerticalMeasurementTypeID: undefined,
+      SeismicTraceDataIDs: undefined,
+      SubjectiveClassificationRatingIDs: undefined,
       ExtensionProperties: undefined
     };
 
@@ -221,12 +226,19 @@ export class SeismicHorizonOSDU
       const dataspaceUri = EtpUri.createDataSpaceUri(
         new EtpUri(ReservoirDMSUrl).dataSpace
       );
-      const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, NodeCount } =
-        await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+      const {
+        SpatialPoint,
+        SpatialArea,
+        FrameOfReferenceCRS,
+        NodeCount,
+        Domain
+      } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
-      this.meta = [FrameOfReferenceCRS];
+      (this.data.DomainTypeID = this.data.DomainTypeID =
+        context.addReferenceData("DomainType", Domain)),
+        (this.meta = [FrameOfReferenceCRS]);
 
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];

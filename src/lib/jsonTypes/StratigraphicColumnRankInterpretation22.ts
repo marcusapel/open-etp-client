@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   StratigraphicColumnRankInterpretation
-} from "./Generated/work-product-component/StratigraphicColumnRankInterpretation.1.2.0";
+} from "./Generated/work-product-component/StratigraphicColumnRankInterpretation.1.3.0";
 
 export class StratigraphicColumnRankInterpretation22OSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class StratigraphicColumnRankInterpretation22OSDU
     xml: SimpleJson<resqml22.StratigraphicColumnRankInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "StratigraphicColumnRankInterpretation.1.2.0");
+    super(xml, context, "StratigraphicColumnRankInterpretation.1.3.0");
   }
   public async initData(
     ReservoirDMSUrl: string,

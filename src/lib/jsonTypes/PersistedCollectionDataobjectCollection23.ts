@@ -8,7 +8,7 @@ import { OSDUContext, ResqmlOSDUMap } from "./OsduContext";
 import {
   Data,
   PersistedCollection
-} from "./Generated/work-product-component/PersistedCollection.1.1.0";
+} from "./Generated/work-product-component/PersistedCollection.1.2.0";
 
 export class PersistedCollectionDataobjectCollection23OSDU
   extends ResqmlWorkProductComponent<SimpleJson<eml23.DataobjectCollection>>
@@ -20,7 +20,7 @@ export class PersistedCollectionDataobjectCollection23OSDU
     xml: SimpleJson<eml23.DataobjectCollection>,
     context: OSDUContext
   ) {
-    super(xml, context, "PersistedCollection.1.1.0");
+    super(xml, context, "PersistedCollection.1.2.0");
     this.data = {};
   }
   public async initData(

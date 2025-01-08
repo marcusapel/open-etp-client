@@ -1,4 +1,4 @@
-import * as Primitive from "./xml-primitives";
+import * as Primitive from "../../../xml-primitives";
 
 // Source files:
 // http://172.21.32.1:3000/common/v2.3/xsd_schemas/Abstract.xsd

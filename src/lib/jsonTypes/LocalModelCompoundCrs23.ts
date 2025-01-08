@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   LocalModelCompoundCRS
-} from "./Generated/work-product-component/LocalModelCompoundCrs.1.1.0";
+} from "./Generated/work-product-component/LocalModelCompoundCrs.1.2.0";
 
 export class LocalModelCompoundCrs23OSDU
   extends ResqmlWorkProductComponent<
@@ -22,7 +22,7 @@ export class LocalModelCompoundCrs23OSDU
     xml: SimpleJson<eml23.LocalEngineeringCompoundCrs>,
     context: OSDUContext
   ) {
-    super(xml, context, "LocalModelCompoundCrs.1.1.0");
+    super(xml, context, "LocalModelCompoundCrs.1.2.0");
   }
   public async initData(
     ReservoirDMSUrl: string,
