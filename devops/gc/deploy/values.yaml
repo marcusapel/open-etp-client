@@ -32,8 +32,8 @@ conf:
 hpa:
   minReplicas: 6
   maxReplicas: 15
-  targetType: "AverageValue" #Could be AverageValue or Value
-  targetValue: 16 #8 rps
+  targetType: "AverageValue"
+  targetValue: 16
   behaviorScaleUpStabilizationWindowSeconds: 10
   behaviorScaleUpPoliciesValue: 50
   behaviorScaleUpPoliciesPeriodSeconds: 15
