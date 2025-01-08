@@ -11,11 +11,12 @@ import {
   FrameOfReferenceMetaDataItem,
   LegalMetaData,
   ParentList
-} from "./Generated/dataset/ETPDataspace.1.0.0";
+} from "./Generated/dataset/ETPDataspace.1.0.1";
+import e from "express";
 
 class ETPDataspaceOSDU implements ETPDataspace {
   public acl: AccessControlList = { owners: [], viewers: [] };
-  public kind = "osdu:wks:dataset--ETPDataspace:1.0.0";
+  public kind = "osdu:wks:dataset--ETPDataspace:1.0.1";
   public legal: LegalMetaData = {
     legaltags: [],
     otherRelevantDataCountries: []
@@ -62,7 +63,25 @@ class ETPDataspaceOSDU implements ETPDataspace {
     if (dataspace.customData.size > 0) {
       this.data.ExtensionProperties = {};
       dataspace.customData?.forEach((value: DataValue, key: string) => {
-        if (
+        if (key === "size") {
+          const sizeStr = value.item?._string;
+          const sizeStrs = sizeStr?.split(" ");
+          if (sizeStrs && sizeStrs?.length > 0) {
+            let size = Number.parseFloat(sizeStrs[0]);
+            if (sizeStrs?.length === 2) {
+              if (sizeStrs[1] === "kB") {
+                size = size * 1024;
+              } else if (sizeStrs[1] === "MB") {
+                size = size * 1024 * 1024;
+              } else if (sizeStrs[1] === "GB") {
+                size = size * 1024 * 1024 * 1024;
+              }
+            }
+            size = Math.round(size);
+            // represent size in bytes as a string
+            this.data.TotalSize = size.toString();
+          }
+        } else if (
           this.data.ExtensionProperties !== undefined &&
           value.item?._string
         ) {
