@@ -82,10 +82,6 @@ phases:
       - docker buildx inspect --bootstrap
       - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} -t ${ECR_IMAGE_BRANCH_LATEST} .
 
-      - sed -i "s|__CONTAINER__|$ECR_IMAGE_PROD|"  devops/aws/chart/values.yaml
-      - echo "--Copying Helm Charts to ${OUTPUT_DIR:-dist}--"
-      - rsync -r devops/aws/* "${OUTPUT_DIR:-dist}"
-
       - echo "Generate build-info.json"
       - |
         python providers/aws/build-aws/build-info.py \
