@@ -25,9 +25,9 @@ import {
 
 import { OSDUContext } from "./OsduContext";
 
-import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.0";
-import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.0.0";
-import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.1.0";
+import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.1";
+import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.1.0";
+import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.2.0";
 import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.1.0";
 import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
 
