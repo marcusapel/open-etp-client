@@ -5,6 +5,7 @@ import { Activity23Manifest } from "./Activity23";
 import { ActivityTemplateManifest } from "./ActivityTemplate";
 import { ActivityTemplate23Manifest } from "./ActivityTemplate23";
 import { ColumnBasedTableManifest } from "./ColumnBasedTable";
+import { ColumnBasedTable23Manifest } from "./ColumnBasedTable23";
 import { EarthModelInterpretationManifest } from "./EarthModelInterpretation";
 import { EarthModelInterpretation22Manifest } from "./EarthModelInterpretation22";
 import { FaultInterpretationManifest } from "./FaultInterpretation";
@@ -67,77 +68,77 @@ const ResqmlOSDU = ResqmlOSDUMap.getInstance();
 
 ResqmlOSDU.add(
   "resqml20.obj_Activity",
-  () => "osdu:wks:work-product-component--Activity:1.2.0",
+  () => "osdu:wks:work-product-component--Activity:1.4.0",
   ActivityManifest
 );
 ResqmlOSDU.add(
   "eml23.Activity",
-  () => "osdu:wks:work-product-component--Activity:1.2.0",
+  () => "osdu:wks:work-product-component--Activity:1.4.0",
   Activity23Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_ActivityTemplate",
-  () => "osdu:wks:master-data--ActivityTemplate:1.0.0",
+  () => "osdu:wks:master-data--ActivityTemplate:1.1.0",
   ActivityTemplateManifest
 );
 ResqmlOSDU.add(
   "eml23.ActivityTemplate",
-  () => "osdu:wks:master-data--ActivityTemplate:1.0.0",
+  () => "osdu:wks:master-data--ActivityTemplate:1.1.0",
   ActivityTemplate23Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_CategoricalProperty",
-  () => "osdu:wks:work-product-component--GenericProperty:1.1.0",
+  () => "osdu:wks:work-product-component--GenericProperty:1.2.0",
   GenericPropertyManifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_ContinuousProperty",
-  () => "osdu:wks:work-product-component--GenericProperty:1.1.0",
+  () => "osdu:wks:work-product-component--GenericProperty:1.2.0",
   GenericPropertyManifest
 );
 ResqmlOSDU.add(
   "resqml22.ContinuousProperty",
-  () => "osdu:wks:work-product-component--GenericProperty:1.1.0",
+  () => "osdu:wks:work-product-component--GenericProperty:1.2.0",
   GenericProperty22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_DiscreteProperty",
-  () => "osdu:wks:work-product-component--GenericProperty:1.1.0",
+  () => "osdu:wks:work-product-component--GenericProperty:1.2.0",
   GenericPropertyManifest
 );
 ResqmlOSDU.add(
   "resqml22.DiscreteProperty",
-  () => "osdu:wks:work-product-component--GenericProperty:1.1.0",
+  () => "osdu:wks:work-product-component--GenericProperty:1.2.0",
   GenericProperty22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_EarthModelInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
   EarthModelInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.EarthModelInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
   EarthModelInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_FaultInterpretation",
-  () => "osdu:wks:work-product-component--FaultInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--FaultInterpretation:1.2.0",
   FaultInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.FaultInterpretation",
-  () => "osdu:wks:work-product-component--FaultInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--FaultInterpretation:1.2.0",
   FaultInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_GeneticBoundaryFeature",
-  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
   LocalBoundaryFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml22.BoundaryFeature",
-  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
   LocalBoundaryFeature22Manifest
 );
 ResqmlOSDU.add(
@@ -152,12 +153,12 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_GeobodyInterpretation",
-  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
   GeobodyInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.GeobodyInterpretation",
-  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
   GeobodyInterpretation22Manifest
 );
 ResqmlOSDU.add(
@@ -173,58 +174,58 @@ ResqmlOSDU.add(
 ResqmlOSDU.add(
   "resqml20.obj_GridConnectionSetRepresentation",
   () =>
-    "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.1.0",
+    "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.2.0",
   GridConnectionSetRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.GridConnectionSetRepresentation",
   () =>
-    "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.1.0",
+    "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.2.0",
   GridConnectionSetRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_HorizonInterpretation",
-  () => "osdu:wks:work-product-component--HorizonInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
   HorizonInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.HorizonInterpretation",
-  () => "osdu:wks:work-product-component--HorizonInterpretation:1.1.0",
+  () => "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
   HorizonInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_IjkGridRepresentation",
-  () => "osdu:wks:work-product-component--IjkGridRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--IjkGridRepresentation:1.2.0",
   IjkGridRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.IjkGridRepresentation",
-  () => "osdu:wks:work-product-component--IjkGridRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--IjkGridRepresentation:1.2.0",
   IjkGridRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_LocalDepth3dCrs",
-  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.1.0",
+  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
+  LocalModelCompoundCrsManifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_LocalTime3dCrs",
+  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
   LocalModelCompoundCrsManifest
 );
 ResqmlOSDU.add(
   "eml23.LocalEngineeringCompoundCrs",
-  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.1.0",
+  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
   LocalModelCompoundCrs23Manifest
 );
 ResqmlOSDU.add(
-  "resqml20.obj_LocalTime3dCrs",
-  () => "osdu:wks:work-product-component--LocalModelCompoundCrs:1.1.0",
-  LocalModelCompoundCrsManifest
-);
-ResqmlOSDU.add(
   "resqml20.obj_OrganizationFeature",
-  () => "osdu:wks:work-product-component--LocalModelFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalModelFeature:1.2.0",
   LocalModelFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml22.OrganizationFeature",
-  () => "osdu:wks:work-product-component--LocalModelFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalModelFeature:1.2.0",
   LocalModelFeature22Manifest
 );
 ResqmlOSDU.add(
@@ -249,17 +250,17 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_PointSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
   GenericRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.PointSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
   GenericRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_PropertySet",
-  () => "osdu:wks:work-product-component--PersistedCollection:1.1.0",
+  () => "osdu:wks:work-product-component--PersistedCollection:1.2.0",
   PersistedCollectionPropertySetManifest
 );
 ResqmlOSDU.add(
@@ -274,111 +275,116 @@ ResqmlOSDU.add(
 );
 ResqmlOSDU.add(
   "resqml20.obj_RepresentationSetRepresentation",
-  () => "osdu:wks:work-product-component--PersistedCollection:1.1.0",
+  () => "osdu:wks:work-product-component--PersistedCollection:1.2.0",
   PersistedCollectionRepresentationSetManifest
 );
 ResqmlOSDU.add(
   "eml23.DataobjectCollection",
-  () => "osdu:wks:work-product-component--PersistedCollection:1.1.0",
+  () => "osdu:wks:work-product-component--PersistedCollection:1.2.0",
   PersistedCollectionDataobjectCollection23Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicColumn",
-  () => "osdu:wks:work-product-component--StratigraphicColumn:1.1.0",
+  () => "osdu:wks:work-product-component--StratigraphicColumn:1.2.0",
   StratigraphicColumnManifest
 );
 ResqmlOSDU.add(
   "resqml22.StratigraphicColumn",
-  () => "osdu:wks:work-product-component--StratigraphicColumn:1.1.0",
+  () => "osdu:wks:work-product-component--StratigraphicColumn:1.2.0",
   StratigraphicColumn22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicColumnRankInterpretation",
   () =>
-    "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.1.0",
+    "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.3.0",
   StratigraphicColumnRankInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.StratigraphicColumnRankInterpretation",
   () =>
-    "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.1.0",
+    "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.3.0",
   StratigraphicColumnRankInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicUnitFeature",
-  () => "osdu:wks:work-product-component--LocalRockVolumeFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalRockVolumeFeature:1.2.0",
   LocalRockVolumeFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml22.StratigraphicUnitFeature",
-  () => "osdu:wks:work-product-component--LocalRockVolumeFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalRockVolumeFeature:1.2.0",
   LocalRockVolumeFeature22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicUnitInterpretation",
   () =>
-    "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.1.0",
+    "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.3.0",
   StratigraphicUnitInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.StratigraphicUnitInterpretation",
   () =>
-    "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.1.0",
+    "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.3.0",
   StratigraphicUnitInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StringTableLookup",
-  () => "osdu:wks:work-product-component--ColumnBasedTable:1.1.0",
+  () => "osdu:wks:work-product-component--ColumnBasedTable:1.3.0",
   ColumnBasedTableManifest
 );
 ResqmlOSDU.add(
+  "resqml22.obj_StringTableLookup",
+  () => "osdu:wks:work-product-component--ColumnBasedTable:1.3.0",
+  ColumnBasedTable23Manifest
+);
+ResqmlOSDU.add(
   "resqml20.obj_SubRepresentation",
-  () => "osdu:wks:work-product-component--SubRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--SubRepresentation:1.2.0",
   SubRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.SubRepresentation",
-  () => "osdu:wks:work-product-component--SubRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--SubRepresentation:1.2.0",
   SubRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_TectonicBoundaryFeature",
-  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
   LocalBoundaryFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml22.BoundaryFeature",
-  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.1.0",
+  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
   LocalBoundaryFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_TimeSeries",
-  () => "osdu:wks:work-product-component--TimeSeries:1.1.0",
+  () => "osdu:wks:work-product-component--TimeSeries:1.2.0",
   TimeSeriesManifest
 );
 ResqmlOSDU.add(
   "resqml22.TimeSeries",
-  () => "osdu:wks:work-product-component--TimeSeries:1.1.0",
+  () => "osdu:wks:work-product-component--TimeSeries:1.2.0",
   TimeSeries23Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_TriangulatedSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
   GenericRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.TriangulatedSetRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
   GenericRepresentation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_UnstructuredGridRepresentation",
-  () => "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.2.0",
   UnstructuredGridRepresentationManifest
 );
 ResqmlOSDU.add(
   "resqml22.UnstructuredGridRepresentation",
-  () => "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.1.0",
+  () => "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.2.0",
   UnstructuredGridRepresentation22Manifest
 );
 

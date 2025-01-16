@@ -1641,14 +1641,14 @@ export class ResqmlWorkProductComponent<
     SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>[]
   > {
     const RESQML20_ACTIVITY_TYPE = `resqml20.obj_Activity`;
-    const sources20 = await client.getSources(objectUri, false, [
+    const sources = await client.getSources(objectUri, false, [
       RESQML20_ACTIVITY_TYPE
     ]);
 
     const EML23_ACTIVITY_TYPE = `eml23.Activity`;
-    const sources23 = await client.getSources(objectUri, false, [
-      EML23_ACTIVITY_TYPE
-    ]);
+    sources.push(
+      ...(await client.getSources(objectUri, false, [EML23_ACTIVITY_TYPE]))
+    );
 
     const matchingDors: SimpleJson<
       eml20.DataObjectReference | eml23.DataObjectReference
@@ -1656,30 +1656,19 @@ export class ResqmlWorkProductComponent<
 
     // Find all activities for which the the object is an output
     const etpUri = new EtpUri(objectUri);
-    const activities20: SimpleJson<resqml20.obj_Activity>[] = [];
-    (
+    const activities: SimpleJson<resqml20.obj_Activity | eml23.Activity>[] = (
       await this.getObjects(
         client,
-        sources20.map(r => r.uri)
+        sources.map(r => r.uri)
       )
-    ).forEach(s => {
-      s && activities20.push(s as SimpleJson<resqml20.obj_Activity>);
-    });
-
-    const activities23: SimpleJson<eml23.Activity>[] = [];
-    (
-      await this.getObjects(
-        client,
-        sources23.map(r => r.uri)
-      )
-    ).forEach(s => {
-      s && activities23.push(s as SimpleJson<eml23.Activity>);
-    });
+    ).filter(r => r !== undefined) as SimpleJson<
+      resqml20.obj_Activity | eml23.Activity
+    >[];
 
     const dors: SimpleJson<
       eml20.DataObjectReference | eml23.DataObjectReference
     >[] = [];
-    for (const a of activities20) {
+    for (const a of activities) {
       const temp = await this.getObjectFromDor(
         client,
         objectUri,

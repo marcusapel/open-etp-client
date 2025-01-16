@@ -98,7 +98,7 @@ export class IjkGridRepresentationOSDU
               ReservoirDMSUrl,
               xml.IntervalStratigraphicUnits?.StratigraphicOrganization,
               client
-            )) || "",
+            )) ?? "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
       }
@@ -130,6 +130,13 @@ export class IjkGridRepresentationOSDU
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
             "Cells"
+          )
+        },
+        {
+          Count: (xml.Ni - 1) * (xml.Nj - 1) * (xml.Nk - 1),
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "Nodes"
           )
         }
       ],
@@ -204,7 +211,7 @@ export class IjkGridRepresentationOSDU
  * @param {SimpleJson<resqml20.obj_IjkGridRepresentation>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {Promise<IjkGridRepresentationOSDU>}
+ * @returns {Promise<IjkGridRepresentationOSDU>}
  */
 export const IjkGridRepresentationManifest = async (
   uri: string,
