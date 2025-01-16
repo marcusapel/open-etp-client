@@ -44,7 +44,7 @@ export class StratigraphicColumnOSDU
     const StratigraphicColumnRankInterpretationSet = [];
     for (const r of xml.Ranks) {
       StratigraphicColumnRankInterpretationSet.push(
-        (await this.dorToSrn(ReservoirDMSUrl, r, client)) || ""
+        (await this.dorToSrn(ReservoirDMSUrl, r, client)) ?? ""
       );
     }
     this.data = {
@@ -72,7 +72,7 @@ export class StratigraphicColumnOSDU
  * @param {SimpleJson<resqml20.obj_StratigraphicColumn>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {*}  {Promise<StratigraphicColumnOSDU>}
+ * @returns {Promise<StratigraphicColumnOSDU>}
  */
 export const StratigraphicColumnManifest = async (
   uri: string,

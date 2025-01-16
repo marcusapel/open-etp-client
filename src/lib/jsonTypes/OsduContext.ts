@@ -356,7 +356,7 @@ export class OSDUContext {
       return Promise.reject("Bounded CRS not found");
     }
 
-    const w84persistableRefernece =
+    const w84persistableReference =
       '{"wkt":"GEOGCS[\\"GCS_WGS_1984\\",DATUM[\\"D_WGS_1984\\",SPHEROID[\\"WGS_1984\\",6378137.0,298.257223563]],PRIMEM[\\"Greenwich\\",0.0],UNIT[\\"Degree\\",0.0174532925199433],AUTHORITY[\\"EPSG\\",4326]]","ver":"PE_10_3_1","name":"GCS_WGS_1984","authCode":{"auth":"EPSG","code":"4326"},"type":"LBC"}';
 
     const body = {
@@ -364,7 +364,7 @@ export class OSDUContext {
         boundedCrs.data?.PersistableReference === undefined
           ? undefined
           : boundedCrs.data.PersistableReference,
-      toCRS: w84persistableRefernece,
+      toCRS: w84persistableReference,
       points: points.map(p => ({ x: p[0], y: p[1] }))
     };
     const bodyString = JSON.stringify(body);

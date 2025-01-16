@@ -2,7 +2,7 @@ import * as resqml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv
 import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
 
-import { OSDUContext } from "./OsduContext";
+import type { OSDUContext } from "./OsduContext";
 import {
   ResqmlWorkProductComponent,
   getIntegerValues
@@ -53,7 +53,7 @@ export class UnstructuredGridRepresentationOSDU
               ReservoirDMSUrl,
               xml.CellStratigraphicUnits?.StratigraphicOrganization,
               client
-            )) || "",
+            )) ?? "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
       }
