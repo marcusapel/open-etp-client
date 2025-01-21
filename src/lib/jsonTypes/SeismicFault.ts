@@ -11,7 +11,7 @@ import {
 import {
   Data,
   SeismicFault
-} from "./Generated/work-product-component/SeismicFault.1.3.0";
+} from "./Generated/work-product-component/SeismicFault.2.0.0";
 
 /**
  * Extract SeismicFault information from a resqml 2.0 AbstractRepresentation
@@ -32,7 +32,59 @@ export class SeismicFaultOSDU
     xml: SimpleJson<resqml20.AbstractRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "SeismicFault.1.3.0");
+    super(xml, context, "SeismicFault.2.0.0");
+  }
+
+  private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
+    | undefined
+    | {
+        Count: number;
+        IndexableElementID: string; //this.reference("IndexableElement", "Cells")
+      }[] {
+    if (this.__context === undefined) {
+      return undefined;
+    }
+    const context = this.__context;
+    if (xml.$type === "resqml20.obj_Grid2dRepresentation") {
+      const grid2d = xml as SimpleJson<resqml20.obj_Grid2dRepresentation>;
+      return [
+        {
+          Count:
+            (grid2d.Grid2dPatch.FastestAxisCount - 1) *
+            (grid2d.Grid2dPatch.SlowestAxisCount - 1),
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Cells") || ""
+        }
+      ];
+    } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
+      const trig =
+        xml as SimpleJson<resqml20.obj_TriangulatedSetRepresentation>;
+      let Count = 0;
+      trig.TrianglePatch.forEach(p => {
+        Count += p.Count;
+      });
+      return [
+        {
+          Count,
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Cells") || ""
+        }
+      ];
+    } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
+      // const polyLine =
+      //   xml as SimpleJson<resqml20.obj_PolylineSetRepresentation>;
+    } else if (xml.$type === "resqml20.obj_PointSetRepresentation") {
+      // const points = xml as SimpleJson<resqml20.obj_PointSetRepresentation>;
+    } else if (xml.$type === "resqml20.obj_PolylineRepresentation") {
+      const line = xml as SimpleJson<resqml20.obj_PolylineRepresentation>;
+      return [
+        {
+          Count: line.NodePatch.Count + (line.IsClosed ? -1 : 0),
+          IndexableElementID:
+            context.addReferenceData("IndexableElement", "Edges") || ""
+        }
+      ];
+    }
   }
 
   public async initData(
@@ -52,6 +104,16 @@ export class SeismicFaultOSDU
         seismicSupport = p.SeismicCoordinates.SeismicSupport;
       }
     }
+    let BinGridID = undefined;
+    if (seismicSupport !== undefined) {
+      if (seismicSupport.$type === "resqml20.obj_Grid2dRepresentation") {
+        BinGridID = await this.dorToSrn(
+          ReservoirDMSUrl,
+          seismicSupport,
+          client
+        );
+      }
+    }
 
     let Role = undefined;
     if ("SurfaceRole" in xml) {
@@ -67,7 +129,8 @@ export class SeismicFaultOSDU
       ...(await this.AbstractCommonResources(context)),
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
-      IndexableElementCount: undefined,
+      BinGridID,
+      IndexableElementCount: this.elementCount(xml),
       InterpretationID: await this.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
@@ -83,13 +146,19 @@ export class SeismicFaultOSDU
               client
             ),
       RealizationIndex: undefined,
+      RepresentationRole: context.addReferenceData(
+        "RepresentationRole",
+        this.capitalize(Role)
+      ),
+      RepresentationType: context.addReferenceData(
+        "RepresentationType",
+        xml.$type?.split(".")[1].slice(4)
+      ),
       TimeSeries: undefined,
-      BinGridID: await this.dorToSrn(ReservoirDMSUrl, seismicSupport, client),
       Interpreter: xml.Citation.Originator,
-      Remark: undefined,
+      Remarks: undefined,
       Seismic2DInterpretationSetID: undefined,
       Seismic3DInterpretationSetID: undefined,
-      SeismicFaultTypeID: undefined,
       SeismicLineGeometryIDs: undefined,
       SeismicPickingTypeID: undefined,
       SeismicTraceDataIDs: undefined,
