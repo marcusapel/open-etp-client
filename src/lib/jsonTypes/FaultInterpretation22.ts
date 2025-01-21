@@ -8,7 +8,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 import {
   Data,
   FaultInterpretation
-} from "./Generated/work-product-component/FaultInterpretation.1.2.0";
+} from "./Generated/work-product-component/FaultInterpretation.1.3.0";
 
 export class FaultInterpretation22OSDU
   extends ResqmlWorkProductComponent<SimpleJson<resqml22.FaultInterpretation>>
@@ -20,7 +20,7 @@ export class FaultInterpretation22OSDU
     xml: SimpleJson<resqml22.FaultInterpretation>,
     context: OSDUContext
   ) {
-    super(xml, context, "FaultInterpretation.1.2.0");
+    super(xml, context, "FaultInterpretation.1.3.0");
     this.data = {};
   }
   public async initData(

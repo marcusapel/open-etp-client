@@ -8,8 +8,8 @@ import {
 
 import { OSDUContext } from "./OsduContext";
 import {
-  getGeometries,
-  ResqmlWorkProductComponent
+  ResqmlWorkProductComponent,
+  getGeometries
 } from "./WorkProductComponent";
 
 import {
@@ -52,7 +52,7 @@ export class GenericRepresentationOSDU
             (grid2d.Grid2dPatch.FastestAxisCount - 1) *
             (grid2d.Grid2dPatch.SlowestAxisCount - 1),
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "Cells") ?? ""
         }
       ];
     } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
@@ -66,7 +66,7 @@ export class GenericRepresentationOSDU
         {
           Count,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "Cells") ?? ""
         }
       ];
     } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
@@ -80,7 +80,7 @@ export class GenericRepresentationOSDU
         {
           Count: line.NodePatch.Count + (line.IsClosed ? -1 : 0),
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Edges") || ""
+            context.addReferenceData("IndexableElement", "Edges") ?? ""
         }
       ];
     }

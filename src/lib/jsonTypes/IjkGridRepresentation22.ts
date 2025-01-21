@@ -41,7 +41,7 @@ export class IjkGridRepresentation22OSDU
     xml: SimpleJson<resqml22.IjkGridRepresentation>,
     context: OSDUContext
   ) {
-    super(xml, context, "IjkGridRepresentation.1.1.0");
+    super(xml, context, "IjkGridRepresentation.1.2.0");
   }
 
   private async activeCellCount(

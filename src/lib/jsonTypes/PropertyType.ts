@@ -97,7 +97,7 @@ export class PropertyTypeOSDU
  * @param {SimpleJson<resqml20.obj_PropertyKind>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {Promise<PropertyTypeOSDU>}
+ * @returns {Promise<PropertyTypeOSDU>}
  */
 export const PropertyTypeManifest = async (
   uri: string,

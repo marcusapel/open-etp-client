@@ -25,9 +25,9 @@ import {
 
 import { OSDUContext } from "./OsduContext";
 
-import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.0";
-import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.0.0";
-import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.1.0";
+import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.1";
+import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.1.0";
+import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.2.0";
 import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.1.0";
 import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
 
@@ -92,7 +92,7 @@ const BOO_XML_ARRAY22 = "eml23.BooleanXmlArray";
  * @param {string} dataspaceUri
  * @param {SimpleJson<resqml20.AbstractIntegerArray|eml23.AbstractIntegerArray>} array
  * @param {ResqmlClient} client
- * @return {Promise<number[]>}
+ * @returns {Promise<number[]>}
  */
 export const getIntegerValues = async (
   dataspaceUri: string,
@@ -243,7 +243,7 @@ type DoubleVisitorInput = (
  * @param {SimpleJson<resqml20.AbstractBooleanArray|eml23.AbstractBooleanArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export const visitBooleanValues = async (
   dataspaceUri: string,
@@ -309,7 +309,7 @@ export const visitBooleanValues = async (
  * @param {SimpleJson<resqml20.AbstractIntegerArray|eml23.AbstractIntegerArray>} array
  * @param {ResqmlClient} client
  * @param {IntegerVisitorInput} visitor
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export const visitIntegerValues = async (
   dataspaceUri: string,
@@ -396,7 +396,7 @@ export const visitIntegerValues = async (
  * @param {SimpleJson<resqml20.AbstractDoubleArray|eml23.AbstractFloatingPointArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export const visitDoubleValues = async (
   dataspaceUri: string,
@@ -495,7 +495,6 @@ export const visitDoubleValues = async (
       counts: [xmlArray.CountPerValue]
     });
   }
-  // return Promise.reject("Not supported type yet");
 };
 
 /**
@@ -505,7 +504,7 @@ export const visitDoubleValues = async (
  * @param {SimpleJson<resqml20.Point3dHdf5Array|resqml22.Point3dExternalArray>} array
  * @param {ResqmlClient} client
  * @param {DoubleVisitorInput} visitor
- * @return {Promise<void>}
+ * @returns {Promise<void>}
  */
 export const visitPoint3dValues = async (
   dataspaceUri: string,
@@ -556,7 +555,7 @@ export const visitPoint3dValues = async (
  * Extract the geometries from representations
  *
  * @param {SimpleJson<resqml20.AbstractRepresentation| resqml22.AbstractRepresentation>} xml
- * @return {SimpleJson<resqml20.PointGeometry| resqml22.PointGeometry>[]}
+ * @returns {SimpleJson<resqml20.PointGeometry| resqml22.PointGeometry>[]}
  */
 export const getGeometries = (
   xml: SimpleJson<
@@ -603,7 +602,7 @@ export const getGeometries = (
  * @param {ResqmlClient} client
  * @param {string} dataspaceUri
  * @param {SimpleJson<resqml20.AbstractPoint3dArray|resqml22.AbstractPoint3dArray>} geo
- * @return {Promise<{
+ * @returns {Promise<{
  *   minX: number;
  *   minY: number;
  *   minZ: number;
@@ -896,7 +895,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   /**
    * Return the resource type ("reference-data", "work-product-component", ...)
    *
-   * @return {string}
+   * @returns {string}
    * @memberof WorkProductComponent
    */
   public resourceType(): string {
@@ -907,7 +906,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   /**
    * Return the osdu type ("GenericRepresentation", "HorizonInterpretation", ...)
    *
-   * @return {string}
+   * @returns {string}
    * @memberof WorkProductComponent
    */
   public osduType(): string {
@@ -921,7 +920,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {string} uri
    * @param {(SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference> | undefined)} dor
    * @param {ResqmlClient} client
-   * @return {Promise<string | undefined>}
+   * @returns {Promise<string | undefined>}
    * @memberof WorkProductComponent
    */
   public async dorToSrn(
@@ -971,7 +970,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * Transform a string (typically Energistics) to the OSDU naming convention (PascalCase)
    *
    * @param {(string | undefined)} str
-   * @return {(string | undefined)}
+   * @returns {(string | undefined)}
    * @memberof WorkProductComponent
    */
   public capitalize(str: string | undefined): string | undefined {
@@ -989,7 +988,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    *
    * @param {ResqmlClient} client
    * @param {string[]} uris
-   * @return {(Promise<(IResqmlDataObject | undefined)[]>)}
+   * @returns {(Promise<(IResqmlDataObject | undefined)[]>)}
    * @memberof WorkProductComponent
    */
   public async getObjects(
@@ -1013,7 +1012,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {ResqmlClient} client
    * @param {string} uri URI of the containing object
    * @param {SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference>} dor
-   * @return {(Promise<IResqmlDataObject | undefined>)}
+   * @returns {(Promise<IResqmlDataObject | undefined>)}
    * @memberof WorkProductComponent
    */
   public async getObjectFromDor(
@@ -1070,7 +1069,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
           let value = x.Value;
           try {
             if (typeof x.Value === "object") {
-              value = JSON.parse(x.Value._);
+              value = JSON.parse((x.Value as any)._);
             } else {
               value = JSON.parse(x.Value);
             }
@@ -1133,7 +1132,7 @@ export class ResqmlWorkProductComponent<
    * @param {string} uri
    * @param {(SimpleJson<resqml20.AbstractFeatureInterpretation|resqml22.AbstractFeatureInterpretation>
    *       | undefined)} interpretation
-   * @return {(Promise<number | undefined>)}
+   * @returns {(Promise<number | undefined>)}
    * @memberof ResqmlWorkProductComponent
    */
   public async age(
@@ -1168,7 +1167,7 @@ export class ResqmlWorkProductComponent<
    *
    * @param {(CoordinateReferenceSystem | undefined)} crs
    * @param {number} code
-   * @return {(string|undefined)}
+   * @returns {(string|undefined)}
    * @memberof ResqmlWorkProductComponent
    */
   public referenceSystemId(
@@ -1192,7 +1191,7 @@ export class ResqmlWorkProductComponent<
    *
    * @param {(CoordinateReferenceSystem | undefined)} crs
    * @param {number} code
-   * @return {string | undefined}
+   * @returns {string | undefined}
    * @memberof ResqmlWorkProductComponent
    */
   public persistableReferenceSystem(
@@ -1223,7 +1222,7 @@ export class ResqmlWorkProductComponent<
    * @param {string} dataspaceUri
    * @param {[number, number][]} pointCoordinates
    * @param {SimpleJson<resqml20.obj_LocalDepth3dCrs>| SimpleJson<eml23.LocalEngineeringCompoundCrs>} crs
-   * @return {(Promise<{
+   * @returns {(Promise<{
    *     SpatialPoint: AbstractSpatialLocation | undefined;
    *     SpatialArea: AbstractSpatialLocation | undefined;
    *     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
@@ -1422,7 +1421,7 @@ export class ResqmlWorkProductComponent<
    * @param {ResqmlClient} client
    * @param {string} dataspaceUri
    * @param {SimpleJson<resqml20.PointGeometry|resqml22.PointGeometry>[]} geometries
-   * @return {Promise<{
+   * @returns {Promise<{
    *     SpatialPoint: AbstractSpatialLocation|undefined;
    *     SpatialArea: AbstractSpatialLocation|undefined;
    *     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
@@ -1641,14 +1640,14 @@ export class ResqmlWorkProductComponent<
     SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>[]
   > {
     const RESQML20_ACTIVITY_TYPE = `resqml20.obj_Activity`;
-    const sources20 = await client.getSources(objectUri, false, [
+    const sources = await client.getSources(objectUri, false, [
       RESQML20_ACTIVITY_TYPE
     ]);
 
     const EML23_ACTIVITY_TYPE = `eml23.Activity`;
-    const sources23 = await client.getSources(objectUri, false, [
-      EML23_ACTIVITY_TYPE
-    ]);
+    sources.push(
+      ...(await client.getSources(objectUri, false, [EML23_ACTIVITY_TYPE]))
+    );
 
     const matchingDors: SimpleJson<
       eml20.DataObjectReference | eml23.DataObjectReference
@@ -1656,30 +1655,19 @@ export class ResqmlWorkProductComponent<
 
     // Find all activities for which the the object is an output
     const etpUri = new EtpUri(objectUri);
-    const activities20: SimpleJson<resqml20.obj_Activity>[] = [];
-    (
+    const activities: SimpleJson<resqml20.obj_Activity | eml23.Activity>[] = (
       await this.getObjects(
         client,
-        sources20.map(r => r.uri)
+        sources.map(r => r.uri)
       )
-    ).forEach(s => {
-      s && activities20.push(s as SimpleJson<resqml20.obj_Activity>);
-    });
-
-    const activities23: SimpleJson<eml23.Activity>[] = [];
-    (
-      await this.getObjects(
-        client,
-        sources23.map(r => r.uri)
-      )
-    ).forEach(s => {
-      s && activities23.push(s as SimpleJson<eml23.Activity>);
-    });
+    ).filter(r => r !== undefined) as SimpleJson<
+      resqml20.obj_Activity | eml23.Activity
+    >[];
 
     const dors: SimpleJson<
       eml20.DataObjectReference | eml23.DataObjectReference
     >[] = [];
-    for (const a of activities20) {
+    for (const a of activities) {
       const temp = await this.getObjectFromDor(
         client,
         objectUri,
@@ -1763,11 +1751,10 @@ export class ResqmlWorkProductComponent<
             return (
               ou.indexOf("Crs") === -1 && ou.indexOf("ExternalPart") === -1
             );
-          })
+          }) &&
+          !matchingDors.some(m => this.refUuid(d) === this.refUuid(m))
         ) {
-          if (!matchingDors.some(m => this.refUuid(d) === this.refUuid(m))) {
-            matchingDors.push(d);
-          }
+          matchingDors.push(d);
         }
       }
     }
@@ -1778,7 +1765,7 @@ export class ResqmlWorkProductComponent<
    * Create the AbstractWPCGroupType part of WPC Data
    *
    * @param {string} ReservoirDMSUrl
-   * @return {Promise<AbstractWPCGroupType>}
+   * @returns {Promise<AbstractWPCGroupType>}
    * @memberof WorkProductComponent
    */
   public async AbstractWPCGroupType(
@@ -1831,7 +1818,7 @@ export class ResqmlWorkProductComponent<
    * @param {SimpleJson<resqml20.AbstractFeatureInterpretation| resqml22.AbstractFeatureInterpretation>} xml
    * @param {ResqmlClient} client
    * @param {OSDUContext} context
-   * @return {Promise<AbstractInterpretation>}
+   * @returns {Promise<AbstractInterpretation>}
    * @memberof ResqmlWorkProductComponent
    */
   public async AbstractInterpretation(

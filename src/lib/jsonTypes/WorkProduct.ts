@@ -1,6 +1,6 @@
 import { Energistics, EtpUri } from "../client/ResqmlClient";
 
-import { OSDUContext } from "./OsduContext";
+import type { OSDUContext } from "./OsduContext";
 
 import {
   AccessControlList,

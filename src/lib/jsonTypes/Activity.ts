@@ -127,7 +127,7 @@ export class ActivityOSDU
 
       Parameters.push({
         ParameterKindID:
-          context.addReferenceData("ParameterKind", this.getKind(p)) || "",
+          context.addReferenceData("ParameterKind", this.getKind(p)) ?? "",
         Title: p.Title,
         /**
          * Parameter referencing to a top level object.
@@ -252,7 +252,7 @@ export class ActivityOSDU
  * @param {SimpleJson<resqml20.obj_Activity>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {Promise<ActivityOSDU>}
+ * @returns {Promise<ActivityOSDU>}
  */
 export const ActivityManifest = async (
   uri: string,

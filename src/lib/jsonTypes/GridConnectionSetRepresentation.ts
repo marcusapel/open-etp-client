@@ -55,7 +55,7 @@ export class GridConnectionSetRepresentationOSDU
           (gr as SimpleJson<resqml20.AbstractRepresentation>)
             .RepresentedInterpretation,
           client
-        )) || ""
+        )) ?? ""
       );
     }
 
@@ -85,7 +85,7 @@ export class GridConnectionSetRepresentationOSDU
       GridRepresentationIDs: gridUris.map((g, i) => {
         const gr = grids[i];
         if (gr !== null) {
-          return context.uriToSrn(g, gr) || "";
+          return context.uriToSrn(g, gr) ?? "";
         }
         return "";
       }),
@@ -108,7 +108,7 @@ export class GridConnectionSetRepresentationOSDU
  * @param {SimpleJson<resqml20.obj_GridConnectionSetRepresentation>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {Promise<GridConnectionSetRepresentationOSDU>}
+ * @returns {Promise<GridConnectionSetRepresentationOSDU>}
  */
 export const GridConnectionSetRepresentationManifest = async (
   uri: string,

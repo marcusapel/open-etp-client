@@ -38,7 +38,7 @@ export class SeismicHorizonOSDU
    *
    * @static
    * @param {SimpleJson<resqml20.obj_Grid2dRepresentation>} xml
-   * @return {boolean}
+   * @returns {boolean}
    * @memberof SeismicHorizonOSDU
    */
   static matchType(
