@@ -42,3 +42,8 @@ spec:
         ports:
         - containerPort: 8003
       serviceAccountName: {{ .Values.data.serviceAccountName | quote }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
