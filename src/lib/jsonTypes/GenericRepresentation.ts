@@ -189,7 +189,7 @@ export const GenericRepresentationToOsduKind = (
     const geometries = getGeometries(xml);
     for (const p of geometries) {
       if (p.SeismicCoordinates !== undefined) {
-        return "osdu:wks:work-product-component--SeismicFault.1.3.0";
+        return "osdu:wks:work-product-component--SeismicFault.2.0.0";
       }
     }
   }
@@ -203,7 +203,7 @@ export const GenericRepresentationManifest = async (
   client: ResqmlClient
 ): Promise<GenericRepresentationOSDU | SeismicFaultOSDU> => {
   const kind = GenericRepresentationToOsduKind(xml);
-  if (kind === "osdu:wks:work-product-component--SeismicFault.1.3.0") {
+  if (kind === "osdu:wks:work-product-component--SeismicFault.2.0.0") {
     return new SeismicFaultOSDU(xml, context).initData(uri, xml, client);
   }
   return new GenericRepresentationOSDU(xml, context).initData(uri, xml, client);

@@ -222,6 +222,29 @@ export class GenericRepresentation22OSDU
   }
 }
 
+/**
+ * Identify OSDU kind for Representation, can create either a SeismicFault, SeismicHorizon or GenericRepresentation
+ *
+ * @param {IResqmlDataObject} xml
+ * @return {string}
+ */
+export const GenericRepresentation22ToOsduKind = (
+  xml: SimpleJson<resqml22.AbstractRepresentation>
+): string => {
+  const genRep = xml as SimpleJson<resqml22.AbstractRepresentation>;
+  if (
+    genRep.RepresentedObject?.QualifiedType === "resqml22.FaultInterpretation"
+  ) {
+    const geometries = getGeometries(xml);
+    for (const p of geometries) {
+      if (p.SeismicCoordinates !== undefined) {
+        return "osdu:wks:work-product-component--SeismicFault.2.0.0";
+      }
+    }
+  }
+  return "osdu:wks:work-product-component--GenericRepresentation:1.1.0";
+};
+
 export const GenericRepresentation22Manifest = async (
   uri: string,
   xml: SimpleJson<resqml22.AbstractSurfaceRepresentation>,
