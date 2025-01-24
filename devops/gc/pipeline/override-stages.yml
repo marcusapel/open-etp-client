@@ -1,6 +1,7 @@
 variables:
   GC_SERVICE: "oetp-client"
   COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.0.postman_collection_NotRun.json"
+  GC_SUPPORTED_PLATFORM: "linux/amd64"
 
 gc-containerize-gitlab:
   tags: ["osdu-medium"]
