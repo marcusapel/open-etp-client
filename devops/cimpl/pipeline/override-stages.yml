@@ -4,6 +4,8 @@ variables:
   CIMPL_SUPPORTED_PLATFORM: "linux/amd64"
   DATA_PARTITION_ID: "osdu"
   CIMPL_DNS_NAME: "osdu.dev1.osdu-cimpl.opengroup.org"
+  CIMPL_HELM_DEPLOYMENT_DIR: "devops/cimpl/deploy"
+  CIMPL_HELM_PACKAGE_NAME: "cimpl-$CIMPL_SERVICE-deploy"
 
 cimpl-containerize-gitlab:
   tags: ["osdu-medium"]
