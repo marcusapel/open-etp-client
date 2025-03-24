@@ -85,7 +85,7 @@ export class GridConnectionSetRepresentationOSDU
       GridRepresentationIDs: gridUris.map((g, i) => {
         const gr = grids[i];
         if (gr !== null) {
-          return context.uriToSrn(g, gr) ?? "";
+          return `${context.uriToSrn(g, gr)}:`;
         }
         return "";
       }),
