@@ -47,6 +47,8 @@ include:
   # gc
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/gc-global.yml"
+    ref: "GONRG-11166-acceptance-tests"
+
   - local: "devops/gc/pipeline/override-stages.yml"
 
   # ibm Disable IBM until fixed
