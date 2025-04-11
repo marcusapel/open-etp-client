@@ -388,8 +388,9 @@ export class ManifestDto {
     name: "kind",
     pattern: patternString(/osdu:wks:Manifest:1.0.0/),
     example: `osdu:wks:Manifest:1.0.0`,
-    description: "OSDU manifest identifier.",
-    maxLength: 2048
+    description:
+      "The schema identification for the manifest record. It is constrained to be version 1.0.0 in the context of this endpoint.",
+    maxLength: 23
   })
   id!: string;
 }
@@ -428,16 +429,7 @@ export default class ObjectsManifestAPI {
   })
   @ApiOkResponse({
     description: "Success",
-    content: {
-      "application/json": {
-        schema: {
-          type: "array",
-          maxItems: 256,
-          additionalProperties: false,
-          items: getSchemasForType(ManifestDto, true)
-        }
-      }
-    }
+    type: ManifestDto
   })
   public async GetManifest(
     @Body() body: ManifestInputDto,
