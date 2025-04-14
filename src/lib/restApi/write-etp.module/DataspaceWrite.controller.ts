@@ -182,7 +182,13 @@ export default class DataspaceMutationsAPI {
           if (d.CustomData) {
             for (const e in d.CustomData) {
               customData.set(e, {
-                item: { _string: d.CustomData[e], __keyName: "_string" }
+                item: {
+                  _string:
+                    typeof d.CustomData[e] === "string"
+                      ? d.CustomData[e]
+                      : JSON.stringify(d.CustomData[e]),
+                  __keyName: "_string"
+                }
               });
             }
           }

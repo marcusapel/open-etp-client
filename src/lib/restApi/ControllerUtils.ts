@@ -140,7 +140,15 @@ export const toJSonCustomData = (
         if (key === "created") {
           obj[key] = toDate(v as bigint);
         } else {
-          obj[key] = v.toString();
+          if (val.item.__keyName === "_string") {
+            try {
+              obj[key] = JSON.parse(v as string);
+            } catch (e) {
+              obj[key] = v as string;
+            }
+          } else {
+            obj[key] = v.toString();
+          }
         }
       }
     }

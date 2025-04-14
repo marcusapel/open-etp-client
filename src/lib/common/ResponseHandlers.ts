@@ -335,8 +335,6 @@ export class ArrayResponseHandler<T> extends ResponseHandler<{
 
 /**
  * Represents an edge connecting two resources in a graph.
- *
- * @export
  * @type Edge
  */
 export type Edge = {
@@ -347,32 +345,83 @@ export type Edge = {
 
 /**
  * Represents a graph of resources with edges connecting them.
- *
- * @export
- * @class ResourceGraph
- * @extends {Map<string, Resource>}
  */
 export class ResourceGraph extends Map<string, Resource> {
   edges: Edge[];
+  dataObjectTypes: Set<string>;
+  targetMap: Map<string, Array<string>> | undefined;
+  sourceMap: Map<string, Array<string>> | undefined;
 
   /**
    * Creates an instance of ResourceGraph.
    * @param {Resource[]} nodes - The nodes of the graph.
    * @param {Edge[]} edges - The edges of the graph.
-   * @memberof ResourceGraph
    */
   constructor(nodes: Resource[], edges: Edge[]) {
     super(nodes.map(n => [n.uri, n]));
     this.edges = edges;
+    this.dataObjectTypes = new Set<string>();
+    this.targetMap = undefined;
+    this.sourceMap = undefined;
+  }
+
+  /**
+   * Returns a rebuilt target map from the graph edges.
+   * Allows on demand optimization for targets discovery.
+   *
+   * @readonly
+   * @returns {Map<string, Array<string>>}
+   */
+  getTargetMap(): Map<string, Array<string>> {
+    if (this.targetMap === undefined) {
+      this.targetMap = new Map<string, Array<string>>();
+      this.edges.forEach(e => {
+        this.targetMap?.has(e.sourceUri)
+          ? this.targetMap.get(e.sourceUri)?.push(e.targetUri)
+          : this.targetMap?.set(e.sourceUri, [e.targetUri]);
+      });
+    }
+    return this.targetMap;
+  }
+
+  /**
+   * Returns a rebuilt source map from the graph edges.
+   * Allows on demand optimization for sources discovery.
+   *
+   * @readonly
+   * @returns {Map<string, Array<string>>}
+   */
+  getSourceMap(): Map<string, Array<string>> {
+    if (this.sourceMap === undefined) {
+      this.sourceMap = new Map<string, Array<string>>();
+      this.edges.forEach(e => {
+        this.sourceMap?.has(e.targetUri)
+          ? this.sourceMap.get(e.targetUri)?.push(e.sourceUri)
+          : this.sourceMap?.set(e.targetUri, [e.sourceUri]);
+      });
+    }
+    return this.sourceMap;
+  }
+
+  /**
+   * Returns true if the specified types are supported by the graph
+   *
+   * @param {string[]} dataObjectTypes - The specified type filter
+   * @returns true if specified types are supported by the graph
+   */
+  supportTypes(dataObjectTypes: string[]): boolean {
+    for (const d of dataObjectTypes) {
+      if (!this.dataObjectTypes.has(d)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
    * Get the EtpUri class corresponding to this node
-   *
-   * @static
    * @param {string} uri
    * @returns {EtpUri}
-   * @memberof ResourceGraph
    */
   public static etpUri(uri: string): EtpUri {
     return new EtpUri(uri);
@@ -383,7 +432,6 @@ export class ResourceGraph extends Map<string, Resource> {
    *
    * @readonly
    * @type {Resource[]}
-   * @memberof ResourceGraph
    */
   get resources(): Resource[] {
     return Array.from(this.values());
@@ -394,59 +442,177 @@ export class ResourceGraph extends Map<string, Resource> {
    *
    * @param {string} uri - The URI of the resource to retrieve.
    * @returns {(Resource | undefined)} - The resource with the specified URI, or undefined if it does not exist.
-   * @memberof ResourceGraph
    */
   resource(uri: string): Resource | undefined {
     return this.get(uri);
+  }
+
+  findResource = this.resource;
+
+  /**
+   * Returns an array of targets URIs whose sources are in specified URI list.
+   *
+   * @param {string[]} uris - The list of URI of the source resource.
+   * @param {string[]} [dataObjectTypes=[]] - An array of data object types to filter the target URIs.
+   * @param {number} [depth=1] - The depth of the search.
+   * @returns {string[]} - An array of target URIs whose source is the specified URI.
+   */
+  targetsForList(
+    uris: string[],
+    dataObjectTypes: string[] = [],
+    depth = 1
+  ): string[] {
+    const targetMap = this.getTargetMap();
+    let targets: Array<string> = [];
+    if (depth === 1 && uris.length == 1) {
+      targets = targetMap.get(uris[0]) ?? [];
+    } else {
+      let previousTargets = new Set<string>();
+      uris.forEach(u => previousTargets.add(u));
+
+      let targetSet = new Set<string>();
+      if (depth === 1) {
+        previousTargets.forEach(p => {
+          const targets = targetMap.get(p);
+          if (targets !== undefined) {
+            targets.forEach(t => targetSet.add(t));
+          }
+        });
+      } else {
+        while (depth-- > 0 && previousTargets.size > 0) {
+          const currentTargets = new Set<string>();
+
+          previousTargets.forEach(p => {
+            const targets = targetMap.get(p);
+            if (targets !== undefined) {
+              targets.forEach(t => currentTargets.add(t));
+            }
+          });
+          // Add current targets to the set
+          targetSet = new Set([...targetSet, ...currentTargets]);
+          previousTargets = currentTargets;
+        }
+      }
+      targets = Array.from(targetSet);
+    }
+    return dataObjectTypes.length === 0
+      ? targets
+      : targets.filter(t =>
+          dataObjectTypes.includes(new EtpUri(t).dataObjectType)
+        );
   }
 
   /**
    * Returns an array of target URIs whose source is the specified URI.
    *
    * @param {string} uri - The URI of the source resource.
+   * @param {string[]} [dataObjectTypes=[]] - An array of data object types to filter the target URIs.
+   * @param {number} [depth=1] - The depth of the search.
    * @returns {string[]} - An array of target URIs whose source is the specified URI.
-   * @memberof ResourceGraph
    */
-  targets(uri: string): string[] {
-    return this.edges.filter(s => s.sourceUri === uri).map(t => t.targetUri);
+  targets(uri: string, dataObjectTypes: string[] = [], depth = 1): string[] {
+    return this.targetsForList([uri], dataObjectTypes, depth);
   }
 
   /**
    * Return the list of targets as array of Resource
    *
    * @param {(string | Resource)} resource where requested resources are pointing to
-   * @return {Resource[]}
-   * @memberof ResourceGraph
+   * @param {string[]} [dataObjectTypes=[]] filter on data object types
+   * @param {number} [depth=1] depth of the search
+   * @returns {Resource[]}
    */
-  findTargets(resource: string | Resource): Resource[] {
+  findTargets(
+    resource: string | Resource,
+    dataObjectTypes: string[] = [],
+    depth = 1
+  ): Resource[] {
     const uri: string = typeof resource === "string" ? resource : resource.uri;
-    return this.targets(uri)
+    return this.targets(uri, dataObjectTypes, depth)
       .map(s => this.get(s))
       .filter(r => r !== undefined) as Resource[];
   }
 
   /**
+   * Returns an array of sources URIs whose targets are in specified URI list.
+   *
+   * @param {string[]} uris - The list of URI of the target resource.
+   * @param {string[]} [dataObjectTypes=[]] - An array of data object types to filter the target URIs.
+   * @param {number} [depth=1] - The depth of the search.
+   * @returns {string[]} - An array of target URIs whose source is the specified URI.
+   */
+  sourcesForList(
+    uris: string[],
+    dataObjectTypes: string[] = [],
+    depth = 1
+  ): string[] {
+    const sourceMap = this.getSourceMap();
+    let sources: Array<string> = [];
+    if (depth === 1 && uris.length == 1) {
+      sources = sourceMap.get(uris[0]) ?? [];
+    } else {
+      let previousSources = new Set<string>();
+      uris.forEach(u => previousSources.add(u));
+
+      let sourceSet = new Set<string>();
+      if (depth === 1) {
+        previousSources.forEach(p => {
+          const sources = sourceMap.get(p);
+          if (sources !== undefined) {
+            sources.forEach(t => sourceSet.add(t));
+          }
+        });
+      } else {
+        while (depth-- > 0 && previousSources.size > 0) {
+          const currentSources = new Set<string>();
+          previousSources.forEach(p => {
+            const sources = sourceMap.get(p);
+            if (sources !== undefined) {
+              sources.forEach(t => currentSources.add(t));
+            }
+          });
+          // Add current sources to the set
+          sourceSet = new Set([...sourceSet, ...currentSources]);
+          previousSources = currentSources;
+        }
+      }
+      sources = Array.from(sourceSet);
+    }
+    return dataObjectTypes.length === 0
+      ? sources
+      : sources.filter(t =>
+          dataObjectTypes.includes(new EtpUri(t).dataObjectType)
+        );
+  }
+
+  /**
    * Returns an array of source URIs whose target is the specified URI.
    * @param {string} uri - The URI of the target resource.
+   * @param {string[]} [dataObjectTypes=[]] - An array of data object types to filter the source URIs.
+   * @param {number} [depth=1] - The depth of the search.
    * @returns {string[]} - An array of source URIs whose target is the specified URI.
-   * @memberof ResourceGraph
    * @example const graph = new ResourceGraph(...);
    * const sources = graph.sources(uri);
    */
-  sources(uri: string): string[] {
-    return this.edges.filter(s => s.targetUri === uri).map(t => t.sourceUri);
+  sources(uri: string, dataObjectTypes: string[] = [], depth = 1): string[] {
+    return this.sourcesForList([uri], dataObjectTypes, depth);
   }
 
   /**
    * Return the list of sources as array of Resource
    *
    * @param {(string | Resource)} resource where requested resources are pointing to
-   * @return {Resource[]}
-   * @memberof ResourceGraph
+   * @param {string[]} [dataObjectTypes=[]] filter on data object types
+   * @param {number} [depth=1] depth of the search
+   * @returns {Resource[]}
    */
-  findSources(resource: string | Resource): Resource[] {
+  findSources(
+    resource: string | Resource,
+    dataObjectTypes: string[] = [],
+    depth = 1
+  ): Resource[] {
     const uri: string = typeof resource === "string" ? resource : resource.uri;
-    return this.sources(uri)
+    return this.sources(uri, dataObjectTypes, depth)
       .map(s => this.get(s))
       .filter(r => r !== undefined) as Resource[];
   }
@@ -457,14 +623,15 @@ export class ResourceGraph extends Map<string, Resource> {
    * and the edges that connect them.
    * @param {(resource: Resource) => boolean} filter - The filter function.
    * @returns {ResourceGraph} - The new graph.
-   * @memberof ResourceGraph
    * @example const graph = new ResourceGraph(...);
    * const newGraph = graph.filter(r => typeArray.includes(r.type));
    */
   filter(filter: (resource: Resource) => boolean): ResourceGraph {
     const nodes = Array.from(this.values()).filter(filter);
     const graph = new ResourceGraph(nodes, []);
-    graph.edges = this.edges.filter(e => graph.has(e.sourceUri));
+    graph.edges = this.edges.filter(
+      e => graph.has(e.sourceUri) && graph.has(e.targetUri)
+    );
     return graph;
   }
 }
