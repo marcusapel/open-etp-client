@@ -47,7 +47,7 @@ export class PersistedCollectionRepresentationSetOSDU
     const MemberIDs: string[] | undefined =
       xml.Representation.length === 0 ? undefined : [];
     for (const r of xml.Representation) {
-      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) || "");
+      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) ?? "");
     }
 
     this.data = {

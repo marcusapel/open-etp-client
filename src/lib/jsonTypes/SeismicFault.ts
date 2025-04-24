@@ -4,8 +4,8 @@ import { EtpUri, ResqmlClient } from "../client/ResqmlClient";
 
 import { OSDUContext } from "./OsduContext";
 import {
-  getGeometries,
-  ResqmlWorkProductComponent
+  ResqmlWorkProductComponent,
+  getGeometries
 } from "./WorkProductComponent";
 
 import {
@@ -105,14 +105,11 @@ export class SeismicFaultOSDU
       }
     }
     let BinGridID = undefined;
-    if (seismicSupport !== undefined) {
-      if (seismicSupport.$type === "resqml20.obj_Grid2dRepresentation") {
-        BinGridID = await this.dorToSrn(
-          ReservoirDMSUrl,
-          seismicSupport,
-          client
-        );
-      }
+    if (
+      seismicSupport !== undefined &&
+      seismicSupport.$type === "resqml20.obj_Grid2dRepresentation"
+    ) {
+      BinGridID = await this.dorToSrn(ReservoirDMSUrl, seismicSupport, client);
     }
 
     const interpretation = xml.RepresentedInterpretation
@@ -161,10 +158,11 @@ export class SeismicFaultOSDU
         Domain
       } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
 
-      this.meta = [FrameOfReferenceCRS];
-
+      this.data.DomainTypeID = context.addReferenceData("DomainType", Domain);
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
+      this.meta = [FrameOfReferenceCRS];
+
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];
       }

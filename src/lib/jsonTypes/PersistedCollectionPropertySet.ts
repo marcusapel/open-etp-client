@@ -42,7 +42,7 @@ export class PersistedCollectionPropertySetOSDU
     const MemberIDs: string[] | undefined =
       xml.Properties.length === 0 ? undefined : [];
     for (const r of xml.Properties) {
-      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) || "");
+      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) ?? "");
     }
 
     this.data = {

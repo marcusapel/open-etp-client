@@ -120,6 +120,14 @@ export class GenericPropertyOSDU
     super(xml, context, "GenericProperty.1.2.0");
   }
 
+  /**
+   * Initialize Data in an async method
+   *
+   * @param {string} ReservoirDMSUrl
+   * @param {SimpleJson<resqml20.AbstractValuesProperty>} xml
+   * @param {ResqmlClient} client
+   * @returns {Promise<GenericPropertyOSDU>}
+   */
   public async initData(
     ReservoirDMSUrl: string,
     xml: SimpleJson<resqml20.AbstractValuesProperty>,
@@ -284,12 +292,14 @@ export class GenericPropertyOSDU
             });
           } else {
             const patch = rep[p] as Record<string, unknown>;
-            if (patch !== undefined && typeof patch === "object") {
-              if ("Geometry" in patch) {
-                const g = patch["Geometry"];
-                if (g !== undefined) {
-                  geometry = g as SimpleJson<resqml20.PointGeometry>;
-                }
+            if (
+              patch !== undefined &&
+              typeof patch === "object" &&
+              "Geometry" in patch
+            ) {
+              const g = patch["Geometry"];
+              if (g !== undefined) {
+                geometry = g as SimpleJson<resqml20.PointGeometry>;
               }
             }
           }

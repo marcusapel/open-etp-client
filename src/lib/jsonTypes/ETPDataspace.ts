@@ -12,7 +12,6 @@ import {
   LegalMetaData,
   ParentList
 } from "./Generated/dataset/ETPDataspace.1.0.1";
-import e from "express";
 
 class ETPDataspaceOSDU implements ETPDataspace {
   public acl: AccessControlList = { owners: [], viewers: [] };

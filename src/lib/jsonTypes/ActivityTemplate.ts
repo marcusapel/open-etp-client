@@ -141,7 +141,7 @@ export class ActivityTemplateOSDU
  * @param {SimpleJson<resqml20.obj_ActivityTemplate>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} _client
- * @return {Promise<ActivityTemplateOSDU>}
+ * @returns {Promise<ActivityTemplateOSDU>}
  */
 export const ActivityTemplateManifest = async (
   _uri: string,

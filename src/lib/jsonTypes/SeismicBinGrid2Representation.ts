@@ -48,7 +48,7 @@ export class SeismicBinGridOSDU
    *
    * @static
    * @param {SimpleJson<resqml20.obj_Grid2dRepresentation>} xml
-   * @return {boolean}
+   * @returns {boolean}
    * @memberof SeismicBinGridOSDU
    */
   static matchType(
@@ -232,7 +232,7 @@ export class SeismicBinGridOSDU
  * Identify OSDU kind for all 2D Grids, can create either a SeismicBinGrid, SeismicHorizon or GenericRepresentation
  *
  * @param {IResqmlDataObject} xml
- * @return {string}
+ * @returns {string}
  */
 export const Grid2dToOsduKind = (xml: IResqmlDataObject): string => {
   if (xml.$type !== "resqml20.obj_Grid2dRepresentation") {
@@ -254,7 +254,7 @@ export const Grid2dToOsduKind = (xml: IResqmlDataObject): string => {
  * @param {SimpleJson<resqml20.obj_Grid2dRepresentation>} xml
  * @param {OSDUContext} context
  * @param {ResqmlClient} client
- * @return {(Promise<GenericRepresentationOSDU | SeismicBinGridOSDU | SeismicHorizonOSDU>)}
+ * @returns {(Promise<GenericRepresentationOSDU | SeismicBinGridOSDU | SeismicHorizonOSDU>)}
  */
 export const Grid2dRepresentationManifest = async (
   uri: string,
