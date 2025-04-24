@@ -158,7 +158,6 @@ export class SeismicFaultOSDU
         Domain
       } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
 
-      this.data.DomainTypeID = context.addReferenceData("DomainType", Domain);
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
       this.meta = [FrameOfReferenceCRS];
