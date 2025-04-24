@@ -11,7 +11,7 @@ import {
 import {
   Data,
   SeismicFault
-} from "./Generated/work-product-component/SeismicFault.2.0.0";
+} from "./Generated/work-product-component/SeismicFault.1.3.0";
 
 /**
  * Extract SeismicFault information from a resqml 2.0 AbstractRepresentation
@@ -115,13 +115,6 @@ export class SeismicFaultOSDU
       }
     }
 
-    let Role = undefined;
-    if ("SurfaceRole" in xml) {
-      Role = (xml as any).SurfaceRole;
-    } else if ("LineRole" in xml) {
-      Role = (xml as any).LineRole;
-    }
-
     const interpretation = xml.RepresentedInterpretation
       ?._data as SimpleJson<resqml20.obj_HorizonInterpretation>;
 
@@ -146,17 +139,8 @@ export class SeismicFaultOSDU
               client
             ),
       RealizationIndex: undefined,
-      RepresentationRole: context.addReferenceData(
-        "RepresentationRole",
-        this.capitalize(Role)
-      ),
-      RepresentationType: context.addReferenceData(
-        "RepresentationType",
-        xml.$type?.split(".")[1].slice(4)
-      ),
       TimeSeries: undefined,
       Interpreter: xml.Citation.Originator,
-      Remarks: undefined,
       Seismic2DInterpretationSetID: undefined,
       Seismic3DInterpretationSetID: undefined,
       SeismicLineGeometryIDs: undefined,
@@ -176,6 +160,8 @@ export class SeismicFaultOSDU
         NodeCount,
         Domain
       } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+
+      this.meta = [FrameOfReferenceCRS];
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
