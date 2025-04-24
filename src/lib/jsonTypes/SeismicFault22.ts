@@ -11,7 +11,7 @@ import {
 import {
   Data,
   SeismicFault
-} from "./Generated/work-product-component/SeismicFault.2.0.0";
+} from "./Generated/work-product-component/SeismicFault.1.3.0";
 
 /**
  * Extract SeismicFault information from a resqml 2.2 AbstractRepresentation
@@ -206,17 +206,9 @@ export class SeismicFault22OSDU
               client
             ),
       RealizationIndex: undefined,
-      RepresentationRole: context.addReferenceData(
-        "RepresentationRole",
-        this.capitalize(Role)
-      ),
-      RepresentationType: context.addReferenceData(
-        "RepresentationType",
-        xml.$type?.split(".")[1].slice(4)
-      ),
       TimeSeries: undefined,
       Interpreter: xml.Citation.Originator,
-      Remarks: undefined,
+      Remark: undefined,
       Seismic2DInterpretationSetID: undefined,
       Seismic3DInterpretationSetID: undefined,
       SeismicLineGeometryIDs: undefined,

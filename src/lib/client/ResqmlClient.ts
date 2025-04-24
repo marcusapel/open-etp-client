@@ -814,15 +814,15 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   public async createDataspaces(dataspaces: Dataspace[]): Promise<boolean> {
-    return this.client.dataSpaceSupported
-      ? this.dataspace
-          .PutDataspaces(dataspaces)
-          .then(this.checkErrors.bind(this))
-          .catch(reason => {
-            this.logger.error(reason);
-            return false;
-          })
-      : false;
+    if (!this.client.dataSpaceSupported) {
+      throw new EtpError(
+        "Server do not support Dataspace protocol",
+        ErrorCode.ENOSUPPORTEDPROTOCOLS
+      );
+    }
+    return this.dataspace
+      .PutDataspaces(dataspaces)
+      .then(this.checkErrors.bind(this));
   }
 
   /**
@@ -3130,12 +3130,24 @@ export class ResqmlClient {
     errors: Energistics.Etp.v12.Datatypes.ErrorInfo[]
   ): boolean {
     let ok = true;
+    const error_message: string[] = [];
+    let code: ErrorCode = ErrorCode.IS_OK;
     errors.forEach(e => {
       if (e.code !== ErrorCode.IS_OK) {
         ok = false;
+        code = e.code;
+        error_message.push(e.message);
         this.logger.error(e.message);
       }
     });
+    if (!ok) {
+      throw new EtpError(
+        `${error_message.length} failures on ${
+          errors.length
+        } request: ${error_message.join(", ")}`,
+        code
+      );
+    }
     return ok;
   }
 
