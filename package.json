@@ -150,7 +150,7 @@
       "path-to-regexp": "3.3.0"
     },
     "express": {
-      "path-to-regexp": "0.1.10"
+      "path-to-regexp": "0.1.12"
     },
     "@nestjs/swagger": {
       "path-to-regexp": "3.3.0"
