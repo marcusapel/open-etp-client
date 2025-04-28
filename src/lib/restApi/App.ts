@@ -120,9 +120,7 @@ export default async function app(): Promise<NestExpressApplication> {
 
   const document = SwaggerModule.createDocument(nestApp, config);
   // Generate API file with 2 space indentation forced.
-  // Do not generate the file in production
-  process.env.NODE_ENV !== "production" &&
-    fs.writeFileSync("./swagger.json", JSON.stringify(document, null, 2));
+  fs.writeFileSync("./swagger.json", JSON.stringify(document, null, 2));
 
   SwaggerModule.setup(restApiRoutePath, nestApp, document, {
     swaggerOptions: {
