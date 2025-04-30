@@ -25,6 +25,7 @@ import {
 } from "..";
 
 import { serverHost, serverPath, serverPort, serverProtocol } from "./Config";
+import { allMessageBodyType } from "src/lib/common/EtpTypes";
 const serverUrl = `${serverProtocol}://${serverHost}:${serverPort}${serverPath}/`;
 
 // eslint-disable-next-line no-console
@@ -51,6 +52,18 @@ ct.addMessageTracer((header: Energistics.Etp.v12.Datatypes.MessageHeader) => {
     `Received message ${header.protocol}.${header.messageType} #${header.messageId}`
   );
 });
+ct.addCertificationTracer(
+  (
+    header: Energistics.Etp.v12.Datatypes.MessageHeader,
+    body: allMessageBodyType
+  ) => {
+    console.log(
+      `Received message ${header.protocol}.${header.messageType} #${
+        header.messageId
+      }. Body has ${Object.getOwnPropertyNames(body).length} properties.`
+    );
+  }
+);
 ct.openSession(serverUrl, XmlUtils.createDefaultJWT())
   .then(() => ct.getProjects())
   .then(d => {

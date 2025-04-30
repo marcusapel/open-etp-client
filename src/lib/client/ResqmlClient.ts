@@ -34,7 +34,8 @@ import type {
   IDataSubarray,
   IOptions,
   Resource,
-  SupportedType
+  SupportedType,
+  allMessageBodyType
 } from "../common/EtpTypes";
 
 import logging from "../common/Logging";
@@ -272,6 +273,21 @@ export class ResqmlClient {
   ): void {
     this.client.enableMessageReceptionTracing = true;
     this.client.on("messageHeader", onMessage);
+  }
+
+  /**
+   * Add a callback invoked for any received message.
+   * Attention! This should only to be used in the ETP certification program as this may seriously degrade performance.
+   * @param onMessage
+   */
+  public addCertificationTracer(
+    onMessage: (
+      header: Energistics.Etp.v12.Datatypes.MessageHeader,
+      body: allMessageBodyType
+    ) => void
+  ): void {
+    this.client.enableCertificationTracing = true;
+    this.client.on("message", onMessage);
   }
 
   /**
