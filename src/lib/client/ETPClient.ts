@@ -47,7 +47,6 @@ export class ETPClient extends ETPCore {
   public dataSpaceOSDUSupported: boolean;
   public transactionSupported: boolean;
   public enableMessageReceptionTracing: boolean;
-  public enableCertificationTracing: boolean;
   private host = "";
   private readonly serverProtocols: Energistics.Etp.v12.Datatypes.SupportedProtocol[] =
     [];
@@ -59,7 +58,6 @@ export class ETPClient extends ETPCore {
     this.dataSpaceOSDUSupported = false;
     this.transactionSupported = false;
     this.enableMessageReceptionTracing = false;
-    this.enableCertificationTracing = false;
   }
 
   public connect(config: IClientConfig, socketClass: any = WebSocket): void {

@@ -52,7 +52,11 @@ ct.addMessageTracer((header: Energistics.Etp.v12.Datatypes.MessageHeader) => {
     `Received message ${header.protocol}.${header.messageType} #${header.messageId}`
   );
 });
+ct.addCertificationTracer("messageId", (messageId: bigint) => {
+  console.log(`Sent message with ID ${messageId}`);
+});
 ct.addCertificationTracer(
+  "message",
   (
     header: Energistics.Etp.v12.Datatypes.MessageHeader,
     body: allMessageBodyType

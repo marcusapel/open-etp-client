@@ -276,18 +276,32 @@ export class ResqmlClient {
   }
 
   /**
-   * Add a callback invoked for any received message.
+   * Add a callback invoked for any received message, or sent messageId.
    * Attention! This should only to be used in the ETP certification program as this may seriously degrade performance.
-   * @param onMessage
+   * @param callback
    */
   public addCertificationTracer(
-    onMessage: (
+    type: "message",
+    callback: (
       header: Energistics.Etp.v12.Datatypes.MessageHeader,
       body: allMessageBodyType
     ) => void
+  ): void;
+  public addCertificationTracer(
+    type: "messageId",
+    callback: (messageId: bigint) => void
+  ): void;
+  public addCertificationTracer(
+    type: "message" | "messageId",
+    callback:
+      | ((
+          header: Energistics.Etp.v12.Datatypes.MessageHeader,
+          body: allMessageBodyType
+        ) => void)
+      | ((messageId: bigint) => void)
   ): void {
     this.client.enableCertificationTracing = true;
-    this.client.on("message", onMessage);
+    this.client.on(type, callback);
   }
 
   /**
