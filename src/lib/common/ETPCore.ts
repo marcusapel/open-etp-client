@@ -45,6 +45,7 @@ export class ETPCore extends EventEmitter {
   public responseTimeoutPeriod = 0; // Maximum wait before first message - Default 0
   public multipartMessageTimeoutPeriod = 1000; // Maximum wait between messages
   public messageQueueDepth = 100; // Maximum number of waiting message supported by server
+  public enableCertificationTracing: boolean = false;
   protected binary = true;
   protected connection: w3cwebsocket | null = null;
   protected handlers: BaseHandler[] = [];
@@ -112,6 +113,9 @@ export class ETPCore extends EventEmitter {
     messageFlags = 0
   ): Energistics.Etp.v12.Datatypes.MessageHeader {
     this.messageId = this.messageId + BigInt(2); // Specs request that client use only even non null
+    if (this.enableCertificationTracing) {
+      this.emit("messageId", this.messageId);
+    }
     return {
       correlationId,
       messageFlags,

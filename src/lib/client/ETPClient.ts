@@ -156,6 +156,9 @@ export class ETPClient extends ETPCore {
     if (this.enableMessageReceptionTracing) {
       this.emit("messageHeader", messageHeader);
     }
+    if (this.enableCertificationTracing) {
+      this.emit("message", messageHeader, messageBody);
+    }
     if (messageHeader.protocol === PROTOCOL.Core) {
       switch (messageHeader.messageType) {
         case Core.MsgOpenSession:
