@@ -79,7 +79,7 @@ phases:
       - echo "Build and push docker image..."
       - docker buildx create --driver docker-container --use
       - docker buildx inspect --bootstrap
-      - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push --build-arg DIST=dist.tgz -f devops/osdu/docker/Dockerfile.runtime -t ${ECR_IMAGE_PROD} -t ${ECR_IMAGE_BRANCH_LATEST} .
+      - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push --build-arg DIST=dist.tgz -f providers/aws/build-aws/Dockerfile.runtime -t ${ECR_IMAGE_PROD} -t ${ECR_IMAGE_BRANCH_LATEST} .
 
       - echo "Generate build-info.json"
       - |

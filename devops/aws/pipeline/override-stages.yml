@@ -29,7 +29,7 @@ aws-containerize:
     - $(aws ecr get-login --no-include-email --region $AWS_ECR_REGION)
     - docker buildx create --driver docker-container --use
     - docker buildx inspect --bootstrap
-    - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push -f devops/osdu/docker/Dockerfile.runtime --build-arg DIST=dist.tgz -t $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA -t $AWS_IMAGE_TAG_BASE:latest .
+    - docker buildx build --platform linux/arm64/v8,linux/amd64 --pull --push -f providers/aws/build-aws/Dockerfile.runtime --build-arg DIST=dist.tgz -t $AWS_IMAGE_TAG_BASE:$CI_COMMIT_SHA -t $AWS_IMAGE_TAG_BASE:latest .
   only:
     variables:
       - $AWS == '1'
