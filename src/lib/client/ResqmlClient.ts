@@ -477,27 +477,31 @@ export class ResqmlClient {
    * @memberof ResqmlClient
    */
   public async closeSession(disconnectionWait = 5000): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timer = new Timer(() => reject("timeout"), disconnectionWait);
-      this.client.on("disconnect", () => {
-        timer.cancel(false);
-        resolve();
-      });
-      this.client.on(
-        "exception",
-        (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+    if (this.client.isInSession()) {
+      return new Promise((resolve, reject) => {
+        const timer = new Timer(() => reject("timeout"), disconnectionWait);
+        this.client.on("disconnect", () => {
           timer.cancel(false);
-          const err = errorFromProtocolException(m);
-          err.message = `Cannot close session: ${err.message}`;
-          reject(err);
-        }
-      );
-      this.client.on("error", () => {
-        timer.cancel(false);
-        reject("Cannot close session");
+          resolve();
+        });
+        this.client.on(
+          "exception",
+          (_, m: Energistics.Etp.v12.Protocol.Core.ProtocolException) => {
+            timer.cancel(false);
+            const err = errorFromProtocolException(m);
+            err.message = `Cannot close session: ${err.message}`;
+            reject(err);
+          }
+        );
+        this.client.on("error", () => {
+          timer.cancel(false);
+          reject("Cannot close session");
+        });
+        this.client.closeSession();
       });
-      this.client.closeSession();
-    });
+    } else {
+      return Promise.resolve();
+    }
   }
 
   public async disconnect(): Promise<void> {
@@ -963,11 +967,7 @@ export class ResqmlClient {
         .PutDataspaces([p])
         .then(this.checkErrors.bind(this))
         .then(() => this.dataspaceOSDU.copyDataspacesContent([originURI], uri))
-        .then(this.checkErrors.bind(this))
-        .catch(reason => {
-          this.logger.error(reason);
-          return false;
-        });
+        .then(this.checkErrors.bind(this));
     }
 
     if (!this.client.dataSpaceSupported) {

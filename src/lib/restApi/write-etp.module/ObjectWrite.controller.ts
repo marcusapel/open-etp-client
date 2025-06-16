@@ -45,7 +45,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID } from "class-validator";
+import { IsUUID, IsString, IsNotEmpty, IsArray, IsOptional, IsEnum, IsInt, ArrayMinSize, ValidateNested } from "class-validator";
 
 import express from "express";
 
@@ -107,7 +107,10 @@ export class DataArrayDto {
     example: `eml20.obj_EpcExternalPartReference`,
     maxLength: 256
   })
+  @IsString()
+  @IsNotEmpty()
   ContainerType!: string;
+  
   @ApiProperty({
     name: "ContainerUuid",
     description: "Type of the array container",
@@ -116,12 +119,15 @@ export class DataArrayDto {
   })
   @IsUUID()
   ContainerUuid!: string;
+  
   @ApiProperty({
     name: "PathInResource",
     description: "Path of the data array in the container",
     pattern: patternString(arrayPathPattern),
     maxLength: 256
   })
+  @IsString()
+  @IsNotEmpty()
   PathInResource!: string;
 
   @ApiProperty({
@@ -135,6 +141,9 @@ export class DataArrayDto {
     minimum: 1,
     maximum: 1000000
   })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsInt({ each: true })
   Dimensions!: Integer32[];
 
   @ApiProperty({
@@ -148,6 +157,9 @@ export class DataArrayDto {
     minimum: 1,
     maximum: 1000000
   })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
   PreferredSubarrayDimensions?: Integer32[];
 
   @ApiProperty({
@@ -175,6 +187,7 @@ export class DataArrayDto {
       }
     ]
   })
+  @IsOptional()
   Data?: number[] | string;
 
   @ApiProperty({
@@ -189,6 +202,9 @@ export class DataArrayDto {
     maximum: 1000000,
     additionalProperties: false
   })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
   Starts?: Integer32[];
 
   @ApiProperty({
@@ -203,6 +219,9 @@ export class DataArrayDto {
     maximum: 1000000,
     additionalProperties: false
   })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
   Counts?: Integer32[];
 
   @ApiProperty({
@@ -211,6 +230,7 @@ export class DataArrayDto {
     enum: arrayTypeString,
     example: "Int32Array"
   })
+  @IsEnum(arrayTypeString)
   ArrayType!: AnyTypedArrayString;
 }
 
