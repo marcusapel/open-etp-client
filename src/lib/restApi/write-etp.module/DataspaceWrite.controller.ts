@@ -41,7 +41,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { Matches, MaxLength } from "class-validator";
+import { Matches, MaxLength, IsOptional, IsObject, IsString, IsNotEmpty } from "class-validator";
 
 import express from "express";
 
@@ -51,6 +51,9 @@ import {
   EtpUri,
   ResqmlClient
 } from "../../client/ResqmlClient";
+
+import Logging from "../../common/Logging";
+const logger = Logging.getLogger("EtpClient");
 
 import {
   FindInDataSpaceParams,
@@ -81,6 +84,8 @@ export class DataspaceDto {
     maxLength: 2048,
     pattern: patternString(dataspaceNamePattern)
   })
+  @IsString()
+  @IsNotEmpty()
   @MaxLength(2048)
   @Matches(dataspaceNamePattern)
   DataspaceId!: string;
@@ -94,6 +99,8 @@ export class DataspaceDto {
     required: false,
     pattern: patternString(dataspacePathPattern)
   })
+  @IsOptional()
+  @IsString()
   @MaxLength(2048)
   @Matches(dataspaceNamePattern)
   Path?: string;
@@ -106,6 +113,8 @@ export class DataspaceDto {
     required: false,
     additionalProperties: alphaSpaceSchema
   })
+  @IsOptional()
+  @IsObject()
   CustomData?: any;
 }
 
@@ -261,7 +270,9 @@ export default class DataspaceMutationsAPI {
         for (const e in requestBody.CustomData) {
           customData.set(e, {
             item: {
-              _string: requestBody.CustomData[e],
+              _string: typeof requestBody.CustomData[e] === "string"
+                      ? requestBody.CustomData[e]
+                      : JSON.stringify(requestBody.CustomData[e]),
               __keyName: "_string"
             }
           });
@@ -284,7 +295,11 @@ export default class DataspaceMutationsAPI {
       }
       return uri;
     } catch (err) {
-      await c?.closeSession();
+      try {
+        await c?.closeSession();
+      } catch (closeError) {
+        logger.error("Could not successfully close connection.")
+      }
       throw httpErrorFromEtpError(err);
     }
   }

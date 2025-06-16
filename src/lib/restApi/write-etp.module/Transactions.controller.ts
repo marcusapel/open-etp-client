@@ -41,7 +41,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID } from "class-validator";
+import { IsUUID, IsOptional, IsNumber, IsPositive, IsString, IsNotEmpty } from "class-validator";
 
 import express from "express";
 
@@ -79,6 +79,8 @@ export class TransactionParams extends FindInDataSpaceParams {
     maxLength: 2048,
     pattern: patternString(uuidPattern)
   })
+  @IsString()
+  @IsNotEmpty()
   @IsUUID()
   transactionId!: string;
 }
@@ -94,7 +96,10 @@ export class CreateTransactionDto {
     example: 1200,
     required: false
   })
-  TimeoutPeriod!: number;
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  TimeoutPeriod?: number;
 
   @ApiProperty({
     name: "Retries",
@@ -104,7 +109,10 @@ export class CreateTransactionDto {
     example: 6,
     required: false
   })
-  Retries!: number;
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  Retries?: number;
 }
 
 /**

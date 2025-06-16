@@ -96,7 +96,19 @@ export default async function app(): Promise<NestExpressApplication> {
       transform: true,
       skipUndefinedProperties: true,
       transformerPackage: require("@nestjs/class-transformer"),
-      validatorPackage: require("class-validator")
+      validatorPackage: require("class-validator"),
+      // Enhanced validation options to catch deserialization failures
+      whitelist: true, // Strip properties that don't have decorators
+      forbidNonWhitelisted: true, // Throw error for non-whitelisted properties
+      disableErrorMessages: false, // Enable detailed error messages
+      validateCustomDecorators: true, // Validate custom decorators
+      forbidUnknownValues: true, // Reject unknown values
+      stopAtFirstError: false, // Show all validation errors
+      dismissDefaultMessages: false, // Keep default error messages
+      validationError: {
+        target: false, // Don't include the target object in error
+        value: false   // Don't include the value in error (security)
+      }
     })
   );
 
