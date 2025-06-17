@@ -2078,7 +2078,22 @@ export class ResqmlClient {
         };
       return this.dataArray
         .put([da])
-        .then(e => e.length > 0 && e[0].code === 0);
+        .then(e => {
+          // If no error info returned, assume success
+          if (e.length === 0) {
+            return true;
+          }
+          
+          // Check for any errors
+          const errors = e.filter(error => error.code !== 0);
+          if (errors.length > 0) {
+            // Throw the first error found
+            throw new EtpError(errors[0].message, errors[0].code);
+          }
+          
+          // All operations succeeded
+          return true;
+        });
     }
     if (!transportType) {
       return Promise.reject(
@@ -2226,7 +2241,22 @@ export class ResqmlClient {
           metadata
         }
       ])
-      .then(err => err && err[0].code === ErrorCode.IS_OK);
+      .then(err => {
+        // If no error info returned, assume success
+        if (!err || err.length === 0) {
+          return true;
+        }
+        
+        // Check for any errors
+        const errors = err.filter(error => error.code !== ErrorCode.IS_OK);
+        if (errors.length > 0) {
+          // Throw the first error found
+          throw new EtpError(errors[0].message, errors[0].code);
+        }
+        
+        // All operations succeeded
+        return true;
+      });
   }
 
   private initPartsAndSlices(dimension: number, size: number) {
@@ -2296,7 +2326,21 @@ export class ResqmlClient {
   ): Promise<boolean> {
     try {
       const e = await this.dataArray.put([array]);
-      return e.length > 0 && e[0].code === 0;
+      
+      // If no error info returned, assume success
+      if (e.length === 0) {
+        return true;
+      }
+      
+      // Check for any errors
+      const errors = e.filter(error => error.code !== 0);
+      if (errors.length > 0) {
+        // Throw the first error found
+        throw new EtpError(errors[0].message, errors[0].code);
+      }
+      
+      // All operations succeeded
+      return true;
     } catch (err) {
       if (err instanceof Error) {
         return Promise.reject(
@@ -2414,7 +2458,22 @@ export class ResqmlClient {
         customData: a.customData,
         uid: a.uid
       }));
-    return this.dataArray.put(das).then(e => e.length > 0 && e[0].code === 0);
+    return this.dataArray.put(das).then(e => {
+      // If no error info returned, assume success
+      if (e.length === 0) {
+        return true;
+      }
+      
+      // Check for any errors
+      const errors = e.filter(error => error.code !== 0);
+      if (errors.length > 0) {
+        // Throw the first error found
+        throw new EtpError(errors[0].message, errors[0].code);
+      }
+      
+      // All operations succeeded
+      return true;
+    });
   }
 
   /**

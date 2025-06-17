@@ -61,7 +61,7 @@ import { Integer32 } from "../../common/Etp12";
 
 import { Type } from "@nestjs/class-transformer";
 
-import { IsDate, IsUUID, Matches, MaxLength } from "class-validator";
+import { IsDate, IsUUID, Matches, MaxLength, IsString, IsNotEmpty } from "class-validator";
 
 import {
   FindInDataSpaceParams,
@@ -407,6 +407,8 @@ export class DataArrayParams extends FindInDataSpaceParams {
     maxLength: 2048,
     pattern: patternString(dataObjectTypePattern)
   })
+  @IsString()
+  @IsNotEmpty()
   @Matches(dataObjectTypePattern)
   @MaxLength(256)
   dataObjectType!: string;
@@ -418,6 +420,8 @@ export class DataArrayParams extends FindInDataSpaceParams {
     maxLength: 2048,
     pattern: patternString(uuidPattern)
   })
+  @IsString()
+  @IsNotEmpty()
   @IsUUID()
   guid!: string;
 
@@ -428,6 +432,9 @@ export class DataArrayParams extends FindInDataSpaceParams {
     description: "Identifier of the array inside the container.",
     maxLength: 2048
   })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2048)
   pathInResource!: string;
 }
 
