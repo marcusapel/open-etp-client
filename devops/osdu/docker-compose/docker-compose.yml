@@ -4,6 +4,8 @@ services:
   etp-client-postgresql:
     image: postgres
     container_name: etp-client-postgresql
+    security_opt:
+      - no-new-privileges:true
     ports:
       - target: 5432
         published: 5432
@@ -23,6 +25,8 @@ services:
       - etp-client-postgresql
     container_name: etp-client-etp-server
     image: ${RDMS_ETP_IMAGE?}
+    security_opt:
+      - no-new-privileges:true
     ports:
       - target: ${RDMS_ETP_PORT?}
         published: ${RDMS_ETP_PORT?}
@@ -48,6 +52,8 @@ services:
       - etp-client-etp-server
     container_name: etp-client-etp-server-init
     image: ${RDMS_ETP_IMAGE?}
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ${SOURCE_HOST_DIR:-../../..}/devops/data:/home/pdgm/data:ro
     labels:
@@ -72,6 +78,8 @@ services:
       - etp-client-etp-server-init
     container_name: etp-rest-api
     image: ${RDMS_REST_RUNTIME_IMAGE}
+    security_opt:
+      - no-new-privileges:true
     ports:
       - target: ${RDMS_REST_PORT?}
         published: ${RDMS_REST_PORT?}
