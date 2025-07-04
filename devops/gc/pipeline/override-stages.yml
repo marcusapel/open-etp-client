@@ -67,6 +67,10 @@ gc-test:
   script:
     - !reference [.gc_postman_tests, script]
 
+gc-acceptance-test:
+  extends:
+    - .gc-variables
+
 gc-dev2-test:
   tags: ["osdu-small"]
   stage: integration
@@ -77,7 +81,3 @@ gc-dev2-test:
     - .gc-dev2-variables
   script:
     - !reference [.gc_postman_tests, script]
-
-  gc-acceptance-test:
-    extends:
-      - .gc-variables
