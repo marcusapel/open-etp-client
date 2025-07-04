@@ -15,8 +15,6 @@
 // ============================================================================
 import { Integer32 } from "../common/Etp12";
 
-import * as crypto from "crypto";
-
 import {
   Energistics,
   IOptions,
@@ -43,7 +41,6 @@ import {
   CanActivate,
   ExecutionContext,
   HttpException,
-  InternalServerErrorException,
   NotFoundException,
   NotImplementedException,
   PipeTransform,
@@ -75,10 +72,6 @@ export const swaggerUIUrl = `${restApiMainUrl}:${restApiPort}${restApiRoutePath}
 export const serverUIUrl = `${restApiMainUrl}:${openApiPort}${restApiServerPath}`;
 
 export const swaggerServers = [{ url: serverUIUrl, description: "API server" }];
-
-const getSHA256 = (input: string) => {
-  return crypto.createHash("sha256").update(input).digest("hex");
-};
 
 let userInfo: string;
 
@@ -869,8 +862,8 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
   if (error && typeof error === "object" && "message" in error) {
     logger.error(error.message);
   }
-  return new InternalServerErrorException({
-    description: `Unknown Error: ${
+  return new BadRequestException({
+    description: `Cannot process this request: ${
       error && typeof error === "object" && "message" in error
         ? error.message
         : ""

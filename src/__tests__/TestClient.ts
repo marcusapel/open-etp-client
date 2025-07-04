@@ -35,6 +35,7 @@ import {
 } from "../index";
 import type {
   DataArray,
+  DataValue,
   IResqmlDataObject,
   Resource,
   SimpleJson
@@ -44,7 +45,7 @@ import { ETPClient } from "../lib/client/ETPClient";
 
 import * as controlUtils from "../lib/restApi/ControllerUtils";
 
-import { MessageFlags } from "../lib/common/EtpTypes";
+import { EtpDataValue, MessageFlags } from "../lib/common/EtpTypes";
 
 import restApp from "../lib/restApi/App";
 
@@ -71,7 +72,26 @@ const failOnUnexpectedError = (err: Error) => {
 
 export const dataPartitionMode =
   process.env.RDMS_DATA_PARTITION_MODE || "single";
-export const testDataPartitionId = process.env.RDMS_TEST_DATA_PARTITION_ID;
+export const testDataPartitionId =
+  process.env.RDMS_TEST_DATA_PARTITION_ID || "osdu";
+const testAclViewers = process.env.RDMS_TEST_ACL_VIEWERS;
+const testAclOwners = process.env.RDMS_TEST_ACL_OWNERS;
+const testLegalTags = process.env.RDMS_TEST_LEGAL_TAGS;
+const testOtherRelevantDataCountries =
+  process.env.RDMS_TEST_OTHER_RELEVANT_DATA_COUNTRIES;
+
+const viewers = testAclViewers
+  ? JSON.parse(testAclViewers)
+  : [`data.default.viewers@${testDataPartitionId}.contoso.com`];
+const owners = testAclOwners
+  ? JSON.parse(testAclOwners)
+  : [`data.default.owners@${testDataPartitionId}.contoso.com`];
+const legaltags = testLegalTags
+  ? JSON.parse(testLegalTags)
+  : [`${testDataPartitionId}-RDDMS-Legal-Tag`];
+const otherRelevantDataCountries = testOtherRelevantDataCountries
+  ? JSON.parse(testOtherRelevantDataCountries)
+  : ["US"];
 
 function sleep(milliseconds: number) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -228,7 +248,7 @@ const createLargeContent = (
     storeLastWrite: BigInt(Date.now()),
     activeStatus: Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
     lastChanged: BigInt(Date.now()),
-    customData: new Map()
+    customData
   };
   return res;
 };
@@ -247,6 +267,15 @@ const serverData: string[] = [
 let token = "";
 
 let nestApp: any = undefined;
+
+const customData = new Map<string, DataValue>();
+customData.set("viewers", EtpDataValue.fromUnknown(viewers));
+customData.set("owners", EtpDataValue.fromUnknown(owners));
+customData.set("legaltags", EtpDataValue.fromUnknown(legaltags));
+customData.set(
+  "otherRelevantDataCountries",
+  EtpDataValue.fromUnknown(otherRelevantDataCountries)
+);
 
 try {
   beforeAll(async () => {
@@ -267,8 +296,6 @@ try {
       const nestAppTest = request(nestAppServer);
       nestAppTest.get(`${restApiServerPath}/health/readiness`).expect(200);
       testServers["app"] = nestAppTest;
-
-      const path = `${restApiServerPath}/auth/token`;
 
       // initialize token for
       const res = await nestAppTest
@@ -536,7 +563,7 @@ describe("Resource Graph", () => {
         activeStatus:
           Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind.Active,
         lastChanged: BigInt(0),
-        customData: new Map()
+        customData
       },
       blobId: null
     };
@@ -608,7 +635,7 @@ describe("Resource Graph", () => {
       100000
     );
 
-    await clientWrite.findOrCreateDataspace(path, path);
+    await clientWrite.findOrCreateDataspace(path, path, customData);
     const projects2 = await client.getDataspaces();
     expect(projects2).toBeTruthy();
     if (!projects2) {
@@ -818,7 +845,7 @@ describe("SubArray", () => {
           uri: dataSpaceUri,
           storeCreated: BigInt(Date.now()),
           storeLastWrite: BigInt(Date.now()),
-          customData: new Map()
+          customData
         }
       ]);
 
@@ -1242,7 +1269,7 @@ describe("OSDU Dataspaces", () => {
           path: "Import/test",
           storeLastWrite: BigInt(0),
           storeCreated: BigInt(0),
-          customData: new Map()
+          customData
         }
       ]);
 
@@ -1310,7 +1337,7 @@ describe("OSDU Dataspaces", () => {
         path: "Import/test2",
         storeLastWrite: BigInt(0),
         storeCreated: BigInt(0),
-        customData: new Map()
+        customData
       }
     ]);
 
@@ -1406,7 +1433,7 @@ describe("Rest API tools", () => {
   );
 });
 
-describe.only("Rest API Transaction 2.0.1 Workflow", () => {
+describe("Rest API Transaction 2.0.1 Workflow", () => {
   it.each(serverData)(
     "Full Workflow",
     async type => {
@@ -1529,7 +1556,10 @@ describe.only("Rest API Transaction 2.0.1 Workflow", () => {
             DataspaceId: `${dataSpace}`,
             Path: `${dataSpace}`,
             CustomData: {
-              key: "value"
+              owners,
+              viewers,
+              legaltags,
+              otherRelevantDataCountries
             }
           }
         ])
@@ -1958,7 +1988,10 @@ describe("Rest API Transaction 2.2 Workflow", () => {
             DataspaceId: `${dataSpace}`,
             Path: `${dataSpace}`,
             CustomData: {
-              key: "value"
+              owners: owners,
+              viewers: viewers,
+              legaltags: legaltags,
+              otherRelevantDataCountries: otherRelevantDataCountries
             }
           }
         ])

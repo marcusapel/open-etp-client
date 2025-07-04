@@ -19,6 +19,7 @@ import { v5 as uuidNameSpace, v4 as uuidRandom } from "uuid";
 import * as websocket from "websocket";
 import {
   ErrorCode,
+  EtpDataValue,
   EtpError,
   errorFromProtocolException
 } from "../common/EtpTypes";
@@ -982,9 +983,7 @@ export class ResqmlClient {
       return false;
     }
 
-    customData.set("fromDataspace", {
-      item: { _string: originURI, __keyName: "_string" }
-    });
+    customData.set("fromDataspace", EtpDataValue.avroString(originURI));
 
     return this.createDataspaces([p]);
   }
@@ -2076,24 +2075,22 @@ export class ResqmlClient {
           uid,
           customData
         };
-      return this.dataArray
-        .put([da])
-        .then(e => {
-          // If no error info returned, assume success
-          if (e.length === 0) {
-            return true;
-          }
-          
-          // Check for any errors
-          const errors = e.filter(error => error.code !== 0);
-          if (errors.length > 0) {
-            // Throw the first error found
-            throw new EtpError(errors[0].message, errors[0].code);
-          }
-          
-          // All operations succeeded
+      return this.dataArray.put([da]).then(e => {
+        // If no error info returned, assume success
+        if (e.length === 0) {
           return true;
-        });
+        }
+
+        // Check for any errors
+        const errors = e.filter(error => error.code !== 0);
+        if (errors.length > 0) {
+          // Throw the first error found
+          throw new EtpError(errors[0].message, errors[0].code);
+        }
+
+        // All operations succeeded
+        return true;
+      });
     }
     if (!transportType) {
       return Promise.reject(
@@ -2246,14 +2243,14 @@ export class ResqmlClient {
         if (!err || err.length === 0) {
           return true;
         }
-        
+
         // Check for any errors
         const errors = err.filter(error => error.code !== ErrorCode.IS_OK);
         if (errors.length > 0) {
           // Throw the first error found
           throw new EtpError(errors[0].message, errors[0].code);
         }
-        
+
         // All operations succeeded
         return true;
       });
@@ -2326,19 +2323,19 @@ export class ResqmlClient {
   ): Promise<boolean> {
     try {
       const e = await this.dataArray.put([array]);
-      
+
       // If no error info returned, assume success
       if (e.length === 0) {
         return true;
       }
-      
+
       // Check for any errors
       const errors = e.filter(error => error.code !== 0);
       if (errors.length > 0) {
         // Throw the first error found
         throw new EtpError(errors[0].message, errors[0].code);
       }
-      
+
       // All operations succeeded
       return true;
     } catch (err) {
@@ -2463,14 +2460,14 @@ export class ResqmlClient {
       if (e.length === 0) {
         return true;
       }
-      
+
       // Check for any errors
       const errors = e.filter(error => error.code !== 0);
       if (errors.length > 0) {
         // Throw the first error found
         throw new EtpError(errors[0].message, errors[0].code);
       }
-      
+
       // All operations succeeded
       return true;
     });
