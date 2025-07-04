@@ -933,17 +933,17 @@ describe("Objects", () => {
       const testDataspaceUri = testDataspace?.uri;
 
       const t = await client.getDataspaceTypes(testDataspaceUri);
-      expect(t.length).toBe(14);
+      expect(t.length).toBe(16);
 
       const objects: Resource[] =
         await client.getDataspaceResources(testDataspaceUri);
       // Objects
-      expect(objects.length).toBe(89);
+      expect(objects.length).toBe(91);
 
       const fullGraph: ResourceGraph =
         await client.getDataspaceGraph(testDataspaceUri);
       // Graph
-      expect(fullGraph.size).toBe(89);
+      expect(fullGraph.size).toBe(91);
       expect(fullGraph.edges.length).toBe(113);
 
       // Property
@@ -2161,7 +2161,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body).toHaveLength(14);
+    expect(res.body).toHaveLength(16);
   });
 
   it.each(serverData)(`Wrong dataspacesTypes %s`, async type => {
@@ -2271,7 +2271,7 @@ describe(`Resources`, () => {
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
-    expect(res.body).toHaveLength(2);
+    expect(res.body).toHaveLength(3);
     const res2 = await testServers[type]
       .get(
         `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
