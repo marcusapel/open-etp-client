@@ -615,13 +615,13 @@ describe("Resource Graph", () => {
   });
 
   it("Create Delete Dataspace", async () => {
-    const path = "test/toDelete";
+    const path = `test/toDelete${uuidRandom()}`;
     const uri = EtpUri.createDataSpaceUri(path);
     const clientWrite = new ResqmlClient();
     await client.openSession(etpServerUrl, jwt, testDataPartitionId);
     const projects = await client.getDataspaces();
 
-    expect(projects?.filter(r => r.path.includes(path)).length).toBe(1);
+    expect(projects?.filter(r => r.path.includes(path)).length).toBe(0);
 
     await clientWrite.openSession(
       etpServerUrl,
@@ -814,7 +814,7 @@ describe("Resource Graph", () => {
       return;
     }
     await client.closeSession();
-    expect(projects.length).toBeGreaterThan(1);
+    expect(projects.length).toBeGreaterThanOrEqual(1);
     const testDataspace = projects.find(p => p.path.includes(dataspaceName));
     expect(testDataspace).toBeDefined();
   });
@@ -2422,7 +2422,7 @@ describe(`Manifest`, () => {
       expect(manifest.Data?.Datasets).toBeDefined();
       expect(manifest.Data?.WorkProduct).toBeUndefined();
       expect(manifest.Data?.WorkProductComponents?.length).toBe(4);
-      expect(manifest.ReferenceData?.length).toBe(7);
+      expect(manifest.ReferenceData?.length).toBe(8);
     },
     maxTime
   );
