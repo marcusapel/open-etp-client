@@ -54,6 +54,9 @@ export class IjkGridRepresentationOSDU
     if (!xml.Geometry?.CellGeometryIsDefined) {
       return xml.Ni * xml.Nj * xml.Nk;
     }
+    if (!this.__context?.useDataArrayForManifest) {
+      return undefined;
+    }
     try {
       let count = 0;
       const dataspaceUri = EtpUri.createDataSpaceUri(
@@ -129,14 +132,14 @@ export class IjkGridRepresentationOSDU
           Count: xml.Ni * xml.Nj * xml.Nk,
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "Cells"
+            "cells"
           )
         },
         {
           Count: (xml.Ni - 1) * (xml.Nj - 1) * (xml.Nk - 1),
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "Nodes"
+            "nodes"
           )
         }
       ],
