@@ -63,6 +63,7 @@ import { Manifest } from "../lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
 import { ResourceGraph } from "../lib/common/ResponseHandlers";
 
 import { v4 as uuidRandom } from "uuid";
+import { random } from "lodash";
 
 const jwt = XmlUtils.createDefaultJWT();
 
@@ -671,7 +672,7 @@ describe("Resource Graph", () => {
     try {
       await clientWrite.deleteDataspaces([uri.uri]);
     } catch (e) {
-      clientWrite.deleteDataspaces([uri.uri]);
+      await clientWrite.deleteDataspaces([uri.uri]);
     }
 
     await clientWrite.closeSession();
@@ -824,7 +825,7 @@ describe("SubArray", () => {
   it("Should handle getDataSubarray safely when bandwidth is less than array size", async () => {
     const arraySize = 10000; // Replace with actual array size
     const bandwidth = 200000; // Replace with actual bandwidth
-    const dataspaceName = "test/ArrayBandwidth";
+    const dataspaceName = `test/ArrayBandwidth${uuidRandom()}`;
 
     // Set up the client and open session with low maxMessagePayloadSize
     const client = new ResqmlClient();
@@ -911,6 +912,7 @@ describe("SubArray", () => {
       // Delete empty array then delete object containing the array
       client.deleteDataspaces([dataSpaceUri]);
     }
+    await client.closeSession();
   });
 });
 
@@ -1127,8 +1129,8 @@ describe("Objects", () => {
       if (dimensions) {
         expect(dimensions[0]).toBe(7523);
       }
-      await client.closeSession();
     }
+    await client.closeSession();
   });
 });
 
@@ -1287,11 +1289,10 @@ describe("OSDU Dataspaces", () => {
 
       expect(await c2.deleteDataspaces([destinationSpace])).toBeTruthy();
       expect(await c2.unlockDataspaces([p.uri])).toBeTruthy();
-
-      await c2.closeSession();
     } catch (err) {
       thrown = true;
     }
+    await c2.closeSession();
     expect(thrown).toBeFalsy();
   });
 
@@ -1541,8 +1542,8 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
         .set(`Authorization`, `Bearer ${token}`)
         .send([
           {
-            DataspaceId: `${dataSpace}`,
-            Path: `${dataSpace}`,
+            DataspaceId: dataSpace,
+            Path: dataSpace,
             CustomData: {
               owners,
               viewers,
@@ -1986,14 +1987,14 @@ describe("Rest API Transaction 2.2 Workflow", () => {
         }
       };
 
-      const dataSpace = `projectA/${uuidRandom()}`;
+      const dataSpace = `projectA/resqml22${uuidRandom()}`;
       await testServers[type]
         .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
         .send([
           {
-            DataspaceId: `${dataSpace}`,
-            Path: `${dataSpace}`,
+            DataspaceId: dataSpace,
+            Path: dataSpace,
             CustomData: {
               owners: owners,
               viewers: viewers,
@@ -2015,11 +2016,21 @@ describe("Rest API Transaction 2.2 Workflow", () => {
       ).length;
       expect(len).toBe(1);
 
+      const trans = await testServers[type]
+        .post(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/transactions`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .expect(201);
+      const transId = trans.text;
+
       await testServers[type]
         .put(
           `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
-          )}/resources`
+          )}/resources?transactionId=${transId}`
         )
         .set(`Authorization`, `Bearer ${token}`)
         .send([
@@ -2036,10 +2047,19 @@ describe("Rest API Transaction 2.2 Workflow", () => {
         .put(
           `${restApiServerPath}/dataspaces/${encodeURIComponent(
             dataSpace
-          )}/resources`
+          )}/resources?transactionId=${transId}`
         )
         .set(`Authorization`, `Bearer ${token}`)
         .send([horizonRep, horizonInt, horizonFeat])
+        .expect(200);
+
+      await testServers[type]
+        .put(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(
+            dataSpace
+          )}/transactions/${transId}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
         .expect(200);
 
       const res4 = await testServers[type]
@@ -2049,7 +2069,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
           )}/resources/all`
         )
         .set(`Authorization`, `Bearer ${token}`);
-      expect(res4.body.length).toBe(12); // Account for 2 activities and 1 template
+      expect(res4.body.length).toBe(12);
 
       await testServers[type]
         .delete(
