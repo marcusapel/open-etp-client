@@ -401,8 +401,10 @@ export default class MutationsAPI {
   })
   @ApiOperation({
     summary: "Create or update objects.",
-    description: `Create new objects by providing their content inside a JSON array.
-    Should be done within a transaction.`,
+    description: `Create new objects by providing their content as a JSON array.
+    Each JSON objects should conform to the Energistics JSON schema defined for that type, including a $type field that is an Energistics qualified type when needed.
+    Some extra metadata on the resource representing the object can added inside a _ResourceCustomData field of each object, its value is a JSON object of key-value pairs for each metadata.
+    Object modification should be done within a transaction.`,
     servers: swaggerServers
   })
   public async PutDataObject(
