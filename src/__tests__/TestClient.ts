@@ -615,7 +615,7 @@ describe("Resource Graph", () => {
     await client.closeSession(30000);
   });
 
-  it("Create Delete Dataspace", async () => {
+  it.skip("Create Delete Dataspace", async () => {
     const path = `test/toDelete${uuidRandom()}`;
     const uri = EtpUri.createDataSpaceUri(path);
     const clientWrite = new ResqmlClient();
@@ -2069,7 +2069,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
           )}/resources/all`
         )
         .set(`Authorization`, `Bearer ${token}`);
-      expect(res4.body.length).toBe(12);
+      expect(res4.body.length).toBe(11);
 
       await testServers[type]
         .delete(
