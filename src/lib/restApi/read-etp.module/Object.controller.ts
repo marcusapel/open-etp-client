@@ -51,6 +51,8 @@ import {
   notEmptyFilter
 } from "../../client/ResqmlClient";
 
+import express from "express";
+
 import type { IResqmlDataObject } from "../../client/ResqmlClient";
 
 import {
@@ -81,7 +83,7 @@ import {
 
 import type { QueryInput } from "../ControllerUtils";
 
-import express from "express";
+import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 
 /**
  * Sort the response based on the orderBy criteria of the query
@@ -156,10 +158,18 @@ export const sendObjects = async (
       "base64",
       referencedContent
     );
-    return sortResponse(query, resolvedObjects.filter(notEmptyFilter));
+    return JSON.stringify(
+      sortResponse(query, resolvedObjects.filter(notEmptyFilter)),
+      bigIntToString,
+      2
+    );
   } else {
-    const json = await client.getObjects(uris);
-    return sortResponse(query, json.filter(notEmptyFilter));
+    const objs = await client.getObjects(uris);
+    return JSON.stringify(
+      sortResponse(query, objs.filter(notEmptyFilter)),
+      bigIntToString,
+      2
+    );
   }
 };
 

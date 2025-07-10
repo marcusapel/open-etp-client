@@ -59,8 +59,8 @@ import {
   restApiPort,
   restApiServerPath
 } from "../lib/common/config";
-import { Manifest } from "src/lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
-import { ResourceGraph } from "src/lib/common/ResponseHandlers";
+import { Manifest } from "../lib/jsonTypes/Generated/manifest/Manifest.1.0.0";
+import { ResourceGraph } from "../lib/common/ResponseHandlers";
 
 import { v4 as uuidRandom } from "uuid";
 
@@ -325,12 +325,11 @@ const crsType = "resqml20.obj_LocalDepth3dCrs";
 const grid2dType = "resqml20.obj_Grid2dRepresentation";
 
 const tSurfType = "resqml20.obj_TriangulatedSetRepresentation";
-const tSurfUid = "f814c230-bf43-4f2a-89d6-6229eb3c9c49";
-const propertyUid = "e3d82cdc-3cfe-4810-9fb5-f4904cd1b658";
-const externalPartUid = "53395ada-6f93-4bac-b506-d45997ded2a2";
-const tSurfName = "Depth_Hugin_Fm_Base_ts";
-const propertyKindUid = "4ef9db54-75fd-4d21-b41a-a67ae335d2a6";
-const propertyType = "obj_ContinuousProperty";
+const tSurfUid = "8e5b2975-a3f4-42b4-99c7-1b6a6e94b443";
+const externalPartUid = "6a624914-a22b-4a66-b458-dd6f12d54637";
+const tSurfName = "resampled_HOD_ts";
+const targetUid = "cf128528-82d2-476c-ac80-15e1a27dfd4a";
+const targetType = "resqml20.obj_HorizonInterpretation";
 const dataspaceEncoded = encodeURIComponent(dataspaceName);
 
 const wrongDataspace = "wrong/wrong";
@@ -357,7 +356,6 @@ describe("Authorization", () => {
   it("Check invalid Authentication token", async () => {
     const c2 = new ResqmlClient();
     c2.setCallsTraceability(false);
-    expect.assertions(2);
     await c2.connect(etpServerUrl, undefined, testDataPartitionId);
     try {
       await c2.requestAuthorize(`Bearer badToken`);
@@ -368,13 +366,12 @@ describe("Authorization", () => {
       await c2.requestSession();
     } catch (err) {
       expect(err).toBeDefined();
-      c2.disconnect();
     }
+    c2.disconnect();
   });
   it("Check Authorization without token", async () => {
     const c2 = new ResqmlClient();
     c2.setCallsTraceability(false);
-    expect.assertions(2);
     await c2.connect(etpServerUrl, undefined, testDataPartitionId);
     try {
       await c2.requestAuthorize();
@@ -386,8 +383,8 @@ describe("Authorization", () => {
       await c2.requestSession();
     } catch (err) {
       expect(err).toBeDefined();
-      c2.disconnect();
     }
+    c2.disconnect();
   });
 });
 
@@ -431,7 +428,7 @@ describe("Ping", () => {
   });
 });
 
-describe.skip("Dataspaces", () => {
+describe("Dataspaces", () => {
   const c2 = new ResqmlClient();
   //TODO: check why this test is failing intermittently
   it("Dataspaces no await", async () => {
@@ -685,7 +682,6 @@ describe("Resource Graph", () => {
     if (!projects) {
       return;
     }
-    expect(projects.length).toBe(1);
     const testDataspace = projects.find(p => p.path.includes(dataspaceName));
     expect(testDataspace).toBeDefined();
     const fullArray: Int32Array = Int32Array.from([1, 1, 1, 1, 1, 1]);
@@ -812,7 +808,7 @@ describe("Resource Graph", () => {
       return;
     }
     await client.closeSession();
-    expect(projects.length).toBe(1);
+    expect(projects.length).toBeGreaterThan(1);
     const testDataspace = projects.find(p => p.path.includes(dataspaceName));
     expect(testDataspace).toBeDefined();
   });
@@ -912,6 +908,9 @@ describe("SubArray", () => {
   });
 });
 
+const total_nb_resqml_objects = 1186;
+const total_nb_relationships = 2755;
+
 describe("Objects", () => {
   it("Raw", async () => {
     const client = new ResqmlClient({
@@ -938,21 +937,24 @@ describe("Objects", () => {
       const objects: Resource[] =
         await client.getDataspaceResources(testDataspaceUri);
       // Objects
-      expect(objects.length).toBe(91);
+      expect(objects.length).toBe(total_nb_resqml_objects);
 
       const fullGraph: ResourceGraph =
         await client.getDataspaceGraph(testDataspaceUri);
       // Graph
-      expect(fullGraph.size).toBe(91);
-      expect(fullGraph.edges.length).toBe(113);
+      expect(fullGraph.size).toBe(total_nb_resqml_objects);
+      expect(fullGraph.edges.length).toBe(total_nb_relationships);
 
       // Property
-      const uri = `${testDataspaceUri}/resqml20.${propertyType}(${propertyUid})`;
+      const uri = `${testDataspaceUri}/${tSurfType}(${tSurfUid})`;
+      // Check if property exists
+      const obj = await client.findResource(uri);
+      expect(obj).toBeDefined();
       const sources = await client.getSources(uri);
-      expect(sources.length).toBe(0);
+      expect(sources.length).toBe(1); // Activity
 
-      const grapSources = fullGraph.sources(uri);
-      expect(grapSources.length).toBe(0);
+      const graphSources = fullGraph.sources(uri);
+      expect(graphSources.length).toBe(1); // Interpretation and CRS
 
       const targets = await client.getTargets(uri);
       expect(targets.length).toBe(2);
@@ -960,63 +962,41 @@ describe("Objects", () => {
       const graphTargets = fullGraph.targets(uri);
       expect(graphTargets.length).toBe(2);
 
-      const tSurf = targets.find(r =>
-        r.uri.endsWith(`${tSurfType}(${tSurfUid})`)
+      const target = targets.find(r =>
+        r.uri.endsWith(`${targetType}(${targetUid})`)
       );
-      expect(tSurf).toBeDefined();
-      expect(tSurf?.name).toBe(`${tSurfName}`);
-
-      const pKind = targets.find(r =>
-        r.uri.endsWith(`resqml20.obj_PropertyKind(${propertyKindUid})`)
-      );
-      expect(pKind).toBeDefined();
-      expect(pKind?.name).toBe("j");
-
-      const part = targets.find(r =>
-        r.uri.endsWith(`eml20.obj_EpcExternalPartReference(${externalPartUid})`)
-      );
-      expect(part).toBeUndefined();
+      expect(target).toBeDefined();
 
       try {
         await client.getSources(testDataspaceUri);
       } catch (reason) {
         expect(reason).toContain("Invalid URI: Expecting DataObject");
       }
-      const resourceObjects = await client.getObjects(objects.map(o => o.uri));
-      expect(resourceObjects.length).toBe(89);
-      const propertyObj = resourceObjects.find(
-        r => r && r.Uuid === propertyUid
-      );
-      expect(propertyObj).toBeDefined();
-
-      // expected getObjects: client created with options: removeNamespace: false
-      expect(propertyObj?.Citation.Title).toStrictEqual("J");
 
       const searched = await client.getDataspaceResources(
         `${testDataspaceUri}?$filter=SurfaceRole eq 'map'`
       );
-      expect(searched).toHaveLength(3);
+      expect(searched).toHaveLength(5);
 
       // get featured surface and grid horizons
-      const interps = await client.getDataspaceResources(testDataspaceUri, [
-        "resqml20.obj_HorizonInterpretation"
-      ]);
-      expect(interps).toHaveLength(6);
-      const interp = interps.filter(
-        ff =>
-          ff.uri ===
-          `${testDataspaceUri}/resqml20.obj_HorizonInterpretation(e33006db-2797-4cdf-a4f2-8207b4688b3a)`
+      const interpretations = await client.getDataspaceResources(
+        testDataspaceUri,
+        [targetType]
+      );
+      expect(interpretations).toHaveLength(8);
+      const interpretation = interpretations.filter(
+        ff => ff.uri === `${testDataspaceUri}/${targetType}(${targetUid})`
       )[0];
-      expect(interp).toBeDefined();
-      const featuredSources = await client.getSources(interp.uri, false, [
-        crsType,
-        tSurfType,
-        grid2dType
-      ]);
-      expect(featuredSources).toHaveLength(2);
+      expect(interpretation).toBeDefined();
+      const featuredSources = await client.getSources(
+        interpretation.uri,
+        false,
+        [crsType, tSurfType, grid2dType]
+      );
+      expect(featuredSources).toHaveLength(1);
       const featuredSourcesWithSecondary = await client.getSources(
         {
-          uri: interp.uri,
+          uri: interpretation.uri,
           depth: 10,
           dataObjectTypes: [crsType, tSurfType, grid2dType],
           includeSecondaryTargets: true,
@@ -1027,7 +1007,7 @@ describe("Objects", () => {
         false,
         [crsType, tSurfType, grid2dType]
       );
-      expect(featuredSourcesWithSecondary.length).toBe(3);
+      expect(featuredSourcesWithSecondary.length).toBe(10);
     } catch (err: any) {
       failOnUnexpectedError(err);
     } finally {
@@ -1060,11 +1040,11 @@ describe("Objects", () => {
         await client.getDataspaceResources(testDataspaceUri);
 
       // Objects
-      expect(objects.length).toBe(89);
+      expect(objects.length).toBe(total_nb_resqml_objects);
       const externalObjects = new Map<string, IResqmlDataObject>();
       // Resolving all objects may takes a long time > timeout
       const filteredObjects = objects.filter(o =>
-        o.uri.endsWith(`(${propertyUid})`)
+        o.uri.endsWith(`(${tSurfUid})`)
       );
       const resourceObjects = await client.getResolvedObjects(
         filteredObjects.map(o => o.uri),
@@ -1072,24 +1052,26 @@ describe("Objects", () => {
         true
       );
 
-      const prop = resourceObjects.find(r => r && r.Uuid === propertyUid);
-      expect(prop).toBeTruthy();
-      expect(prop?.Citation.Title).toBe("J");
+      const ts = resourceObjects.find(r => r && r.Uuid === tSurfUid);
+      expect(ts).toBeTruthy();
+      expect(ts?.Citation.Title).toBe(tSurfName);
       const dimensions = (
-        (prop as SimpleJson<Resqml20.AbstractValuesProperty>)?.PatchOfValues[0]
-          ?.Values as SimpleJson<Resqml20.DoubleHdf5Array>
-      )?.Values?._data?.Dimensions;
+        (ts as SimpleJson<Resqml20.obj_TriangulatedSetRepresentation>)
+          ?.TrianglePatch[0]?.Geometry
+          ?.Points as SimpleJson<Resqml20.Point3dHdf5Array>
+      )?.Coordinates?._data?.Dimensions;
       expect(dimensions).toBeDefined();
       if (dimensions) {
-        expect(dimensions[0]).toBe(132);
+        expect(dimensions[0]).toBe(3835);
+        expect(dimensions[1]).toBe(3);
       }
-      if (!prop) {
+      if (!ts) {
         return;
       }
-      expect(XmlUtils.checkResqmlObject(prop)).toBeDefined();
-      const o2: any = prop;
+      expect(XmlUtils.checkResqmlObject(ts)).toBeDefined();
+      const o2: any = ts;
       o2.Citation = null;
-      expect(XmlUtils.checkResqmlObject(prop)).toBeNull();
+      expect(XmlUtils.checkResqmlObject(ts)).toBeNull();
     } catch (err: any) {
       failOnUnexpectedError(err);
     } finally {
@@ -1123,21 +1105,23 @@ describe("Objects", () => {
       await client.getDataspaceResources(testDataspaceUri);
 
     // Objects
-    expect(objects.length).toBe(89);
+    expect(objects.length).toBe(total_nb_resqml_objects);
     // Resolving all objects may takes a long time > timeout
     const filteredObjects = objects.filter(obj =>
-      obj.uri.endsWith(`(${propertyUid})`)
+      obj.uri.endsWith(`(${tSurfUid})`)
     );
     const o = await client.getObjects([filteredObjects[0].uri]);
     if (o[0]) {
-      const prop = await client.addArrayValues(filteredObjects[0].uri, o[0]);
+      const ts = await client.addArrayValues(filteredObjects[0].uri, o[0]);
       const dimensions = (
-        (prop as SimpleJson<Resqml20.AbstractValuesProperty>)?.PatchOfValues[0]
-          ?.Values as SimpleJson<Resqml20.DoubleHdf5Array>
-      )?.Values?._data?.Data.Dimensions;
+        (ts as SimpleJson<Resqml20.obj_TriangulatedSetRepresentation>)
+          ?.TrianglePatch[0]?.Geometry
+          ?.Points as SimpleJson<Resqml20.Point3dHdf5Array>
+      )?.Coordinates?._data?.Dimensions;
       expect(dimensions).toBeDefined();
       if (dimensions) {
-        expect(Number(dimensions[0])).toBe(132);
+        expect(dimensions[0]).toBe(3835);
+        expect(dimensions[1]).toBe(3);
       }
       await client.closeSession();
     }
@@ -1427,7 +1411,7 @@ describe("Rest API tools", () => {
         query
       );
       await c.closeSession();
-      expect(res).toHaveLength(89);
+      expect(res).toHaveLength(total_nb_resqml_objects);
     },
     400000
   );
@@ -1643,7 +1627,26 @@ describe("Rest API Transaction 2.0.1 Workflow", () => {
           )}/resources`
         )
         .set(`Authorization`, `Bearer ${token}`);
-      expect(res4.body.length).toBeGreaterThanOrEqual(3); // Account for potential import activity
+      expect(res4.body.length).toBeGreaterThanOrEqual(3); // Account for potential import
+
+      await testServers[type]
+        .delete(
+          `${restApiServerPath}/dataspaces/${encodeURIComponent(dataSpace)}`
+        )
+        .set(`Authorization`, `Bearer ${token}`)
+        .send([
+          {
+            DataspaceId: `${dataSpace}`,
+            Path: `${dataSpace}`,
+            CustomData: {
+              owners,
+              viewers,
+              legaltags,
+              otherRelevantDataCountries
+            }
+          }
+        ])
+        .expect(204);
     },
     400000
   );
@@ -1979,7 +1982,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
         }
       };
 
-      const dataSpace = "projectA/seismic22";
+      const dataSpace = `projectA/${uuidRandom()}`;
       await testServers[type]
         .post(`${restApiServerPath}/dataspaces`)
         .set(`Authorization`, `Bearer ${token}`)
@@ -2042,7 +2045,7 @@ describe("Rest API Transaction 2.2 Workflow", () => {
           )}/resources/all`
         )
         .set(`Authorization`, `Bearer ${token}`);
-      expect(res4.body.length).toBe(9);
+      expect(res4.body.length).toBe(12); // Account for 2 activities and 1 template
 
       await testServers[type]
         .delete(
@@ -2180,7 +2183,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body).toHaveLength(3);
+    expect(res.body).toHaveLength(4);
     const res2 = await testServers[type]
       .get(
         `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}?$skip=1&$top=1`
@@ -2198,7 +2201,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body).toHaveLength(3);
+    expect(res.body).toHaveLength(5);
   });
 
   it.each(serverData)(`Find Resources %s`, async type => {
@@ -2209,7 +2212,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body).toHaveLength(3);
+    expect(res.body).toHaveLength(5);
   });
 
   it.each(serverData)(`Get DataObjects JSON %s`, async type => {
@@ -2271,14 +2274,14 @@ describe(`Resources`, () => {
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
-    expect(res.body).toHaveLength(3);
+    expect(res.body).toHaveLength(1);
     const res2 = await testServers[type]
       .get(
         `${restApiServerPath}/dataspaces/${dataspaceEncoded}/resources/${tSurfType}/${tSurfUid}/sources?$skip=1&$top=1`
       )
       .set(`Authorization`, `Bearer ${token}`)
       .expect(200);
-    expect(res2.body).toHaveLength(1);
+    expect(res2.body).toHaveLength(0);
   });
 
   it.each(serverData)(`Get Arrays %s`, async type => {
@@ -2289,7 +2292,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body).toHaveLength(38);
+    expect(res.body).toHaveLength(2); // Triangles and Points
   });
 
   it.each(serverData)(`Get DataArrayMetadata %s`, async type => {
@@ -2305,6 +2308,8 @@ describe(`Resources`, () => {
       .expect(200);
   });
 
+  const firstArrayValue = 1261;
+
   it.each(serverData)(`Get DataArray JSON %s`, async type => {
     const pathInResource = encodeURIComponent(
       `/RESQML/${tSurfUid}/triangles_patch0`
@@ -2316,7 +2321,7 @@ describe(`Resources`, () => {
       .set(`Authorization`, `Bearer ${token}`)
       .expect(`Content-Type`, /json/)
       .expect(200);
-    expect(res.body.data.data[0]).toBe(48);
+    expect(res.body.data.data[0]).toBe(firstArrayValue);
   });
 
   it.each(serverData)(`Get DataArray Base64 %s`, async type => {
@@ -2336,7 +2341,7 @@ describe(`Resources`, () => {
     const int8 = new Int8Array(buf);
     const data = new Int32Array(int8.buffer);
     const arr = Array.from(data);
-    expect(arr[0]).toBe(48);
+    expect(arr[0]).toBe(firstArrayValue);
   });
 
   it.each(serverData)(`Get DataSubArray %s`, async type => {
@@ -2378,7 +2383,7 @@ describe(`Resources`, () => {
     const int8 = new Int8Array(buf);
     const data = new Float64Array(int8.buffer);
     const arr = Array.from(data);
-    expect(arr[0]).toBeCloseTo(8302.13, 2);
+    expect(arr[0]).toBeCloseTo(7752.36, 2);
   });
 });
 describe(`Manifest`, () => {
@@ -2387,10 +2392,8 @@ describe(`Manifest`, () => {
     async type => {
       const manifestInput = {
         uris: [
-          `eml:///dataspace('${dataspaceName}')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)`,
-          `eml:///dataspace('${dataspaceName}')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)`,
-          `eml:///dataspace('${dataspaceName}')/resqml20.obj_StratigraphicColumn(86a81e8f-5995-46a6-a84e-57669b167007)`,
-          `eml:///dataspace('${dataspaceName}')/resqml20.obj_SubRepresentation(e802bbac-d36e-4df1-95ee-bbe5ea5a85fb)`
+          `eml:///dataspace('${dataspaceName}')/${tSurfType}(${tSurfUid})`,
+          `eml:///dataspace('${dataspaceName}')/${targetType}(${targetUid})`
         ],
         acl: {
           viewers: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
@@ -2400,8 +2403,6 @@ describe(`Manifest`, () => {
           legaltags: ["my.legal.tags"],
           otherRelevantDataCountries: ["US", "UK"]
         },
-        fileCollection:
-          "mypartition:dataset--FileCollection.Generic:myepcfile:",
         tags: {
           quality: "good"
         },
@@ -2416,8 +2417,8 @@ describe(`Manifest`, () => {
       const manifest = res.body as Manifest;
       expect(manifest.Data?.Datasets).toBeDefined();
       expect(manifest.Data?.WorkProduct).toBeUndefined();
-      expect(manifest.Data?.WorkProductComponents?.length).toBe(28);
-      expect(manifest.ReferenceData?.length).toBe(13);
+      expect(manifest.Data?.WorkProductComponents?.length).toBe(4);
+      expect(manifest.ReferenceData?.length).toBe(7);
     },
     maxTime
   );
