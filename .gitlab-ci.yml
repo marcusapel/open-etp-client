@@ -47,6 +47,7 @@ include:
   # gc
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/gc-global.yml"
+
   - local: "devops/gc/pipeline/override-stages.yml"
 
   # ibm Disable IBM until fixed

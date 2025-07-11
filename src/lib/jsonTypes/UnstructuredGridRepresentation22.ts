@@ -85,7 +85,7 @@ export class UnstructuredGridRepresentation22OSDU
           Count: xml.CellCount,
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "Cells"
+            "cells"
           )
         }
       ],
@@ -121,7 +121,7 @@ export class UnstructuredGridRepresentation22OSDU
         Count: xml?.Geometry?.NodeCount,
         IndexableElementID: context.addReferenceData(
           "IndexableElement",
-          "Nodes"
+          "nodes"
         )
       });
     }
@@ -130,7 +130,7 @@ export class UnstructuredGridRepresentation22OSDU
         Count: xml?.Geometry?.FaceCount,
         IndexableElementID: context.addReferenceData(
           "IndexableElement",
-          "Faces"
+          "faces"
         )
       });
     }

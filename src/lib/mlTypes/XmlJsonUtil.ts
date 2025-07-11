@@ -28,6 +28,8 @@ import {
   TypeAliasDeclaration
 } from "ts-morph";
 
+import { parse } from "./FastActivityParser";
+
 import * as cxml from "../cxml/cxml";
 
 import { Abstract, Convert } from "./ResqmlTypes";
@@ -228,6 +230,23 @@ export const toPascalCase = (input: string): string => {
 };
 
 /**
+ * Method to extract the content of an element from a XML document
+ * @param {string} xml xml document
+ * @param {string} elementName name of the element to extract, does not include namespace even if it may be present
+ * @returns {string} content of the element
+ */
+export const extractElementContent = (
+  xml: string,
+  elementName: string
+): string => {
+  const regex = RegExp(
+    `<(?:[^>]+:)?${elementName}(?: xsi:type="[^>]+")?>([\\s|\\S]*)<\\/(?:(?:[^>]+):)?${elementName}>`
+  );
+  const match = xml.match(regex);
+  return match ? match[0] : "";
+};
+
+/**
  * Process the keys of an object, creating a simpler JS Object without XML related extras
  *
  * @param {unknown} resqmlObj
@@ -343,7 +362,7 @@ const xmlDocument = (dataObjectType: string) => {
 export const xml2typescript = async (
   xml: string,
   dataObjectType: string,
-  usingSchema = true
+  _usingSchema = true
 ): Promise<
   SimpleJson<eml20.AbstractCitedDataObject> | SimpleJson<eml23.AbstractObject>
 > => {
@@ -359,9 +378,21 @@ export const xml2typescript = async (
       return Promise.reject("Empty object");
     }
     const json = simpleJson((res as Record<string, any>)[keys[0]], "");
-    return eml20
+
+    const baseObj = eml20
       ? (json as SimpleJson<eml20.AbstractCitedDataObject>)
       : (json as SimpleJson<eml23.AbstractObject>);
+    // Extract CustomData content
+    if (
+      baseObj["CustomData"] &&
+      baseObj["CustomData"]["$type"] === "eml20.CustomData"
+    ) {
+      const customData = extractElementContent(xml, "CustomData");
+      const cData = parse(customData);
+      baseObj["CustomData"] = cData;
+    }
+
+    return baseObj;
   } catch (err) {
     return Promise.reject(err);
   }

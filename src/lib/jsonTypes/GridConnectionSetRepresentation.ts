@@ -68,7 +68,7 @@ export class GridConnectionSetRepresentationOSDU
           Count: xml.Count,
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "CellsCells"
+            "contacts"
           )
         }
       ],

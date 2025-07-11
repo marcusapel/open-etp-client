@@ -579,6 +579,50 @@ export class EtpDataValue {
     }
     return undefined;
   }
+
+  static fromUnknown(value: unknown): Energistics.Etp.v12.Datatypes.DataValue {
+    if (typeof value === "string") {
+      return EtpDataValue.avroString(value);
+    } else if (typeof value === "number") {
+      return EtpDataValue.double(value);
+    } else if (typeof value === "boolean") {
+      return EtpDataValue.boolean(value);
+    } else if (typeof value === "bigint") {
+      return EtpDataValue.long(value);
+    } else if (Array.isArray(value)) {
+      if (value.length > 0) {
+        if (typeof value[0] === "number") {
+          return {
+            item: {
+              _ArrayOfDouble: { values: value },
+              __keyName: "_ArrayOfDouble"
+            }
+          };
+        } else if (typeof value[0] === "boolean") {
+          return {
+            item: {
+              _ArrayOfBoolean: { values: value },
+              __keyName: "_ArrayOfBoolean"
+            }
+          };
+        } else if (typeof value[0] === "bigint") {
+          return {
+            item: {
+              _ArrayOfLong: { values: value },
+              __keyName: "_ArrayOfLong"
+            }
+          };
+        }
+      }
+      return {
+        item: {
+          _ArrayOfString: { values: value },
+          __keyName: "_ArrayOfString"
+        }
+      };
+    }
+    return EtpDataValue.avroString(JSON.stringify(value));
+  }
 }
 
 export type allMessageBodyType =

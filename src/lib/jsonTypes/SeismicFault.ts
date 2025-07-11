@@ -39,7 +39,7 @@ export class SeismicFaultOSDU
     | undefined
     | {
         Count: number;
-        IndexableElementID: string; //this.reference("IndexableElement", "Cells")
+        IndexableElementID: string; //this.reference("IndexableElement", "cells")
       }[] {
     if (this.__context === undefined) {
       return undefined;
@@ -53,7 +53,7 @@ export class SeismicFaultOSDU
             (grid2d.Grid2dPatch.FastestAxisCount - 1) *
             (grid2d.Grid2dPatch.SlowestAxisCount - 1),
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "cells") || ""
         }
       ];
     } else if (xml.$type === "resqml20.obj_TriangulatedSetRepresentation") {
@@ -67,7 +67,7 @@ export class SeismicFaultOSDU
         {
           Count,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "cells") || ""
         }
       ];
     } else if (xml.$type === "resqml20.obj_PolylineSetRepresentation") {
@@ -81,7 +81,7 @@ export class SeismicFaultOSDU
         {
           Count: line.NodePatch.Count + (line.IsClosed ? -1 : 0),
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Edges") || ""
+            context.addReferenceData("IndexableElement", "edges") || ""
         }
       ];
     }
@@ -165,13 +165,15 @@ export class SeismicFaultOSDU
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];
       }
-      this.data.IndexableElementCount?.push({
-        Count: NodeCount,
-        IndexableElementID: context.addReferenceData(
-          "IndexableElement",
-          "Nodes"
-        )
-      });
+      if (NodeCount !== undefined) {
+        this.data.IndexableElementCount?.push({
+          Count: NodeCount,
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "nodes"
+          )
+        });
+      }
     }
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

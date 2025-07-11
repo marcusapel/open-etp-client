@@ -147,14 +147,54 @@ export class GenericPropertyOSDU
         ? (xml as SimpleJson<resqml20.obj_CategoricalProperty>)
         : undefined;
 
+    const discrete =
+      xml.$type === "resqml20.obj_DiscreteProperty"
+        ? (xml as SimpleJson<resqml20.obj_DiscreteProperty>)
+        : undefined;
+
     const PropertyTopologyID = await this.dorToSrn(
       ReservoirDMSUrl,
       xml.SupportingRepresentation,
       client
     );
 
-    const { MinValue, MaxValue, MeanValue, StdDeviation, ValueCount } =
-      await this.computeStats(ReservoirDMSUrl, xml, client);
+    let {
+      MinValue,
+      MaxValue,
+      MeanValue,
+      StdDeviation,
+      ValueCount
+    }: {
+      MinValue: number | undefined;
+      MaxValue: number | undefined;
+      MeanValue: number | undefined;
+      StdDeviation: number | undefined;
+      ValueCount: number | undefined;
+    } = {
+      MinValue: undefined,
+      MaxValue: undefined,
+      MeanValue: undefined,
+      StdDeviation: undefined,
+      ValueCount: undefined
+    };
+    if (this.__context?.useDataArrayForManifest) {
+      // assign the results of computeStats to the variables
+      ({ MinValue, MaxValue, MeanValue, StdDeviation, ValueCount } =
+        await this.computeStats(ReservoirDMSUrl, xml, client));
+    } else {
+      if (continuous !== undefined) {
+        MinValue = continuous.MinimumValue
+          ? continuous.MinimumValue[0]
+          : undefined;
+        MaxValue = continuous.MaximumValue
+          ? continuous.MaximumValue[0]
+          : undefined;
+      }
+      if (discrete !== undefined) {
+        MinValue = discrete.MinimumValue ? discrete.MinimumValue[0] : undefined;
+        MaxValue = discrete.MaximumValue ? discrete.MaximumValue[0] : undefined;
+      }
+    }
 
     const pKind =
       xml.PropertyKind.$type === "resqml20.LocalPropertyKind"
@@ -208,7 +248,7 @@ export class GenericPropertyOSDU
       ),
       IndexableElementID: context.addReferenceData(
         "IndexableElement",
-        xml.IndexableElement
+        xml.IndexableElement.replace(" ", "%20")
       ),
       MaxValue,
       MeanValue,

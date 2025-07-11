@@ -71,8 +71,8 @@ export const createManifest = async (
   if (uris.length === 0) {
     return Promise.reject("No URI provided");
   }
-  await registerDMS(context);
   try {
+    await registerDMS(context);
     const manifests: Manifest = {
       // $schema:
       //   "https://community.opengroup.org/osdu/data/data-definitions/-/raw/master/Generated/manifest/Manifest.1.0.0.json",

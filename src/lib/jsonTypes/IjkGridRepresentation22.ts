@@ -16,6 +16,7 @@ import {
   IjkGridRepresentation,
   StratigraphicUnits
 } from "./Generated/work-product-component/IjkGridRepresentation.1.2.0";
+import { context } from "../cxml/cxml";
 
 enum ExpansionInDirection {
   I = "I",
@@ -51,6 +52,9 @@ export class IjkGridRepresentation22OSDU
   ): Promise<number | undefined> {
     if (!xml.Geometry?.CellGeometryIsDefined) {
       return xml.Ni * xml.Nj * xml.Nk;
+    }
+    if (!this.__context?.useDataArrayForManifest) {
+      return undefined;
     }
     try {
       let count = 0;
@@ -128,7 +132,7 @@ export class IjkGridRepresentation22OSDU
           Count: xml.Ni * xml.Nj * xml.Nk,
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "Cells"
+            "cells"
           )
         }
       ],

@@ -134,7 +134,7 @@ export class SeismicHorizon22OSDU
           Count: xml.SlowestAxisCount * xml.FastestAxisCount,
           IndexableElementID: context.addReferenceData(
             "IndexableElement",
-            "Nodes"
+            "nodes"
           )
         }
       ],
@@ -209,13 +209,16 @@ export class SeismicHorizon22OSDU
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];
       }
-      this.data.IndexableElementCount?.push({
-        Count: NodeCount,
-        IndexableElementID: context.addReferenceData(
-          "IndexableElement",
-          "Nodes"
-        )
-      });
+      if (NodeCount !== undefined) {
+        // Add the node count to the IndexableElementCount
+        this.data.IndexableElementCount?.push({
+          Count: NodeCount,
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "nodes"
+          )
+        });
+      }
     }
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

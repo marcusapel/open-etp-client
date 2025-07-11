@@ -34,7 +34,10 @@ export class SubRepresentation22OSDU
     }
 
     const IndexableElementID =
-      context.addReferenceData("IndexableElement", xml.IndexableElement) || "";
+      context.addReferenceData(
+        "IndexableElement",
+        xml.IndexableElement.replace(" ", "%20")
+      ) || "";
 
     const SupportingRepresentationIDs: string[] = [];
     let Count = 0;

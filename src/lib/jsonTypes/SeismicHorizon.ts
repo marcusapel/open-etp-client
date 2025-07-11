@@ -243,13 +243,15 @@ export class SeismicHorizonOSDU
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];
       }
-      this.data.IndexableElementCount?.push({
-        Count: NodeCount,
-        IndexableElementID: context.addReferenceData(
-          "IndexableElement",
-          "Nodes"
-        )
-      });
+      if (NodeCount !== undefined) {
+        this.data.IndexableElementCount?.push({
+          Count: NodeCount,
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "nodes"
+          )
+        });
+      }
     }
 
     const dors = await this.getCreatingObjects(client, ReservoirDMSUrl);

@@ -41,7 +41,14 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { Matches, MaxLength, IsOptional, IsObject, IsString, IsNotEmpty } from "class-validator";
+import {
+  Matches,
+  MaxLength,
+  IsOptional,
+  IsObject,
+  IsString,
+  IsNotEmpty
+} from "class-validator";
 
 import express from "express";
 
@@ -74,6 +81,8 @@ import {
   dataspacePathPattern,
   dataspaceUriPattern
 } from "../read-etp.module/Resource.controller";
+
+import { EtpDataValue } from "../../common/EtpTypes";
 
 export class DataspaceDto {
   @ApiProperty({
@@ -159,7 +168,13 @@ export default class DataspaceMutationsAPI {
           {
             DataspaceId: "projectA/Scenario1",
             Path: "projectA/Scenario1",
-            CustomData: { key: "value" }
+            CustomData: {
+              viewers: ["data.default.viewers@osdu.example.com"],
+              owners: ["data.default.owners@osdu.example.com"],
+              legaltags: ["osdu-ReservoirDDMS-Legal-Tag"],
+              otherRelevantDataCountries: ["US", "UK"],
+              key: "value"
+            }
           }
         ]
       }
@@ -190,15 +205,7 @@ export default class DataspaceMutationsAPI {
           const customData = new Map<string, DataValue>();
           if (d.CustomData) {
             for (const e in d.CustomData) {
-              customData.set(e, {
-                item: {
-                  _string:
-                    typeof d.CustomData[e] === "string"
-                      ? d.CustomData[e]
-                      : JSON.stringify(d.CustomData[e]),
-                  __keyName: "_string"
-                }
-              });
+              customData.set(e, EtpDataValue.fromUnknown(d.CustomData[e]));
             }
           }
           return {
@@ -268,14 +275,10 @@ export default class DataspaceMutationsAPI {
       const customData = new Map<string, DataValue>();
       if (requestBody.CustomData) {
         for (const e in requestBody.CustomData) {
-          customData.set(e, {
-            item: {
-              _string: typeof requestBody.CustomData[e] === "string"
-                      ? requestBody.CustomData[e]
-                      : JSON.stringify(requestBody.CustomData[e]),
-              __keyName: "_string"
-            }
-          });
+          customData.set(
+            e,
+            EtpDataValue.fromUnknown(requestBody.CustomData[e])
+          );
         }
       }
       c = await createSession(
@@ -298,7 +301,7 @@ export default class DataspaceMutationsAPI {
       try {
         await c?.closeSession();
       } catch (closeError) {
-        logger.error("Could not successfully close connection.")
+        logger.error("Could not successfully close connection.");
       }
       throw httpErrorFromEtpError(err);
     }

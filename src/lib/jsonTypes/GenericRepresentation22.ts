@@ -32,7 +32,7 @@ export class GenericRepresentation22OSDU
     | undefined
     | {
         Count: number;
-        IndexableElementID: string; //this.reference("IndexableElement", "Cells")
+        IndexableElementID: string; //this.reference("IndexableElement", "cells")
       }[] {
     if (this.__context === undefined) {
       return undefined;
@@ -44,7 +44,7 @@ export class GenericRepresentation22OSDU
         {
           Count: (grid2d.FastestAxisCount - 1) * (grid2d.SlowestAxisCount - 1),
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "cells") || ""
         }
       ];
     } else if (xml.$type === "resqml22.TriangulatedSetRepresentation") {
@@ -63,14 +63,14 @@ export class GenericRepresentation22OSDU
         {
           Count: NodeCount,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Nodes") || ""
+            context.addReferenceData("IndexableElement", "nodes") || ""
         }
       ];
       if (Count > 0) {
         elements.push({
           Count,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Cells") || ""
+            context.addReferenceData("IndexableElement", "cells") || ""
         });
       }
       return elements;
@@ -86,12 +86,12 @@ export class GenericRepresentation22OSDU
         {
           Count: NodeCount,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Nodes") || ""
+            context.addReferenceData("IndexableElement", "nodes") || ""
         },
         {
           Count,
           IndexableElementID:
-            context.addReferenceData("IndexableElement", "Edges") || ""
+            context.addReferenceData("IndexableElement", "edges") || ""
         }
       ];
     } else if (xml.$type === "resqml22.PointSetRepresentation") {
@@ -108,7 +108,7 @@ export class GenericRepresentation22OSDU
             {
               Count: NodeCount,
               IndexableElementID:
-                context.addReferenceData("IndexableElement", "Nodes") || ""
+                context.addReferenceData("IndexableElement", "nodes") || ""
             }
           ]
         : undefined;
@@ -123,12 +123,12 @@ export class GenericRepresentation22OSDU
             {
               Count: NodeCount,
               IndexableElementID:
-                context.addReferenceData("IndexableElement", "Nodes") || ""
+                context.addReferenceData("IndexableElement", "nodes") || ""
             },
             {
               Count,
               IndexableElementID:
-                context.addReferenceData("IndexableElement", "Edges") || ""
+                context.addReferenceData("IndexableElement", "edges") || ""
             }
           ]
         : undefined;
@@ -209,13 +209,15 @@ export class GenericRepresentation22OSDU
       if (this.data.IndexableElementCount === undefined) {
         this.data.IndexableElementCount = [];
       }
-      this.data.IndexableElementCount?.push({
-        Count: NodeCount,
-        IndexableElementID: context.addReferenceData(
-          "IndexableElement",
-          "Nodes"
-        )
-      });
+      if (NodeCount !== undefined) {
+        this.data.IndexableElementCount?.push({
+          Count: NodeCount,
+          IndexableElementID: context.addReferenceData(
+            "IndexableElement",
+            "nodes"
+          )
+        });
+      }
     }
     delete this.__context;
     return this;

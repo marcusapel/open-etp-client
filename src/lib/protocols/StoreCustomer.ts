@@ -392,7 +392,10 @@ export class StoreCustomer extends BaseHandler {
         Store.MsgChunk,
         parentId
       );
-      chunk.data = chunkData.subarray(i, i + chunkSize);
+      // For some reason the subarray is not working as expected as it does not return a Buffer
+      // so we create a new Buffer from the subarray
+      chunk.blobId = value.blobId;
+      chunk.data = Buffer.from(chunkData.subarray(i, i + chunkSize));
       chunk.final = i + chunkSize >= chunkData.length;
 
       if (chunk.final) {

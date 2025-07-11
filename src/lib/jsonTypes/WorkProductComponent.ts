@@ -179,7 +179,7 @@ export const getIntegerValues = async (
  * @param {string} dataspaceUri
  * @param {SimpleJson<resqml20.AbstractBooleanArray|eml23.AbstractBooleanArray>} array
  * @param {ResqmlClient} client
- * @return {Promise<number[]>}
+ * @returns {Promise<number[]>}
  */
 export const getBooleanValues = async (
   dataspaceUri: string,
@@ -861,6 +861,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   public version: number;
   public tags?: { [key: string]: string };
   public meta?: FrameOfReferenceMetaDataItem[];
+  public OSDUIntegration?: Record<string, unknown>;
   protected __context?: OSDUContext;
 
   constructor(
@@ -890,6 +891,24 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     this.acl = context.acl;
     this.legal = context.legal;
     this.tags = context.tags;
+
+    // Init OSDUIntegration from CustomData if available
+    this.OSDUIntegration = {};
+    const xml20 = xml as SimpleJson<resqml20.AbstractResqmlDataObject>;
+    if (xml20.ExtraMetadata !== undefined) {
+      const osduIntegration = xml20.ExtraMetadata.find(
+        e => e.Name === "OSDUIntegration"
+      );
+      if (osduIntegration !== undefined) {
+        this.OSDUIntegration = JSON.parse(osduIntegration.Value);
+      }
+    }
+    const xml23 = xml as SimpleJson<eml23.AbstractObject>;
+    if (xml23.OSDUIntegration !== undefined) {
+      this.OSDUIntegration = {
+        ...this.OSDUIntegration
+      };
+    }
   }
 
   /**
@@ -947,7 +966,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @static
    * @param {string} uri
    * @param {SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference>} dor
-   * @return {string}
+   * @returns {string}
    * @memberof WorkProductComponent
    */
   public static dorToUri(
@@ -1256,6 +1275,9 @@ export class ResqmlWorkProductComponent<
     let aMaxY: number = Number.NEGATIVE_INFINITY;
 
     for (const g of pointCoordinates) {
+      if (g[0] === Number.POSITIVE_INFINITY) {
+        break;
+      } // Ignore invalid points
       aMinX = Math.min(g[0], aMinX);
       aMinY = Math.min(g[1], aMinY);
       aMaxX = Math.max(g[0], aMaxX);
@@ -1265,6 +1287,8 @@ export class ResqmlWorkProductComponent<
     let CoordinateReferenceSystemID = undefined;
     let persistableReferenceCrs = "";
     let Wgs84Coordinates = undefined;
+    let SpatialPoint: AbstractSpatialLocation | undefined;
+    let SpatialArea: AbstractSpatialLocation | undefined;
     let epsgCode = -1;
     let epsgCrs: CoordinateReferenceSystem | undefined = undefined;
 
@@ -1308,23 +1332,14 @@ export class ResqmlWorkProductComponent<
         CoordinateReferenceSystemID = this.referenceSystemId(epsgCrs, epsgCode);
         persistableReferenceCrs =
           this.persistableReferenceSystem(epsgCrs, epsgCode) ?? "";
-        Wgs84Coordinates = await context.convertPointsWGS84(
-          pointCoordinates,
-          epsgCode
-        );
+        if (aMinX !== Number.POSITIVE_INFINITY) {
+          Wgs84Coordinates = await context.convertPointsWGS84(
+            pointCoordinates,
+            epsgCode
+          );
+        }
       } catch (e) {
         ///Nothing
-      }
-    }
-
-    const Wgs84Min = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
-    const Wgs84Max = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
-    if (Wgs84Coordinates !== undefined) {
-      for (const g of Wgs84Coordinates) {
-        Wgs84Min[0] = Math.min(g[0], Wgs84Min[0]);
-        Wgs84Min[1] = Math.min(g[1], Wgs84Min[1]);
-        Wgs84Max[0] = Math.max(g[0], Wgs84Max[0]);
-        Wgs84Max[1] = Math.max(g[1], Wgs84Max[1]);
       }
     }
 
@@ -1334,83 +1349,96 @@ export class ResqmlWorkProductComponent<
       coordinateReferenceSystemID: CoordinateReferenceSystemID
     };
 
-    const SpatialPoint = {
-      AsIngestedCoordinates: {
-        CoordinateReferenceSystemID,
-        features: [
-          {
-            type: FluffyType.AnyCRSFeature,
-            geometry: {
-              type: AnyCRSGeoJSONPointType.AnyCRSPoint,
-              coordinates: pointCoordinates[0]
-            },
-            properties: {}
-          }
-        ],
-        persistableReferenceCrs,
-        type: AsIngestedCoordinatesType.AnyCRSFeatureCollection
-      },
-      Wgs84Coordinates:
-        Wgs84Coordinates === undefined
-          ? undefined
-          : {
-              type: Wgs84CoordinatesType.FeatureCollection,
-              features: [
-                {
-                  type: StickyType.Feature,
-                  properties: {},
-                  geometry: {
-                    type: GeoJSONPointType.Point,
-                    coordinates: Wgs84Coordinates[0]
+    if (aMinX !== Number.POSITIVE_INFINITY) {
+      const Wgs84Min = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+      const Wgs84Max = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+      if (Wgs84Coordinates !== undefined) {
+        for (const g of Wgs84Coordinates) {
+          Wgs84Min[0] = Math.min(g[0], Wgs84Min[0]);
+          Wgs84Min[1] = Math.min(g[1], Wgs84Min[1]);
+          Wgs84Max[0] = Math.max(g[0], Wgs84Max[0]);
+          Wgs84Max[1] = Math.max(g[1], Wgs84Max[1]);
+        }
+      }
+
+      SpatialPoint = {
+        AsIngestedCoordinates: {
+          CoordinateReferenceSystemID,
+          features: [
+            {
+              type: FluffyType.AnyCRSFeature,
+              geometry: {
+                type: AnyCRSGeoJSONPointType.AnyCRSPoint,
+                coordinates: pointCoordinates[0]
+              },
+              properties: {}
+            }
+          ],
+          persistableReferenceCrs,
+          type: AsIngestedCoordinatesType.AnyCRSFeatureCollection
+        },
+        Wgs84Coordinates:
+          Wgs84Coordinates === undefined
+            ? undefined
+            : {
+                type: Wgs84CoordinatesType.FeatureCollection,
+                features: [
+                  {
+                    type: StickyType.Feature,
+                    properties: {},
+                    geometry: {
+                      type: GeoJSONPointType.Point,
+                      coordinates: Wgs84Coordinates[0]
+                    }
                   }
-                }
-              ]
+                ]
+              }
+      };
+      SpatialArea = {
+        AsIngestedCoordinates: {
+          type: AsIngestedCoordinatesType.AnyCRSFeatureCollection,
+          CoordinateReferenceSystemID,
+          persistableReferenceCrs,
+          features: [
+            {
+              type: FluffyType.AnyCRSFeature,
+              properties: {},
+              geometry: {
+                type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
+                coordinates: [
+                  pointCoordinates.map(p => [p[0] + XOffset, p[1] + YOffset])
+                ]
+              }
             }
-    };
-    const SpatialArea = {
-      AsIngestedCoordinates: {
-        type: AsIngestedCoordinatesType.AnyCRSFeatureCollection,
-        CoordinateReferenceSystemID,
-        persistableReferenceCrs,
-        features: [
-          {
-            type: FluffyType.AnyCRSFeature,
-            properties: {},
-            geometry: {
-              type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
-              coordinates: [
-                pointCoordinates.map(p => [p[0] + XOffset, p[1] + YOffset])
-              ]
-            }
-          }
-        ],
-        bbox: [
-          aMinX + XOffset,
-          aMinY + YOffset,
-          aMaxX + XOffset,
-          aMaxY + YOffset
-        ]
-      },
-      Wgs84Coordinates:
-        Wgs84Coordinates === undefined
-          ? undefined
-          : {
-              type: Wgs84CoordinatesType.FeatureCollection,
-              features: [
-                {
-                  type: StickyType.Feature,
-                  properties: {},
-                  geometry: {
-                    type: GeoJSONPointType.Polygon,
-                    coordinates: [Wgs84Coordinates]
+          ],
+          bbox: [
+            aMinX + XOffset,
+            aMinY + YOffset,
+            aMaxX + XOffset,
+            aMaxY + YOffset
+          ]
+        },
+        Wgs84Coordinates:
+          Wgs84Coordinates === undefined
+            ? undefined
+            : {
+                type: Wgs84CoordinatesType.FeatureCollection,
+                features: [
+                  {
+                    type: StickyType.Feature,
+                    properties: {},
+                    geometry: {
+                      type: GeoJSONPointType.Polygon,
+                      coordinates: [Wgs84Coordinates]
+                    }
                   }
-                }
-              ],
-              bbox: [Wgs84Min[0], Wgs84Min[1], Wgs84Max[0], Wgs84Max[1]]
-            }
-    };
-    if (SpatialPoint !== undefined && context.spatialPoint === undefined) {
-      context.spatialPoint = SpatialPoint;
+                ],
+                bbox: [Wgs84Min[0], Wgs84Min[1], Wgs84Max[0], Wgs84Max[1]]
+              }
+      };
+      if (SpatialPoint !== undefined && context.spatialPoint === undefined) {
+        context.spatialPoint = SpatialPoint;
+      }
     }
     return { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates };
   }
@@ -1437,7 +1465,7 @@ export class ResqmlWorkProductComponent<
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
-    NodeCount: number;
+    NodeCount: number | undefined;
     Domain: string;
   }> {
     const context = this.__context;
@@ -1486,24 +1514,59 @@ export class ResqmlWorkProductComponent<
         ? "Time"
         : "Depth";
 
+    if (
+      this.OSDUIntegration &&
+      this.OSDUIntegration.WGS84Latitude &&
+      this.OSDUIntegration.WGS84Longitude
+    ) {
+      const osduIntegration = this
+        .OSDUIntegration as SimpleJson<eml23.OSDUIntegration>;
+      if (
+        osduIntegration.WGS84Latitude !== undefined &&
+        osduIntegration.WGS84Longitude !== undefined
+      ) {
+        const spatialLocation: AbstractSpatialLocation = {
+          Wgs84Coordinates: {
+            type: Wgs84CoordinatesType.FeatureCollection,
+            features: [
+              {
+                type: StickyType.Feature,
+                properties: {},
+                geometry: {
+                  type: GeoJSONPointType.Point,
+                  coordinates: [
+                    osduIntegration.WGS84Latitude._,
+                    osduIntegration.WGS84Longitude._
+                  ]
+                }
+              }
+            ]
+          }
+        };
+      }
+    }
+
     let aMinX: number = Number.POSITIVE_INFINITY;
     let aMaxX: number = Number.NEGATIVE_INFINITY;
     let aMinY: number = Number.POSITIVE_INFINITY;
     let aMaxY: number = Number.NEGATIVE_INFINITY;
 
-    let NodeCount = 0;
+    let NodeCount = undefined;
 
-    for await (const g of geometries) {
-      const { minX, minY, maxX, maxY, pNodeCount } = await getMinMaxPoints(
-        client,
-        dataspaceUri,
-        g.Points
-      );
-      aMinX = Math.min(minX, aMinX);
-      aMinY = Math.min(minY, aMinY);
-      aMaxX = Math.max(maxX, aMaxX);
-      aMaxY = Math.max(maxY, aMaxY);
-      NodeCount += pNodeCount;
+    if (context.useDataArrayForManifest) {
+      NodeCount = 0;
+      for await (const g of geometries) {
+        const { minX, minY, maxX, maxY, pNodeCount } = await getMinMaxPoints(
+          client,
+          dataspaceUri,
+          g.Points
+        );
+        aMinX = Math.min(minX, aMinX);
+        aMinY = Math.min(minY, aMinY);
+        aMaxX = Math.max(maxX, aMaxX);
+        aMaxY = Math.max(maxY, aMaxY);
+        NodeCount += pNodeCount;
+      }
     }
 
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
