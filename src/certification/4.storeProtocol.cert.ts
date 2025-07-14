@@ -170,7 +170,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
       ];
 
       beforeAll(done => {
-        const successDeletePromise = new Promise(resolve => {
+        const successPutPromise = new Promise(resolve => {
           client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
             successResponse = data;
             resolve(data);
@@ -183,7 +183,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
           });
         });
 
-        Promise.all([successDeletePromise, successExceptionPromise])
+        Promise.all([successPutPromise, successExceptionPromise])
           .then(() => {
             done();
           })

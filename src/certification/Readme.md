@@ -52,7 +52,26 @@ Here's an example of a JSON configuration file:
   "jwtToken": "exValueOfTheToken",
   "supportTransportAuthorization": true,
   "supportApplicationAuthorization": true,
-  "serverRequiresAuthorization": true
+  "serverRequiresAuthorization": true,
+
+  "protocols": {
+    "discovery": {
+      "supported": "Boolean:  If Discovery is supported or not"
+    },
+
+    "store": {
+      "supported": "Boolean:  If Store Protocol is supported or not",
+      "supportsWrite": "Boolean:  If server supports write plus delete",
+      "wellUriForGet": "Well Uri for get",
+      "trajectoryUriForGet": "Trajectory Uri for get",
+      "wellBoreUriForGet": "WellBore Uri for get",
+      "channelUriForGet": "Channel Uri for get",
+      "unsupportedDataObjectUri": "Unsupported data obj uri",
+      "unsupportedDeleteUri": "Uri for obj that has children and cascading deletes are not supported.",
+      "uriForDelete1": "Deletable Uri for get",
+      "uriForDelete2": "Deletable Uri for get"
+    }
+  }
 }
 ```
 

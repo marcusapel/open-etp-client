@@ -14,7 +14,7 @@ class DataObjectFactory {
       resource.uri = this.createWellUri(uuid);
       const dataObject = new DataObject();
       dataObject.resource = resource;
-      dataObject.data = Buffer.from(this.createWitsmlObj(uuid), "utf-8");
+      dataObject.data = Buffer.from(this.createWitsmlWellObj(uuid), "utf-8");
       dataObjects.push(dataObject);
     }
 
@@ -26,11 +26,11 @@ class DataObjectFactory {
     resource.uri = this.createWellUri(uuidv4());
     const dataObject = new DataObject();
     dataObject.resource = resource;
-    dataObject.data = Buffer.from(this.createWitsmlObj("invalid"), "utf-8");
+    dataObject.data = Buffer.from(this.createWitsmlWellObj("invalid"), "utf-8");
     return dataObject;
   }
 
-  static createWitsmlObj(uuid: string): string {
+  static createWitsmlWellObj(uuid: string): string {
     return `<Well xmlns="http://www.energistics.org/energyml/data/witsmlv2" schemaVersion="2.1" uuid="${uuid}"> </Well>`;
   }
 
