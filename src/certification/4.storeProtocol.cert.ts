@@ -161,7 +161,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
       const uuid = uuidv4();
       const validUri = DataObjectFactory.createWellUri(uuid);
 
-      const objects = DataObjectFactory.generateWellObjects([uuid, "invalidObj"]);
+      const objects = DataObjectFactory.generateWellObjects([uuid, "invalidUuid"]);
       objects.push(DataObjectFactory.createInvalidObject());
 
       const errorCases = [
@@ -170,7 +170,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
       ];
 
       beforeAll(done => {
-        const successPutPromise = new Promise(resolve => {
+        const successDeletePromise = new Promise(resolve => {
           client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
             successResponse = data;
             resolve(data);
@@ -183,7 +183,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
           });
         });
 
-        Promise.all([successPutPromise, successExceptionPromise])
+        Promise.all([successDeletePromise, successExceptionPromise])
           .then(() => {
             done();
           })
