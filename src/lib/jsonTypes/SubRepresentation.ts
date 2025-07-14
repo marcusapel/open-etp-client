@@ -41,7 +41,10 @@ export class SubRepresentationOSDU
     const IndexableElementID =
       context.addReferenceData(
         "IndexableElement",
-        xml.SubRepresentationPatch[0].ElementIndices[0].IndexableElement
+        xml.SubRepresentationPatch[0].ElementIndices[0].IndexableElement.replace(
+          " ",
+          "%20"
+        )
       ) || "";
 
     this.data = {

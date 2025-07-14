@@ -206,7 +206,7 @@ export class GenericProperty22OSDU
       ),
       IndexableElementID: context.addReferenceData(
         "IndexableElement",
-        xml.IndexableElement
+        xml.IndexableElement.replace(" ", "%20")
       ),
       MaxValue,
       MeanValue,

@@ -45,7 +45,16 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID, IsString, IsNotEmpty, IsArray, IsOptional, IsEnum, IsInt, ArrayMinSize, ValidateNested } from "class-validator";
+import {
+  IsUUID,
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  ArrayMinSize
+} from "class-validator";
 
 import express from "express";
 
@@ -93,7 +102,7 @@ import { versionQueryParam } from "../read-etp.module/Resource.controller";
 import { qualifiedTypeRegex } from "../../common/EtpQualifiedType";
 
 import logging from "../../common/Logging";
-import { ErrorCode, EtpError } from "../../common/EtpTypes";
+import { ErrorCode, EtpDataValue, EtpError } from "../../common/EtpTypes";
 const logger = logging.getLogger("EtpClient");
 
 const base64Pattern =
@@ -110,7 +119,7 @@ export class DataArrayDto {
   @IsString()
   @IsNotEmpty()
   ContainerType!: string;
-  
+
   @ApiProperty({
     name: "ContainerUuid",
     description: "Type of the array container",
@@ -119,7 +128,7 @@ export class DataArrayDto {
   })
   @IsUUID()
   ContainerUuid!: string;
-  
+
   @ApiProperty({
     name: "PathInResource",
     description: "Path of the data array in the container",
@@ -392,8 +401,10 @@ export default class MutationsAPI {
   })
   @ApiOperation({
     summary: "Create or update objects.",
-    description: `Create new objects by providing their content inside a JSON array.
-    Should be done within a transaction.`,
+    description: `Create new objects by providing their content as a JSON array.
+    Each JSON objects should conform to the Energistics JSON schema defined for that type, including a $type field that is an Energistics qualified type when needed.
+    Some extra metadata on the resource representing the object can added inside a _ResourceCustomData field of each object, its value is a JSON object of key-value pairs for each metadata.
+    Object modification should be done within a transaction.`,
     servers: swaggerServers
   })
   public async PutDataObject(
@@ -442,27 +453,27 @@ export default class MutationsAPI {
           AvroString,
           Energistics.Etp.v12.Datatypes.DataValue
         >();
-        if (
+
+        if ("_ResourceCustomData" in b) {
           // Check if _ResourceCustomData of the right type exists
-          "_ResourceCustomData" in b &&
-          typeof b._ResourceCustomData === "object" &&
-          b._ResourceCustomData !== null &&
-          !Array.isArray(b._ResourceCustomData) &&
-          Object.keys(b._ResourceCustomData).every(
-            key => typeof key === "string"
-          ) &&
-          Object.values(b._ResourceCustomData).every(
-            val => typeof val === "string"
-          )
-        ) {
-          const cData = b._ResourceCustomData as Record<string, string>;
-          for (const k of Object.keys(cData)) {
-            customData.set(k, {
-              item: { __keyName: "_string", _string: cData[k] }
-            });
+
+          const resourceCustomData = b._ResourceCustomData;
+          if (
+            typeof resourceCustomData === "object" &&
+            resourceCustomData !== null &&
+            !Array.isArray(resourceCustomData) &&
+            Object.keys(resourceCustomData).every(
+              key => typeof key === "string"
+            )
+          ) {
+            const cData = resourceCustomData as Record<string, unknown>;
+            for (const k of Object.keys(cData)) {
+              customData.set(k, EtpDataValue.fromUnknown(cData[k]));
+            }
+            delete b._ResourceCustomData;
           }
-          delete b._ResourceCustomData;
         }
+
         const xml = builder.JSONtoEnergistics(
           JSON.stringify(b, bigIntToString)
         );

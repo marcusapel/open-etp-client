@@ -23,7 +23,7 @@ cd src\lib\jsonTypes\Generated\work-product-component
 - Generate the interface and associated types with quicktype
 
 ```sh
-quicktype --src Activity.1.0.0.json -s schema --lang ts --no-ignore-json-refs -s schema -t Activity -o Activity.1.0.0.ts
+quicktype --src Activity.1.0.0.json -s schema --lang ts --no-ignore-json-refs -t Activity -o Activity.1.0.0.ts
 ```
 
 ## Create translation object

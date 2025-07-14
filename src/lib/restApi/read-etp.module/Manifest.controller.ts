@@ -64,6 +64,7 @@ import {
 } from "../../jsonTypes/OsduContext";
 import { createManifest } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
+import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 
 const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$/;
@@ -156,7 +157,7 @@ export class ContactDto implements IContact {
   Name?: string;
 }
 
-class AcceptableUsageDto implements IAcceptableUsage {
+export class AcceptableUsageDto implements IAcceptableUsage {
   @ApiPropertyOptional({
     name: "WorkflowUsage",
     type: String,
@@ -182,7 +183,7 @@ class AcceptableUsageDto implements IAcceptableUsage {
   WorkflowPersona?: string;
 }
 
-class TechnicalAssuranceDto implements ITechnicalAssurance {
+export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @ApiPropertyOptional({
     name: "AcceptableUsage",
     type: [AcceptableUsageDto],
@@ -354,13 +355,6 @@ export class ManifestInputDto {
   fileCollection?: string;
 
   @ApiPropertyOptional({
-    name: "tags",
-    description: `Additional tags to add to all resources.`,
-    example: `{"quality":"good"}`
-  })
-  tags?: Record<string, string>;
-
-  @ApiPropertyOptional({
     name: "technicalAssurances",
     type: [TechnicalAssuranceDto],
     maxItems: 1028,
@@ -375,6 +369,22 @@ export class ManifestInputDto {
     example: true
   })
   createMissingReferences?: boolean = true;
+
+  @ApiPropertyOptional({
+    name: "tags",
+    description: `OSDU tags information to apply.`,
+    type: Object,
+    example: {
+      key1: "value1",
+      key2: "value2"
+    },
+    additionalProperties: {
+      type: "string",
+      maxLength: 2048,
+      pattern: patternString(/^[a-zA-Z0-9_]+$/)
+    }
+  })
+  tags?: Record<string, string>;
 }
 
 /**
@@ -420,7 +430,7 @@ export class ManifestDto {
 export default class ObjectsManifestAPI {
   @Post("build")
   @ApiBody({
-    type: ManifestInputDto
+    type: Object
   })
   @ApiOperation({
     summary: "Create OSDU manifest.",
@@ -432,7 +442,7 @@ export default class ObjectsManifestAPI {
     type: ManifestDto
   })
   public async GetManifest(
-    @Body() body: ManifestInputDto,
+    @Body() body: Record<string, any>,
     @Req() request: express.Request,
     @Res() res: express.Response
   ): Promise<void> {
@@ -454,16 +464,18 @@ export default class ObjectsManifestAPI {
       const jwt = bearer ? (decode(bearer) as JwtPayload) : {};
       const partition = extractDataPartitionId(request);
 
+      const record = body as unknown as Record<string, any>;
+
       const context = new OSDUContext(
         typeof partition === "string" ? partition : "osdu",
-        body.acl ? body.acl : { viewers: [], owners: [] },
-        body.legal
-          ? body.legal
+        record.acl ? record.acl : { viewers: [], owners: [] },
+        record.legal
+          ? record.legal
           : { legaltags: [], otherRelevantDataCountries: [] },
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
-        body.tags,
-        body.fileCollection,
-        body.createMissingReferences
+        record.tags,
+        record.fileCollection,
+        record.createMissingReferences
       );
 
       if (context.fileCollection) {
@@ -476,7 +488,7 @@ export default class ObjectsManifestAPI {
       }
 
       context.bearer = bearer;
-      context.technicalAssurances = body.technicalAssurances;
+      context.technicalAssurances = record.technicalAssurances;
 
       // If connected to OSDU apis, check that the legal tags are part of the platform
       await context.checkLegalTags();
@@ -484,14 +496,14 @@ export default class ObjectsManifestAPI {
       c = await createSession(bearer, partition);
       const b = await createManifest(
         c,
-        body.uris,
+        record.uris,
         context,
-        body.typePatterns,
+        record.typePatterns,
         maxManifestSize
       );
       await c.closeSession();
       c = undefined;
-      res.send(b);
+      res.send(JSON.stringify(b, bigIntToString, 2));
     } catch (err) {
       c?.closeSession();
       throw httpErrorFromEtpError(err);

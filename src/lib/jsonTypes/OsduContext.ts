@@ -146,6 +146,7 @@ export class OSDUContext {
   public srnToUri: Map<string, string> = new Map();
   public uriToObject: Map<string, IResqmlDataObject> = new Map();
   public createMissingReferences?: boolean = true;
+  public useDataArrayForManifest: boolean = false;
   public bearer?: string;
 
   public created: Map<string, OSDUResourceType> = new Map();
@@ -177,6 +178,7 @@ export class OSDUContext {
     tags?: { [key: string]: string },
     fileCollection?: string,
     createMissingReferences?: boolean,
+    useDataArrayForManifest?: boolean,
     rddmsId = "rddms1"
   ) {
     this.partition = partition;
@@ -188,6 +190,8 @@ export class OSDUContext {
     if (createMissingReferences !== undefined) {
       this.createMissingReferences = createMissingReferences;
     }
+    this.useDataArrayForManifest =
+      useDataArrayForManifest !== undefined ? useDataArrayForManifest : false;
     this.rddmsId = rddmsId;
   }
 
@@ -208,7 +212,7 @@ export class OSDUContext {
     }
     const ref = `${
       this.partition
-    }:reference-data--${referenceType}:${encodeURIComponent(value)}:`;
+    }:reference-data--${referenceType}:${encodeURIComponent(value)}`;
     if (referenceType !== "PropertyType" || PropertyTypesIds.has(value)) {
       // Do not create reference for Standards Resqml PropertyTypes
       this.references.add(ref);

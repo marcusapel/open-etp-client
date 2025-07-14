@@ -33,7 +33,7 @@ The code was tested on **Kubernetes cluster** (v1.24.12) with **Istio** (1.13.3)
 
 ### Operation system
 
-The code works in Debian-based Linux (Debian 10 and Ubuntu 20.04) and Windows WSL 2. Also, it works but is not guaranteed in Google Cloud Shell. All other operating systems, including macOS, are not verified and supported.
+The code works in a Debian-based Linux (Debian 10 and Ubuntu 20.04) and Windows WSL 2. Also, it works but is not guaranteed in Google Cloud Shell. All other operating systems, including macOS, are not verified and supported.
 
 ### Packages
 
