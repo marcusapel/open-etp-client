@@ -28,6 +28,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
   ApiDefaultResponse,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
@@ -64,6 +65,7 @@ const logger = Logging.getLogger("EtpClient");
 
 import {
   FindInDataSpaceParams,
+  HasDataPartitionGuard,
   HasBearerGuard,
   alphaSpaceSchema,
   createSession,
@@ -74,7 +76,8 @@ import {
   getSchemasForType,
   httpErrorFromEtpError,
   patternString,
-  swaggerServers
+  swaggerServers,
+  partitionPattern
 } from "../ControllerUtils";
 
 import {
@@ -127,6 +130,8 @@ export class DataspaceDto {
   CustomData?: any;
 }
 
+const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
+
 /**
  * Creation and deletion of dataspaces
  *
@@ -135,6 +140,18 @@ export class DataspaceDto {
  */
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@ApiHeader({
+  name: "data-partition-id",
+  description: "Data partition id (ex. 'osdu')",
+  schema: {
+    type: "string",
+    example: partitionId,
+    maxLength: 1048,
+    pattern: patternString(partitionPattern)
+  }
+})
+@UseGuards(HasDataPartitionGuard())
+
 @ApiTags("Write")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
