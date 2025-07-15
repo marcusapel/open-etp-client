@@ -1,7 +1,8 @@
-import { describe, expect, jest } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 import { Energistics, ResqmlClient as OpenETPClient } from "../index";
 import config, { describeif, logger } from "./testConfig";
 import { ErrorCode } from "../lib/common/EtpTypes";
+import { v4 as uuidv4 } from 'uuid';
 import {
   verifyProtocolExceptionResponse,
   verifyErrorMessage,
@@ -18,6 +19,7 @@ import PutDataObjectsResponse = Energistics.Etp.v12.Protocol.Store.PutDataObject
 import GetDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgGetDataObjectsResponse;
 import MsgDeleteDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgDeleteDataObjectsResponse;
 import MsgPutDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgPutDataObjectsResponse;
+import DataObject = Energistics.Etp.v12.Datatypes.Object.DataObject;
 
 export const invalidUri = "eml://invalidUri";
 export const unsupportedDataObjectUri =
@@ -152,99 +154,136 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
     }
   );
 
-  // @todo Disabled until test is verified
-  describeif(false)(
-    "9.3.2 Message: PutDataObjects => putDataObjects with errors",
-    () => {
-      let objects: any;
-      let response: any;
-      let errorCases: { uri: string; code: ErrorCode }[] = [];
+  describeif(config.runExperimental && config.protocols.store.supportsWrite)
+  ("9.3.2 Message: PutDataObjects => putDataObjects with errors", () => {
+      let errorResponse: any;
+      let successResponse: any;
+
+      const uuid = uuidv4();
+      const validUri = DataObjectFactory.createWellUri(uuid);
+
+      // for EINVALID_URI
+      const invalidUuid = "invalid";
+    // for EINVALID_OBJECT
+      const invalidObj: DataObject = DataObjectFactory.createInvalidObject();
+
+      const dataObjects: DataObject[] = DataObjectFactory.generateWellObjects([uuid, invalidUuid]);
+      dataObjects.push(invalidObj);
+
+      const errorCases = [
+        { uri: dataObjects[1].resource.uri, code: ErrorCode.EINVALID_URI },
+        { uri: dataObjects[2].resource.uri, code: ErrorCode.EINVALID_OBJECT }
+      ];
 
       beforeAll(done => {
-        objects = DataObjectFactory.generateDataObjectForErrorMessages();
-        errorCases = [
-          { uri: objects[0].resource.uri, code: ErrorCode.EINVALID_URI },
-          { uri: objects[1].resource.uri, code: ErrorCode.EINVALID_OBJECT },
-          {
-            uri: objects[2].resource.uri,
-            code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED
-          },
-          { uri: objects[3].resource.uri, code: ErrorCode.ENOTSUPPORTED },
-          { uri: objects[4].resource.uri, code: ErrorCode.ENOCASCADE_DELETE },
-          {
-            uri: objects[5].resource.uri,
-            code: ErrorCode.EUPDATEGROWINGOBJECT_DENIED
-          },
-          { uri: objects[6].resource.uri, code: ErrorCode.EREQUEST_DENIED }
-        ];
+        const successPutPromise = new Promise(resolve => {
+          client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
+            successResponse = data;
+            resolve(data);
+          });
+        });
+        const successExceptionPromise = new Promise(resolve => {
+          client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+            errorResponse = data;
+            resolve(data);
+          });
+        });
 
-        client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
-          response = data;
+        Promise.all([successPutPromise, successExceptionPromise])
+          .then(() => {
+            done();
+          })
+          .catch(error => {
+            done(error);
+          });
+
+        client.putDataObjects(dataObjects);
+      });
+
+      it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
+        verifyMessage(successResponse, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
+      });
+
+      it("Verify for PutDataObjectsResponse there was one success object", () => {
+        expect(successResponse.body.success.size).toBe(1);
+        expect(successResponse.body.success.has(validUri)).toBe(true);
+      })
+
+      it("Verify dataObject was created in store", done => {
+        client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+          expect(data.body.dataObjects.size).toBe(1);
+          expect(data.body.dataObjects.has(validUri)).toBe(true);
           done();
         });
-        client.putDataObjects(objects);
+        client.getDataObjects([validUri]);
       });
 
       it("5.3.8 Message: ProtocolException => Response should be a ProtocolException etp message", () => {
-        verifyProtocolExceptionResponse(response);
+        verifyProtocolExceptionResponse(errorResponse);
       });
 
-      it("Response should contain 7 errors", () => {
-        verifyTotalErrors(response, 7);
+      it("Response should contain 2 errors", () => {
+        verifyTotalErrors(errorResponse, 2);
       });
 
       errorCases.forEach(({ uri, code }) => {
         it(`Error for ${uri} should be code ${code}`, () => {
-          verifyErrorMessage(response, uri, code);
+          verifyErrorMessage(errorResponse, uri, code);
         });
       });
     }
   );
 
-  // @todo Disabled until test is verified
-  describeif(false)(
-    "9.3.2 Message: PutDataObjects => putDataObjects (2.1)",
-    () => {
-      let objects: any;
-      let response: any;
+  describeif(config.runExperimental && config.protocols.store.supportsWrite)
+  ("9.3.2 Message: PutDataObjects => putDataObjects (2.1)", () => {
+    let objects: any;
+    let response: any;
 
-      beforeAll(done => {
-        objects = DataObjectFactory.generateDataObject();
-        client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
-          response = data;
-          done();
-        });
-        client.putDataObjects(objects);
+    const uuid1 = uuidv4();
+    const uuid2 = uuidv4();
+    const validUri = DataObjectFactory.createWellUri(uuid1);
+    const validUri2 = DataObjectFactory.createWellUri(uuid2);
+
+    beforeAll(done => {
+      objects = DataObjectFactory.generateWellObjects([uuid1, uuid2]);
+      client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
+        response = data;
+        done();
       });
+      client.putDataObjects(objects);
+    });
 
-      it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
-        verifyMessage(
-          response,
-          new PutDataObjectsResponse(),
-          MsgPutDataObjectsResponseTypeId
-        );
+    it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
+      verifyMessage(response, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
+    });
+
+    // verify object was created
+    it("Verify objects were created in store", done => {
+      client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+        expect(data.body.dataObjects.size).toBe(2);
+        expect(Array.from(data.body.dataObjects.keys())).toEqual(expect.arrayContaining([validUri, validUri2]))
+        done();
       });
+      client.getDataObjects([validUri, validUri2]);
+    });
+  });
 
-      it("Message should contain a 8 elements map", () => {
-        expect(Object.keys(response.messageBody.success).length).toBe(8);
-      });
-    }
-  );
-
-  describeif(config.runExperimental && config.protocols.store.supportsDelete)(
-    "9.3.4 Message: DeleteDataObjects with errors=> deleteDataObjects",
-    () => {
-      let successResponse: any;
+  describeif(config.runExperimental && config.protocols.store.supportsWrite)
+  ("9.3.4 Message: DeleteDataObjects with errors=> deleteDataObjects", () => {
       let errorResponse: any;
-      const inputObject: DeleteDataObjects = new DeleteDataObjects();
+      let successResponse: any;
 
-      const validUri = config.protocols.store.uriForDelete1;
-      const validUri2 = config.protocols.store.uriForDelete2;
+      const uuid1 = uuidv4();
+      const uuid2 = uuidv4();
+      const validUri = DataObjectFactory.createWellUri(uuid1);
+      const validUri2 = DataObjectFactory.createWellUri(uuid2);
       const deleteNotSupportedUri = config.protocols.store.unsupportedDeleteUri;
       const resourceNotFoundUri = config.protocols.store.resourceNotFoundUri;
+
+      const inputObject: DeleteDataObjects = new DeleteDataObjects();
       inputObject.pruneContainedObjects = true;
 
-      const uris = [
+      const urisForDeleteRequest = [
         validUri,
         validUri2,
         deleteNotSupportedUri,
@@ -254,49 +293,71 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
       ];
 
       beforeAll(done => {
-        const successPromise = new Promise(resolve => {
-          client.store.once(EventName.DELETE_DATA_OBJECTS_RESPONSE, data => {
-            successResponse = data;
-            resolve(data);
+        // first create data objects in store
+        const putDataObjectsPromise = new Promise<void>(resolve => {
+          client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
+            expect(data.body.success.size).toBe(2);
+            resolve();
           });
-        });
-        const exceptionPromise = new Promise(resolve => {
-          client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
-            errorResponse = data;
-            resolve(data);
-          });
+          client.putDataObjects(DataObjectFactory.generateWellObjects([uuid1, uuid2]));
         });
 
-        Promise.all([successPromise, exceptionPromise])
-          .then(() => {
-            done();
-          })
-          .catch(error => {
-            done(error);
+        // verify objects were created
+        const objectCreatedPromise = putDataObjectsPromise.then(() => {
+          client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+            expect(data.body.dataObjects.size).toBe(2);
+          });
+          client.getDataObjects([validUri, validUri2]);
+        });
+
+        // send delete data object request
+        objectCreatedPromise.then(() => {
+          const successDeletePromise = new Promise(resolve => {
+            client.store.once(EventName.DELETE_DATA_OBJECTS_RESPONSE, data => {
+              successResponse = data;
+              resolve(data);
+            });
+          });
+          const successExceptionPromise = new Promise(resolve => {
+            client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+              errorResponse = data;
+              resolve(data);
+            });
           });
 
-        client.store.deleteObjectsWithPrune(uris, true);
+          Promise.all([successDeletePromise, successExceptionPromise])
+            .then(() => {
+              done();
+            })
+            .catch(error => {
+              done(error);
+            });
+
+          client.store.deleteObjectsWithPrune(urisForDeleteRequest, false);
+        });
       });
 
       it("9.3.5 Message: DeleteDataObjectsResponse => The first response should be a DeleteDataObjectsResponse etp message", () => {
-        verifyMessage(
-          successResponse,
-          new DeleteDataObjectsResponse(),
-          MsgDeleteDataObjectsResponseTypeId
-        );
+        verifyMessage(successResponse, new DeleteDataObjectsResponse(), MsgDeleteDataObjectsResponseTypeId);
       });
 
       it("There should be two deletedUri's", () => {
         expect(successResponse.body.deletedUris.size).toBe(2);
       });
 
-      it(`First element of the deletedUris map should contain ${validUri}`, () => {
-        expect(successResponse.body.deletedUris.keys().next().value).toBe(
-          validUri
+      // verify objects were deleted
+      it("Verify objects were deleted", done => {
+        client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+          expect(data.body.dataObjects.size).toBe(0);
+          done();
+        });
+        client.getDataObjects([validUri, validUri2]);
+      })
+
+      it(`Deleted uris should be ${validUri} & ${validUri2}`, () => {
+        expect(Array.from(successResponse.body.deletedUris.keys())).toEqual(
+          expect.arrayContaining([validUri, validUri2])
         );
-        expect(
-          successResponse.body.deletedUris.get(`${validUri}`).values[0]
-        ).toBe(validUri);
       });
 
       it("5.3.8 Message: ProtocolException => The second response should be a ProtocolException etp message", () => {
@@ -311,10 +372,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
         { uri: deleteNotSupportedUri, code: ErrorCode.ENOCASCADE_DELETE },
         { uri: invalidUri, code: ErrorCode.EINVALID_URI },
         { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
-        {
-          uri: unsupportedDataObjectUri,
-          code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED
-        }
+        { uri: unsupportedDataObjectUri, code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED }
       ];
 
       errorCases.forEach(({ uri, code }) => {

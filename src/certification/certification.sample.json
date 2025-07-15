@@ -13,8 +13,7 @@
 
     "store": {
       "supported": true,
-      "supportsPut": true,
-      "supportsDelete": true,
+      "supportsWrite": false,
       "wellUriForGet": "Well Uri for get",
       "trajectoryUriForGet": "Trajectory Uri for get",
       "wellBoreUriForGet": "WellBore Uri for get",

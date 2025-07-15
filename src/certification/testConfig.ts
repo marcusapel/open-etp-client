@@ -26,8 +26,7 @@ const config: {
     };
     store: {
       supported: boolean;
-      supportsPut: boolean;
-      supportsDelete: boolean;
+      supportsWrite: boolean;
       wellUriForGet: string;
       trajectoryUriForGet: string;
       wellBoreUriForGet: string;
