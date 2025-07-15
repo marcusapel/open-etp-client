@@ -19,6 +19,7 @@ import PutDataObjectsResponse = Energistics.Etp.v12.Protocol.Store.PutDataObject
 import GetDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgGetDataObjectsResponse;
 import MsgDeleteDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgDeleteDataObjectsResponse;
 import MsgPutDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgPutDataObjectsResponse;
+import DataObject = Energistics.Etp.v12.Datatypes.Object.DataObject;
 
 export const invalidUri = "eml://invalidUri";
 export const unsupportedDataObjectUri =
@@ -161,16 +162,21 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
       const uuid = uuidv4();
       const validUri = DataObjectFactory.createWellUri(uuid);
 
-      const objects = DataObjectFactory.generateWellObjects([uuid, "invalidUuid"]);
-      objects.push(DataObjectFactory.createInvalidObject());
+      // for EINVALID_URI
+      const invalidUuid = "invalid";
+    // for EINVALID_OBJECT
+      const invalidObj: DataObject = DataObjectFactory.createInvalidObject();
+
+      const dataObjects: DataObject[] = DataObjectFactory.generateWellObjects([uuid, invalidUuid]);
+      dataObjects.push(invalidObj);
 
       const errorCases = [
-        { uri: objects[1].resource.uri, code: ErrorCode.EINVALID_URI },
-        { uri: objects[2].resource.uri, code: ErrorCode.EINVALID_OBJECT }
+        { uri: dataObjects[1].resource.uri, code: ErrorCode.EINVALID_URI },
+        { uri: dataObjects[2].resource.uri, code: ErrorCode.EINVALID_OBJECT }
       ];
 
       beforeAll(done => {
-        const successDeletePromise = new Promise(resolve => {
+        const successPutPromise = new Promise(resolve => {
           client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
             successResponse = data;
             resolve(data);
@@ -183,7 +189,7 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
           });
         });
 
-        Promise.all([successDeletePromise, successExceptionPromise])
+        Promise.all([successPutPromise, successExceptionPromise])
           .then(() => {
             done();
           })
@@ -191,14 +197,19 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
             done(error);
           });
 
-        client.putDataObjects(objects);
+        client.putDataObjects(dataObjects);
       });
 
       it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
         verifyMessage(successResponse, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
       });
 
-      it("Verify objects were created in store", done => {
+      it("Verify for PutDataObjectsResponse there was one success object", () => {
+        expect(successResponse.body.success.size).toBe(1);
+        expect(successResponse.body.success.has(validUri)).toBe(true);
+      })
+
+      it("Verify dataObject was created in store", done => {
         client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
           expect(data.body.dataObjects.size).toBe(1);
           expect(data.body.dataObjects.has(validUri)).toBe(true);
