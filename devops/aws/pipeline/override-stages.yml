@@ -56,7 +56,7 @@ aws_test:
     - !reference [.aws_variables, before_script]
     - |
       echo "AWS_COGNITO_USER_POOL_ID: $AWS_COGNITO_USER_POOL_ID";
-      export AWS_TOKEN_FETCH_URL=$(aws ssm get-parameter --name /osdu/cognito/${COGNITO_NAME}/oauth/token-uri --query Parameter.Value  --output text --region $AWS_REGION);
+      export AWS_TOKEN_FETCH_URL=$(aws ssm get-parameter --name /osdu/idp/${IDP_NAME}/oauth/token-uri --query Parameter.Value  --output text --region $AWS_REGION);
       export AWS_COGNITO_REFRESH_TOKEN=$(aws cognito-idp initiate-auth --auth-flow ${AWS_COGNITO_AUTH_FLOW} --client-id ${AWS_COGNITO_CLIENT_ID} --auth-parameters USERNAME=${AWS_COGNITO_AUTH_PARAMS_USER},PASSWORD=${AWS_COGNITO_AUTH_PARAMS_PASSWORD} | jq -r '.[].RefreshToken // empty');
       echo $AWS_COGNITO_REFRESH_TOKEN | wc -c
   script:
