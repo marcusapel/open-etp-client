@@ -1,9 +1,9 @@
 global:
   domain: ""
-  onPremEnabled: false
   limitsEnabled: true
   tier: ""
-  autoscaling: true
+  autoscalingMode: "cpu"
+  logLevel: "ERROR"
 
 data:
   # Configmaps
@@ -15,7 +15,7 @@ data:
   rdmsEtpProtocol: "ws"
   logLevel: "error"
   # Deployments
-  requestsCpu: "5m"
+  requestsCpu: "50m"
   requestsMemory: "250Mi"
   limitsCpu: "1"
   limitsMemory: "1G"
@@ -27,18 +27,27 @@ conf:
   appName: "oetp-client"
   configmap: "oetp-client-config"
   oetpClientSecret: "oetp-client-secret"
-  replicas: 2
 
 hpa:
-  minReplicas: 6
-  maxReplicas: 15
-  targetType: "AverageValue"
-  targetValue: 16
-  behaviorScaleUpStabilizationWindowSeconds: 10
-  behaviorScaleUpPoliciesValue: 50
-  behaviorScaleUpPoliciesPeriodSeconds: 15
-  behaviorScaleDownStabilizationWindowSeconds: 60
-  behaviorScaleDownPoliciesValue: 25
+  minReplicas: 1
+  maxReplicas: 6
+  cpu:
+    utilization: 200
+    scaleUpStabilizationWindowSeconds: 30
+    scaleUpValue: 200
+    scaleUpPeriod: 15
+    scaleDownStabilizationWindowSeconds: 150
+    scaleDownValue: 100
+    scaleDownPeriod: 15
+  requests:
+    targetType: "AverageValue"
+    targetValue: 16
+    scaleUpStabilizationWindowSeconds: 10
+    scaleUpValue: 50
+    scaleUpPeriod: 15
+    scaleDownStabilizationWindowSeconds: 60
+    scaleDownValue: 25
+    scaleDownPeriod: 60
   behaviorScaleDownPoliciesPeriodSeconds: 60
 
 limits:
