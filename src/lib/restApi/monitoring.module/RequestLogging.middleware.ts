@@ -82,8 +82,17 @@ export default class RequestLoggingMiddleware implements NestMiddleware {
     // Capture response information when the response finishes
     const originalSend = res.send;
     res.send = function(body) {
-      const contentLength = res.get('Content-Length') || (body ? Buffer.byteLength(body, 'utf8') : 0);
-      logResponse(contentLength)
+      // Only calculate content length if not already set and body is serialized (string or Buffer)
+      let contentLength: string | number = res.get('Content-Length') || 'unknown';
+      if (contentLength === 'unknown' && body) {
+        if (typeof body === 'string') {
+          contentLength = Buffer.byteLength(body, 'utf8');
+        } else if (Buffer.isBuffer(body)) {
+          contentLength = body.length;
+        }
+      }
+      
+      logResponse(contentLength);
       
       // Call the original send method
       return originalSend.call(this, body);
