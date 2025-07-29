@@ -66,8 +66,149 @@ import { createManifest } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 
+import {
+  IsArray,
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+  Matches,
+  MaxLength
+} from "class-validator";
+import { Type } from "@nestjs/class-transformer";
+
+// The `\` in this expression do NOT need to be escaped, so we only need one `\` to
+// escape the `.` so that it accepts only a `.` rather than matching any character.
 const emailPattern =
-  /^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$/;
+  /^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,7}$/;
+
+// DTO for ACL structure
+export class AclDto {
+  @ApiPropertyOptional({
+    name: "viewers",
+    type: [String],
+    description: "List of entitlements groups with viewer permissions",
+    example: ["data.viewers@partition.domain"]
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(emailPattern, { each: true, message: "Each viewer must be a valid entitlements group (email format)" })
+  viewers?: string[];
+
+  @ApiPropertyOptional({
+    name: "owners", 
+    type: [String],
+    description: "List of entitlements groups with owner permissions",
+    example: ["data.owners@partition.domain"]
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(emailPattern, { each: true, message: "Each owner must be a valid entitlements group (email format)" })
+  owners?: string[];
+}
+
+// DTO for Legal structure
+export class LegalDto {
+  @ApiPropertyOptional({
+    name: "legaltags",
+    type: [String],
+    description: "List of legal tags"
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  legaltags?: string[];
+
+  @ApiPropertyOptional({
+    name: "otherRelevantDataCountries",
+    type: [String], 
+    description: "List of other relevant data countries"
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  otherRelevantDataCountries?: string[];
+}
+
+// Main DTO for manifest build request
+export class ManifestBuildDto {
+  @ApiPropertyOptional({
+    name: "acl",
+    type: AclDto,
+    description: "Access control list with entitlements groups"
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => AclDto)
+  acl?: AclDto;
+
+  @ApiPropertyOptional({
+    name: "legal",
+    type: LegalDto,
+    description: "Legal information"
+  })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => LegalDto)
+  legal?: LegalDto;
+
+  @ApiPropertyOptional({
+    name: "tags",
+    description: "Tags for the manifest"
+  })
+  @IsOptional()
+  tags?: any;
+
+  @ApiPropertyOptional({
+    name: "fileCollection",
+    type: String,
+    description: "File collection identifier"
+  })
+  @IsOptional()
+  @IsString()
+  fileCollection?: string;
+
+  @ApiPropertyOptional({
+    name: "createMissingReferences",
+    type: Boolean,
+    description: "Whether to create missing references"
+  })
+  @IsOptional()
+  @IsBoolean()
+  createMissingReferences?: boolean;
+
+  @ApiPropertyOptional({
+    name: "technicalAssurances",
+    description: "Technical assurances for the manifest"
+  })
+  @IsOptional()
+  technicalAssurances?: any;
+
+  @ApiPropertyOptional({
+    name: "uris",
+    type: [String],
+    description: "List of URIs for the manifest"
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  uris?: string[];
+
+  @ApiPropertyOptional({
+    name: "typePatterns",
+    type: [String],
+    description: "List of type patterns"
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  typePatterns?: string[];
+}
 
 const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
@@ -430,7 +571,7 @@ export class ManifestDto {
 export default class ObjectsManifestAPI {
   @Post("build")
   @ApiBody({
-    type: Object
+    type: ManifestBuildDto
   })
   @ApiOperation({
     summary: "Create OSDU manifest.",
@@ -442,7 +583,7 @@ export default class ObjectsManifestAPI {
     type: ManifestDto
   })
   public async GetManifest(
-    @Body() body: Record<string, any>,
+    @Body() body: ManifestBuildDto,
     @Req() request: express.Request,
     @Res() res: express.Response
   ): Promise<void> {
@@ -464,18 +605,20 @@ export default class ObjectsManifestAPI {
       const jwt = bearer ? (decode(bearer) as JwtPayload) : {};
       const partition = extractDataPartitionId(request);
 
-      const record = body as unknown as Record<string, any>;
-
       const context = new OSDUContext(
         typeof partition === "string" ? partition : "osdu",
-        record.acl ? record.acl : { viewers: [], owners: [] },
-        record.legal
-          ? record.legal
-          : { legaltags: [], otherRelevantDataCountries: [] },
+        {
+          viewers: body.acl?.viewers ?? [],
+          owners: body.acl?.owners ?? []
+        },
+        {
+          legaltags: body.legal?.legaltags ?? [],
+          otherRelevantDataCountries: body.legal?.otherRelevantDataCountries ?? []
+        },
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
-        record.tags,
-        record.fileCollection,
-        record.createMissingReferences
+        body.tags,
+        body.fileCollection,
+        body.createMissingReferences
       );
 
       if (context.fileCollection) {
@@ -488,7 +631,7 @@ export default class ObjectsManifestAPI {
       }
 
       context.bearer = bearer;
-      context.technicalAssurances = record.technicalAssurances;
+      context.technicalAssurances = body.technicalAssurances;
 
       // If connected to OSDU apis, check that the legal tags are part of the platform
       await context.checkLegalTags();
@@ -496,9 +639,9 @@ export default class ObjectsManifestAPI {
       c = await createSession(bearer, partition);
       const b = await createManifest(
         c,
-        record.uris,
+        body.uris ?? [],
         context,
-        record.typePatterns,
+        body.typePatterns ?? [],
         maxManifestSize
       );
       await c.closeSession();
