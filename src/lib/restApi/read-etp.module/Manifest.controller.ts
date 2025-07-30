@@ -55,6 +55,16 @@ import {
 
 import { decode } from "jsonwebtoken";
 import express from "express";
+import {
+  IsArray,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsObject,
+  ValidateNested,
+  Matches
+} from "class-validator";
+import { Type } from "@nestjs/class-transformer";
 
 import {
   IAcceptableUsage,
@@ -66,149 +76,8 @@ import { createManifest } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 
-import {
-  IsArray,
-  IsBoolean,
-  IsObject,
-  IsOptional,
-  IsString,
-  ValidateNested,
-  Matches,
-  MaxLength
-} from "class-validator";
-import { Type } from "@nestjs/class-transformer";
-
-// The `\` in this expression do NOT need to be escaped, so we only need one `\` to
-// escape the `.` so that it accepts only a `.` rather than matching any character.
 const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,7}$/;
-
-// DTO for ACL structure
-export class AclDto {
-  @ApiPropertyOptional({
-    name: "viewers",
-    type: [String],
-    description: "List of entitlements groups with viewer permissions",
-    example: ["data.viewers@partition.domain"]
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(emailPattern, { each: true, message: "Each viewer must be a valid entitlements group (email format)" })
-  viewers?: string[];
-
-  @ApiPropertyOptional({
-    name: "owners", 
-    type: [String],
-    description: "List of entitlements groups with owner permissions",
-    example: ["data.owners@partition.domain"]
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(emailPattern, { each: true, message: "Each owner must be a valid entitlements group (email format)" })
-  owners?: string[];
-}
-
-// DTO for Legal structure
-export class LegalDto {
-  @ApiPropertyOptional({
-    name: "legaltags",
-    type: [String],
-    description: "List of legal tags"
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  legaltags?: string[];
-
-  @ApiPropertyOptional({
-    name: "otherRelevantDataCountries",
-    type: [String], 
-    description: "List of other relevant data countries"
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  otherRelevantDataCountries?: string[];
-}
-
-// Main DTO for manifest build request
-export class ManifestBuildDto {
-  @ApiPropertyOptional({
-    name: "acl",
-    type: AclDto,
-    description: "Access control list with entitlements groups"
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => AclDto)
-  acl?: AclDto;
-
-  @ApiPropertyOptional({
-    name: "legal",
-    type: LegalDto,
-    description: "Legal information"
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => LegalDto)
-  legal?: LegalDto;
-
-  @ApiPropertyOptional({
-    name: "tags",
-    description: "Tags for the manifest"
-  })
-  @IsOptional()
-  tags?: any;
-
-  @ApiPropertyOptional({
-    name: "fileCollection",
-    type: String,
-    description: "File collection identifier"
-  })
-  @IsOptional()
-  @IsString()
-  fileCollection?: string;
-
-  @ApiPropertyOptional({
-    name: "createMissingReferences",
-    type: Boolean,
-    description: "Whether to create missing references"
-  })
-  @IsOptional()
-  @IsBoolean()
-  createMissingReferences?: boolean;
-
-  @ApiPropertyOptional({
-    name: "technicalAssurances",
-    description: "Technical assurances for the manifest"
-  })
-  @IsOptional()
-  technicalAssurances?: any;
-
-  @ApiPropertyOptional({
-    name: "uris",
-    type: [String],
-    description: "List of URIs for the manifest"
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  uris?: string[];
-
-  @ApiPropertyOptional({
-    name: "typePatterns",
-    type: [String],
-    description: "List of type patterns"
-  })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  typePatterns?: string[];
-}
 
 const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
 
@@ -395,6 +264,9 @@ export class ACLDto {
     example: [`data.default.viewers@${partitionId}.mycompany.com`],
     pattern: patternString(emailPattern)
   })
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(emailPattern, { each: true, message: "Each viewer must be a valid entitlements group (email format)" })
   viewers!: string[];
 
   @ApiProperty({
@@ -406,6 +278,9 @@ export class ACLDto {
     example: [`data.default.owners@${partitionId}.mycompany.com`],
     pattern: patternString(emailPattern)
   })
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(emailPattern, { each: true, message: "Each owner must be a valid entitlements group (email format)" })
   owners!: string[];
 }
 
@@ -418,6 +293,8 @@ export class LegaltagsDto {
     description: "List of legal tags",
     example: [`${partitionId}-ReservoirDDMS-Legal-Tag`]
   })
+  @IsArray()
+  @IsString({ each: true })
   legaltags!: string[];
 
   @ApiProperty({
@@ -429,6 +306,9 @@ export class LegaltagsDto {
     example: ["US", "UK"],
     pattern: patternString(/^[A-Z]{2}$/)
   })
+  @IsArray()
+  @IsString({ each: true })
+  @Matches(/^[A-Z]{2}$/, { each: true, message: "Each country code must be exactly 2 uppercase letters" })
   otherRelevantDataCountries!: string[];
 }
 
@@ -448,11 +328,10 @@ export class ManifestInputDto {
     example: [
       "eml:///dataspace('demo/Volve')/resqml20.obj_TriangulatedSetRepresentation(a3f31b20-c93a-4682-8f6c-71be087202a4)",
       "eml:///dataspace('demo/Volve')/resqml20.obj_ContinuousProperty(1615d8d2-2a2d-482c-885e-14225b89e90c)"
-    ],
-    pattern: `${patternString(emlUriPattern)}|${patternString(
-      dataspaceUriPattern
-    )}`
+    ]
   })
+  @IsArray()
+  @IsString({ each: true })
   uris!: string[];
 
   @ApiPropertyOptional({
@@ -464,6 +343,9 @@ export class ManifestInputDto {
     example: ["resqml20.obj_*Representation"],
     pattern: `${patternString(/^[0-9a-zA-Z._*?]+$/)}`
   })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   typePatterns?: string[];
 
   @ApiPropertyOptional({
@@ -475,6 +357,10 @@ export class ManifestInputDto {
       owners: [`data.default.owners@${partitionId}.mycompany.com`]
     }
   })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ACLDto)
   acl?: ACLDto;
 
   @ApiPropertyOptional({
@@ -482,6 +368,10 @@ export class ManifestInputDto {
     description: `OSDU legal information to apply.`,
     type: LegaltagsDto
   })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => LegaltagsDto)
   legal?: LegaltagsDto;
 
   @ApiPropertyOptional({
@@ -493,6 +383,8 @@ export class ManifestInputDto {
       /^[\\w\\-\\.]+:dataset\\-\\-[\\w\\-\\.]+:[\\w\\-\\.\\:\\%]+$/
     )
   })
+  @IsOptional()
+  @IsString()
   fileCollection?: string;
 
   @ApiPropertyOptional({
@@ -501,6 +393,10 @@ export class ManifestInputDto {
     maxItems: 1028,
     description: `Technical Assurance information.`
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TechnicalAssuranceDto)
   technicalAssurances?: TechnicalAssuranceDto[];
 
   @ApiPropertyOptional({
@@ -509,6 +405,8 @@ export class ManifestInputDto {
     type: Boolean,
     example: true
   })
+  @IsOptional()
+  @IsBoolean()
   createMissingReferences?: boolean = true;
 
   @ApiPropertyOptional({
@@ -525,6 +423,8 @@ export class ManifestInputDto {
       pattern: patternString(/^[a-zA-Z0-9_]+$/)
     }
   })
+  @IsOptional()
+  @IsObject()
   tags?: Record<string, string>;
 }
 
@@ -571,7 +471,7 @@ export class ManifestDto {
 export default class ObjectsManifestAPI {
   @Post("build")
   @ApiBody({
-    type: ManifestBuildDto
+    type: ManifestInputDto
   })
   @ApiOperation({
     summary: "Create OSDU manifest.",
@@ -583,7 +483,7 @@ export default class ObjectsManifestAPI {
     type: ManifestDto
   })
   public async GetManifest(
-    @Body() body: ManifestBuildDto,
+    @Body() body: ManifestInputDto,
     @Req() request: express.Request,
     @Res() res: express.Response
   ): Promise<void> {
