@@ -164,7 +164,8 @@
     },
     "lint-staged": {
       "cross-spawn": "7.0.5"
-    }
+    },
+    "form-data": "4.0.4"
   },
   "publishConfig": {
     "access": "public"
