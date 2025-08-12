@@ -167,7 +167,7 @@ export class DataspaceDto {
     additionalProperties: alphaSpaceSchema,
     description: "Extra meta data associated to dataspace"
   })
-  customData!: Record<string, string | Date>;
+  customData!: Record<string, any>;
 }
 
 /**
