@@ -151,7 +151,6 @@ const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
   }
 })
 @UseGuards(HasDataPartitionGuard())
-
 @ApiTags("Write")
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
@@ -180,7 +179,7 @@ export default class DataspaceMutationsAPI {
       items: getSchemasForType(DataspaceDto)
     },
     examples: {
-      externalPartReference: {
+      "new scenario description": {
         value: [
           {
             DataspaceId: "projectA/Scenario1",
@@ -268,7 +267,13 @@ export default class DataspaceMutationsAPI {
         value: {
           DataspaceId: "projectA/Scenario2",
           Path: "projectA/Scenario2",
-          CustomData: { key: "value" }
+          CustomData: {
+            viewers: ["data.default.viewers@osdu.example.com"],
+            owners: ["data.default.owners@osdu.example.com"],
+            legaltags: ["osdu-ReservoirDDMS-Legal-Tag"],
+            otherRelevantDataCountries: ["US", "UK"],
+            key: "value"
+          }
         }
       }
     }
@@ -313,7 +318,7 @@ export default class DataspaceMutationsAPI {
       if (!dataspaces) {
         throw new InternalServerErrorException("Unable to clone Dataspaces");
       }
-      return uri;
+      return EtpUri.createDataSpaceUri(requestBody.DataspaceId).uri;
     } catch (err) {
       try {
         await c?.closeSession();

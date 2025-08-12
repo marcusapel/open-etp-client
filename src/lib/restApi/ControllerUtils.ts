@@ -59,6 +59,9 @@ import {
 } from "../common/config";
 import { ResourceGraph } from "../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../common/EtpTypes";
+
+import { bigIntToString } from "../mlTypes/XmlJsonUtil";
+
 import { ApiProperty, ApiQueryOptions } from "@nestjs/swagger";
 import { IsUUID, Matches, MaxLength } from "class-validator";
 
@@ -116,15 +119,15 @@ export const toDate = (b: bigint): Date => new Date(Number(b / BigInt(1000)));
  * Convert from Values so String
  *
  * @param {Energistics.Etp.v12.Datatypes.Object.Resource} d
- * @returns {Record<string, string|Date> | undefined}
+ * @returns {Record<string, any> | undefined}
  */
 export const toJSonCustomData = (
   d: Map<string, Energistics.Etp.v12.Datatypes.DataValue> | undefined
-): Record<string, string | Date> | undefined => {
+): Record<string, any> | undefined => {
   if (!d) {
     return undefined;
   }
-  const o: Record<string, string | Date> = {};
+  const o: Record<string, any> = {};
   return Array.from(d.keys()).reduce((obj, key: string) => {
     const val = d.get(key);
     if (val?.item?.__keyName) {
@@ -137,10 +140,10 @@ export const toJSonCustomData = (
             try {
               obj[key] = JSON.parse(v as string);
             } catch (e) {
-              obj[key] = v as string;
+              obj[key] = v;
             }
           } else {
-            obj[key] = v.toString();
+            obj[key] = JSON.parse(JSON.stringify(v, bigIntToString));
           }
         }
       }
