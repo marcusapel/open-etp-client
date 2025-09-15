@@ -13,16 +13,7 @@
 
     "store": {
       "supported": true,
-      "supportsPut": true,
-      "supportsDelete": true,
-      "wellUriForGet": "Well Uri for get",
-      "trajectoryUriForGet": "Trajectory Uri for get",
-      "wellBoreUriForGet": "WellBore Uri for get",
-      "channelUriForGet": "Channel Uri for get",
-      "resourceNotFoundUri": "Uri for data obj where resource can't  be found",
-      "unsupportedDeleteUri": "Uri for obj that has children and cascading deletes are not supported.",
-      "uriForDelete1": "Deletable Uri for get",
-      "uriForDelete2": "Deletable Uri for get"
+      "supportsWrite": true
     }
   }
 }

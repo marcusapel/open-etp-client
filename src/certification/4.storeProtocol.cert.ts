@@ -7,13 +7,13 @@ import {
   verifyProtocolExceptionResponse,
   verifyErrorMessage,
   verifyTotalErrors,
-  verifyMessage
+  verifyMessage,
+  verifyGetStoreResponseContent
 } from "./helper/testHelpers";
 import { DataObjectFactory } from "./helper/DataObjectFactory";
 import { EventName } from "./helper/constants";
 
 import GetDataObjectsResponse = Energistics.Etp.v12.Protocol.Store.GetDataObjectsResponse;
-import DeleteDataObjects = Energistics.Etp.v12.Protocol.Store.DeleteDataObjects;
 import DeleteDataObjectsResponse = Energistics.Etp.v12.Protocol.Store.DeleteDataObjectsResponse;
 import PutDataObjectsResponse = Energistics.Etp.v12.Protocol.Store.PutDataObjectsResponse;
 import GetDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgGetDataObjectsResponse;
@@ -21,9 +21,12 @@ import MsgDeleteDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.M
 import MsgPutDataObjectsResponseTypeId = Energistics.Etp.v12.Protocol.Store.MsgPutDataObjectsResponse;
 import DataObject = Energistics.Etp.v12.Datatypes.Object.DataObject;
 
-export const invalidUri = "eml://invalidUri";
-export const unsupportedDataObjectUri =
-  "eml:///witsml21.Unsupported(301b6ebe-a211-49e2-a556-f7378576ddc9)";
+const volveWellUuid = 'ca96314d-a048-46bf-9a1e-a27edd9bac09';
+const volveWellboreUuid = '1f86e6c8-9de9-47fb-a4b0-cd74c74fc96d';
+const invalidUri = "eml://invalidUri";
+const invalidUuid = "invalid";
+const unsupportedDataObjectUri = "eml:///witsml21.Unsupported(301b6ebe-a211-49e2-a556-f7378576ddc9)";
+
 jest.setTimeout(3 * 1000);
 
 if (!config.etpServerUrl.startsWith("ws")) {
@@ -32,6 +35,7 @@ if (!config.etpServerUrl.startsWith("ws")) {
 }
 
 describeif(config.protocols.store.supported)("(4) Store protocol", () => {
+
   const client = new OpenETPClient();
 
   beforeAll(async () => {
@@ -49,337 +53,277 @@ describeif(config.protocols.store.supported)("(4) Store protocol", () => {
     }
   });
 
-  describeif(config.runExperimental)("9.3.1 Message: GetDataObjects", () => {
-    const wellUri = config.protocols.store.wellUriForGet;
-    const trajectoryUri = config.protocols.store.trajectoryUriForGet;
-    const wellBoreUri = config.protocols.store.wellBoreUriForGet;
-    const channelUri = config.protocols.store.channelUriForGet;
-    const uris = [wellUri, trajectoryUri, channelUri, wellBoreUri].filter(
-      uri => uri !== ""
-    );
+  const resourceNotFoundUri =  DataObjectFactory.createWellUri(uuidv4());
 
-    it("Should emit GetDataObjectsResponse event", done => {
-      client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, () => {
-        done();
+  describe("9.3.1: GetDataObjects with errors", () => {
+    let successResponse: any;
+    let errorResponse: any;
+    const validWellUri = DataObjectFactory.createUri(volveWellUuid, "Well");
+    const validWellboreUri = DataObjectFactory.createUri(volveWellboreUuid, "Wellbore");
+    const getRequestUris = [validWellUri, validWellboreUri, resourceNotFoundUri, invalidUri, unsupportedDataObjectUri];
+    const getRequestExpectedErrors = [
+      { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
+      { uri: invalidUri, code: ErrorCode.EINVALID_URI },
+      // TODO: verify this error case, bardazz returns ENOT_FOUND for this case but should be EDATAOBJECTTYPE_NOTSUPPORTED
+      { uri: unsupportedDataObjectUri, code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED }
+    ];
+
+    beforeAll(done => {
+      const successPromise = new Promise(resolve => {
+        client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+          successResponse = data;
+          resolve(data);
+        });
       });
-      client.getDataObjects(uris);
+      const exceptionPromise = new Promise(resolve => {
+        client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+          errorResponse = data;
+          resolve(data);
+        });
+      });
+
+      Promise.all([successPromise, exceptionPromise])
+        .then(() => {
+          done();
+        })
+        .catch(error => {
+          done(error);
+        });
+      client.getDataObjects(getRequestUris);
     });
 
-    it("9.3.6 Response should be a GetDataObjectsResponse etp message", done => {
-      client.store.once(
-        EventName.GET_DATA_OBJECT_RESPONSE,
-        function (response) {
-          verifyMessage(
-            response,
-            new GetDataObjectsResponse(),
-            GetDataObjectsResponseTypeId
-          );
-          expect(response.body.dataObjects.size).toBe(uris.length);
-          done();
-        }
-      );
-      client.getDataObjects(uris);
+    it("Validate success response is GetDataObjectsResponse message from GetDataObject request", () => {
+      verifyMessage(successResponse, new GetDataObjectsResponse(), GetDataObjectsResponseTypeId);
+    });
+
+    it("Verify success GetDataObjectResponse contains well & wellbore those were created in PutDataObject request", () => {
+      verifyGetStoreResponseContent(successResponse, validWellUri, volveWellUuid, validWellboreUri, volveWellboreUuid);
+    });
+
+    it("Wrong uri's should emit ProtocolException etp message", () => {
+      verifyProtocolExceptionResponse(errorResponse);
+    });
+
+    it("ProtocolException should contain 3 errors ", () => {
+      verifyTotalErrors(errorResponse, 3);
+    });
+
+    getRequestExpectedErrors.forEach(({ uri, code }) => {
+      it(`Error for ${uri}: should be code ${code}`, () => {
+        verifyErrorMessage(errorResponse, `${uri}`, code);
+      });
     });
   });
 
-  describeif(config.runExperimental)(
-    "9.3.1: GetDataObjects with errors",
-    () => {
-      let successResponse: any;
-      let errorResponse: any;
-      const validUri = config.protocols.store.wellUriForGet;
-      const resourceNotFoundUri = config.protocols.store.resourceNotFoundUri;
-      const uris = [
-        validUri,
-        resourceNotFoundUri,
-        invalidUri,
-        unsupportedDataObjectUri
-      ];
 
-      beforeAll(done => {
-        const successPromise = new Promise(resolve => {
-          client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
-            successResponse = data;
-            resolve(data);
-          });
-        });
-        const exceptionPromise = new Promise(resolve => {
-          client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
-            errorResponse = data;
-            resolve(data);
-          });
-        });
+  describeif(config.protocols.store.supportsWrite)("9.3.4 Test PUT, GET & DELETE for store", () => {
+    let putSuccessResponse: any;
+    let putExceptionResponse: any;
+    let getSuccessResponse: any;
+    let getExceptionResponse: any;
+    let deleteWellboreSuccessResponse: any;
+    let deleteWellboreExceptionResponse: any;
+    let deleteWellSuccessResponse: any;
 
-        Promise.all([successPromise, exceptionPromise])
-          .then(() => {
-            done();
-          })
-          .catch(error => {
-            done(error);
-          });
-        client.getDataObjects(uris);
-      });
+    const validWellUuid = uuidv4();
+    const validWellboreUuid = uuidv4();
+    const validWellUri = DataObjectFactory.createWellUri(validWellUuid);
+    const validWellboreUri = DataObjectFactory.createWellboreUri(validWellboreUuid);
 
-      it("Valid uri should emit GetDataObjectsResponse etp message", () => {
-        verifyMessage(
-          successResponse,
-          new GetDataObjectsResponse(),
-          GetDataObjectsResponseTypeId
-        );
-        expect(successResponse.body.dataObjects.size).toBe(1);
-      });
+    const validWell = DataObjectFactory.generateWellObject(validWellUuid);
+    const validWellbore = DataObjectFactory.generateWellboreObject(validWellboreUuid, validWellUuid);
+    const invalidWell = DataObjectFactory.generateWellObject(invalidUuid);
+    const invalidGenericObject = DataObjectFactory.createInvalidObject();
 
-      it("Wrong uri's should emit ProtocolException etp message", () => {
-        verifyProtocolExceptionResponse(errorResponse);
-      });
+    const putRequestUris: DataObject[] = [validWell, validWellbore, invalidWell, invalidGenericObject];
+    const putRequestExpectedErrors = [
+      { uri: putRequestUris[2].resource.uri, code: ErrorCode.EINVALID_URI },
+      { uri: putRequestUris[3].resource.uri, code: ErrorCode.EINVALID_OBJECT }
+    ];
 
-      it("ProtocolException should contain 3 errors ", () => {
-        verifyTotalErrors(errorResponse, 3);
-      });
-
-      const errorCases = [
-        { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
-        { uri: invalidUri, code: ErrorCode.EINVALID_URI },
-        {
-          uri: unsupportedDataObjectUri,
-          code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED
-        }
-      ];
-
-      errorCases.forEach(({ uri, code }) => {
-        it(`Error for ${uri}: should be code ${code}`, () => {
-          verifyErrorMessage(errorResponse, `${uri}`, code);
+    it("9.3.2 : Verify responses are received for PutDataObject request", done => {
+      const putSuccessPromise = new Promise(resolve => {
+        client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
+          putSuccessResponse = data;
+          resolve(data);
         });
       });
-    }
-  );
 
-  describeif(config.runExperimental && config.protocols.store.supportsWrite)
-  ("9.3.2 Message: PutDataObjects => putDataObjects with errors", () => {
-      let errorResponse: any;
-      let successResponse: any;
-
-      const uuid = uuidv4();
-      const validUri = DataObjectFactory.createWellUri(uuid);
-
-      // for EINVALID_URI
-      const invalidUuid = "invalid";
-    // for EINVALID_OBJECT
-      const invalidObj: DataObject = DataObjectFactory.createInvalidObject();
-
-      const dataObjects: DataObject[] = DataObjectFactory.generateWellObjects([uuid, invalidUuid]);
-      dataObjects.push(invalidObj);
-
-      const errorCases = [
-        { uri: dataObjects[1].resource.uri, code: ErrorCode.EINVALID_URI },
-        { uri: dataObjects[2].resource.uri, code: ErrorCode.EINVALID_OBJECT }
-      ];
-
-      beforeAll(done => {
-        const successPutPromise = new Promise(resolve => {
-          client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
-            successResponse = data;
-            resolve(data);
-          });
+      const putExceptionPromise = new Promise(resolve => {
+        client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+          putExceptionResponse = data;
+          resolve(data);
         });
-        const successExceptionPromise = new Promise(resolve => {
-          client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
-            errorResponse = data;
-            resolve(data);
-          });
-        });
-
-        Promise.all([successPutPromise, successExceptionPromise])
-          .then(() => {
-            done();
-          })
-          .catch(error => {
-            done(error);
-          });
-
-        client.putDataObjects(dataObjects);
       });
 
-      it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
-        verifyMessage(successResponse, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
-      });
-
-      it("Verify for PutDataObjectsResponse there was one success object", () => {
-        expect(successResponse.body.success.size).toBe(1);
-        expect(successResponse.body.success.has(validUri)).toBe(true);
-      })
-
-      it("Verify dataObject was created in store", done => {
-        client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
-          expect(data.body.dataObjects.size).toBe(1);
-          expect(data.body.dataObjects.has(validUri)).toBe(true);
+      Promise.all([putSuccessPromise, putExceptionPromise])
+        .then(() => {
           done();
         });
-        client.getDataObjects([validUri]);
-      });
 
-      it("5.3.8 Message: ProtocolException => Response should be a ProtocolException etp message", () => {
-        verifyProtocolExceptionResponse(errorResponse);
-      });
-
-      it("Response should contain 2 errors", () => {
-        verifyTotalErrors(errorResponse, 2);
-      });
-
-      errorCases.forEach(({ uri, code }) => {
-        it(`Error for ${uri} should be code ${code}`, () => {
-          verifyErrorMessage(errorResponse, uri, code);
-        });
-      });
-    }
-  );
-
-  describeif(config.runExperimental && config.protocols.store.supportsWrite)
-  ("9.3.2 Message: PutDataObjects => putDataObjects (2.1)", () => {
-    let objects: any;
-    let response: any;
-
-    const uuid1 = uuidv4();
-    const uuid2 = uuidv4();
-    const validUri = DataObjectFactory.createWellUri(uuid1);
-    const validUri2 = DataObjectFactory.createWellUri(uuid2);
-
-    beforeAll(done => {
-      objects = DataObjectFactory.generateWellObjects([uuid1, uuid2]);
-      client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
-        response = data;
-        done();
-      });
-      client.putDataObjects(objects);
+      client.putDataObjects(putRequestUris);
     });
 
     it("9.3.3 Message: PutDataObjectsResponse => Response should be a PutDataObjectsResponse etp message", () => {
-      verifyMessage(response, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
+      verifyMessage(putSuccessResponse, new PutDataObjectsResponse(), MsgPutDataObjectsResponseTypeId);
     });
 
-    // verify object was created
-    it("Verify objects were created in store", done => {
-      client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
-        expect(data.body.dataObjects.size).toBe(2);
-        expect(Array.from(data.body.dataObjects.keys())).toEqual(expect.arrayContaining([validUri, validUri2]))
-        done();
-      });
-      client.getDataObjects([validUri, validUri2]);
+    it("Verify for PutDataObjectsResponse there was two success objects", () => {
+      expect(putSuccessResponse.body.success.size).toBe(2);
+      expect(putSuccessResponse.body.success.has(validWellUri)).toBe(true);
+      expect(putSuccessResponse.body.success.has(validWellboreUri)).toBe(true);
     });
-  });
 
-  describeif(config.runExperimental && config.protocols.store.supportsWrite)
-  ("9.3.4 Message: DeleteDataObjects with errors=> deleteDataObjects", () => {
-      let errorResponse: any;
-      let successResponse: any;
+    it("5.3.8 Message: ProtocolException => Response for PutDataObjects should be a ProtocolException etp message", () => {
+      verifyProtocolExceptionResponse(putExceptionResponse);
+    });
 
-      const uuid1 = uuidv4();
-      const uuid2 = uuidv4();
-      const validUri = DataObjectFactory.createWellUri(uuid1);
-      const validUri2 = DataObjectFactory.createWellUri(uuid2);
-      const deleteNotSupportedUri = config.protocols.store.unsupportedDeleteUri;
-      const resourceNotFoundUri = config.protocols.store.resourceNotFoundUri;
+    it("Verify for Response for PutDataObjects should contain 2 errors", () => {
+      verifyTotalErrors(putExceptionResponse, 2);
+    });
 
-      const inputObject: DeleteDataObjects = new DeleteDataObjects();
-      inputObject.pruneContainedObjects = true;
-
-      const urisForDeleteRequest = [
-        validUri,
-        validUri2,
-        deleteNotSupportedUri,
-        invalidUri,
-        resourceNotFoundUri,
-        unsupportedDataObjectUri
-      ];
-
-      beforeAll(done => {
-        // first create data objects in store
-        const putDataObjectsPromise = new Promise<void>(resolve => {
-          client.store.once(EventName.PUT_DATA_OBJECTS_RESPONSE, data => {
-            expect(data.body.success.size).toBe(2);
-            resolve();
-          });
-          client.putDataObjects(DataObjectFactory.generateWellObjects([uuid1, uuid2]));
-        });
-
-        // verify objects were created
-        const objectCreatedPromise = putDataObjectsPromise.then(() => {
-          client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
-            expect(data.body.dataObjects.size).toBe(2);
-          });
-          client.getDataObjects([validUri, validUri2]);
-        });
-
-        // send delete data object request
-        objectCreatedPromise.then(() => {
-          const successDeletePromise = new Promise(resolve => {
-            client.store.once(EventName.DELETE_DATA_OBJECTS_RESPONSE, data => {
-              successResponse = data;
-              resolve(data);
-            });
-          });
-          const successExceptionPromise = new Promise(resolve => {
-            client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
-              errorResponse = data;
-              resolve(data);
-            });
-          });
-
-          Promise.all([successDeletePromise, successExceptionPromise])
-            .then(() => {
-              done();
-            })
-            .catch(error => {
-              done(error);
-            });
-
-          client.store.deleteObjectsWithPrune(urisForDeleteRequest, false);
-        });
+    putRequestExpectedErrors.forEach(({ uri, code }) => {
+      it(`Error for ${uri} should be code ${code}`, () => {
+        verifyErrorMessage(putExceptionResponse, uri, code);
       });
+    });
 
-      it("9.3.5 Message: DeleteDataObjectsResponse => The first response should be a DeleteDataObjectsResponse etp message", () => {
-        verifyMessage(successResponse, new DeleteDataObjectsResponse(), MsgDeleteDataObjectsResponseTypeId);
-      });
+    const getRequestUris = [validWellUri, validWellboreUri, resourceNotFoundUri, invalidUri, unsupportedDataObjectUri];
+    const getRequestExpectedErrors = [
+      { uri: invalidUri, code: ErrorCode.EINVALID_URI },
+      { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
+      // TODO: verify this error case, bardazz returns ENOT_FOUND for this case but should be EDATAOBJECTTYPE_NOTSUPPORTED
+      { uri: unsupportedDataObjectUri, code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED }
+    ];
 
-      it("There should be two deletedUri's", () => {
-        expect(successResponse.body.deletedUris.size).toBe(2);
-      });
-
-      // verify objects were deleted
-      it("Verify objects were deleted", done => {
+    it("Verify responses are received for GetDataObject request", done => {
+      const getSuccessPromise = new Promise(resolve => {
         client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
-          expect(data.body.dataObjects.size).toBe(0);
+          getSuccessResponse = data;
+          resolve(data);
+        });
+      });
+
+      const getExceptionPromise = new Promise(resolve => {
+        client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+          getExceptionResponse = data;
+          resolve(data);
+        });
+      });
+
+      Promise.all([getSuccessPromise, getExceptionPromise])
+        .then(() => {
           done();
         });
-        client.getDataObjects([validUri, validUri2]);
-      })
 
-      it(`Deleted uris should be ${validUri} & ${validUri2}`, () => {
-        expect(Array.from(successResponse.body.deletedUris.keys())).toEqual(
-          expect.arrayContaining([validUri, validUri2])
-        );
+      client.getDataObjects(getRequestUris);
+    });
+
+    it("Validate success response is GetDataObjectsResponse message from GetDataObject request", () => {
+      verifyMessage(getSuccessResponse, new GetDataObjectsResponse(), GetDataObjectsResponseTypeId);
+    });
+
+    it("Verify success GetDataObjectResponse contains well & wellbore those were created in PutDataObject request", () => {
+      verifyGetStoreResponseContent(getSuccessResponse, validWellUri, validWellUuid, validWellboreUri, validWellboreUuid);
+    });
+
+    it("Validate error response is ProtocolException message from GetDataObject request", () => {
+      verifyProtocolExceptionResponse(getExceptionResponse);
+    });
+
+    it("ProtocolException from GetDataObject request should contain 3 errors ", () => {
+      verifyTotalErrors(getExceptionResponse, 3);
+    });
+
+    getRequestExpectedErrors.forEach(({ uri, code }) => {
+      it(`Error for ${uri}: should be code ${code}`, () => {
+        verifyErrorMessage(getExceptionResponse, `${uri}`, code);
       });
+    });
 
-      it("5.3.8 Message: ProtocolException => The second response should be a ProtocolException etp message", () => {
-        verifyProtocolExceptionResponse(errorResponse);
-      });
+    const deleteWellboreRequestUris = [validWellboreUri, resourceNotFoundUri, invalidUri, unsupportedDataObjectUri];
+    const deleteRequestExpectedErrors = [
+      { uri: invalidUri, code: ErrorCode.EINVALID_URI },
+      { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
+      // TODO: verify this error case, bardazz returns ENOT_FOUND for this case but should be EDATAOBJECTTYPE_NOTSUPPORTED
+      { uri: unsupportedDataObjectUri, code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED }
+    ];
 
-      it("ProtocolException response should contain 4 errors", () => {
-        verifyTotalErrors(errorResponse, 4);
-      });
-
-      const errorCases = [
-        { uri: deleteNotSupportedUri, code: ErrorCode.ENOCASCADE_DELETE },
-        { uri: invalidUri, code: ErrorCode.EINVALID_URI },
-        { uri: resourceNotFoundUri, code: ErrorCode.ENOT_FOUND },
-        { uri: unsupportedDataObjectUri, code: ErrorCode.EDATAOBJECTTYPE_NOTSUPPORTED }
-      ];
-
-      errorCases.forEach(({ uri, code }) => {
-        it(`Error for ${uri}: should be code ${code}`, () => {
-          verifyErrorMessage(errorResponse, `${uri}`, code);
+    it("9.3.1: Verify responses are received for DeleteDataObject request for wellbore", done => {
+      const deleteSuccessPromise = new Promise(resolve => {
+        client.store.once(EventName.DELETE_DATA_OBJECTS_RESPONSE, data => {
+          deleteWellboreSuccessResponse = data;
+          resolve(data);
         });
       });
-    }
-  );
+
+      const deleteExceptionPromise = new Promise(resolve => {
+        client.store.once(EventName.PROTOCOL_EXCEPTION, data => {
+          deleteWellboreExceptionResponse = data;
+          resolve(data);
+        });
+      });
+
+      Promise.all([deleteSuccessPromise, deleteExceptionPromise])
+        .then(() => {
+          done();
+        });
+
+      client.deleteObjects(deleteWellboreRequestUris);
+    });
+
+    it("9.3.5: Validate DeleteDataObject response for wellbore is Valid DeleteDataObjectResponse message", () => {
+      verifyMessage(deleteWellboreSuccessResponse, new DeleteDataObjectsResponse(), MsgDeleteDataObjectsResponseTypeId);
+    });
+
+    it("There should be one deletedUri's", () => {
+      expect(deleteWellboreSuccessResponse.body.deletedUris.size).toBe(1);
+    });
+
+    it(`Deleted uris should be ${validWellboreUri}`, () => {
+      expect(deleteWellboreSuccessResponse.body.deletedUris.has(validWellboreUri)).toBe(true);
+    });
+
+    it("Validate error response is ProtocolException message from DeleteDataObject request", () => {
+      verifyProtocolExceptionResponse(deleteWellboreExceptionResponse);
+    });
+
+    it("ProtocolException from DeleteDataObject request should contain 3 errors ", () => {
+      verifyTotalErrors(deleteWellboreExceptionResponse, 3);
+    });
+
+    deleteRequestExpectedErrors.forEach(({ uri, code }) => {
+      it(`Error for ${uri}: should be code ${code}`, () => {
+        verifyErrorMessage(deleteWellboreExceptionResponse, `${uri}`, code);
+      });
+    });
+
+    it("9.3.1: Verify response is received for DeleteDataObject request for well", done => {
+      client.store.once(EventName.DELETE_DATA_OBJECTS_RESPONSE, data => {
+        deleteWellSuccessResponse = data;
+        done();
+      });
+      client.deleteObjects([validWellUri]);
+    });
+
+    it("9.3.5: Validate DeleteDataObject response for well is Valid DeleteDataObjectResponse message", () => {
+      verifyMessage(deleteWellSuccessResponse, new DeleteDataObjectsResponse(), MsgDeleteDataObjectsResponseTypeId);
+    });
+
+    it("There should be one deletedUri's", () => {
+      expect(deleteWellSuccessResponse.body.deletedUris.size).toBe(1);
+    });
+
+    it(`Deleted uris should be ${validWellUri}`, () => {
+      expect(deleteWellSuccessResponse.body.deletedUris.has(validWellUri)).toBe(true);
+    });
+
+    it("Verify objects were deleted", done => {
+      client.store.once(EventName.GET_DATA_OBJECT_RESPONSE, data => {
+        expect(data.body.dataObjects.size).toBe(0);
+        done();
+      });
+      client.getDataObjects([validWellUri, validWellboreUri]);
+    })
+  });
 });
