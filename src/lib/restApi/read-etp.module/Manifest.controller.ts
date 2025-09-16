@@ -40,18 +40,13 @@ import {
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
-  getSchemasForType,
   httpErrorFromEtpError,
   partitionPattern,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
 
-import {
-  emlUriPattern,
-  dataspaceUriPattern,
-  datePattern
-} from "./Resource.controller";
+import { datePattern } from "./Resource.controller";
 
 import { decode } from "jsonwebtoken";
 import express from "express";
@@ -80,6 +75,29 @@ const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,7}$/;
 
 const partitionId = process.env.DATA_PARTITION_ID ?? "data-partition-id";
+
+class Contact implements IContact {
+  EmailAddress?: string;
+  PhoneNumber?: string;
+  RoleTypeID?: string;
+  DataGovernanceRoleTypeID?: string;
+  WorkflowPersonaTypeID?: string;
+  OrganisationID?: string;
+  Name?: string;
+}
+
+class AcceptableUsage implements IAcceptableUsage {
+  WorkflowUsage?: string;
+  WorkflowPersona?: string;
+}
+class TechnicalAssurance implements ITechnicalAssurance {
+  AcceptableUsage?: AcceptableUsage[];
+  Comment?: string;
+  EffectiveDate?: Date;
+  Reviewers?: Contact[];
+  TechnicalAssuranceTypeID: string = "";
+  UnacceptableUsage?: AcceptableUsage[];
+}
 
 export class ContactDto implements IContact {
   @ApiPropertyOptional({
@@ -201,7 +219,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is valid for (e.g., This data has a technical assurance property of "trusted" and it is suitable for Seismic Interpretation).'
   })
-  AcceptableUsage?: AcceptableUsageDto[];
+  AcceptableUsage?: AcceptableUsage[];
 
   @ApiPropertyOptional({
     name: "Comment",
@@ -232,7 +250,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     type: [ContactDto],
     maxItems: 99999
   })
-  Reviewers?: ContactDto[];
+  Reviewers?: Contact[];
 
   @ApiProperty({
     name: "TechnicalAssuranceTypeID",
@@ -251,7 +269,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is not valid for (e.g., This data has a technical assurance property of "trusted", but it is not suitable for Seismic Interpretation).'
   })
-  UnacceptableUsage?: AcceptableUsageDto[];
+  UnacceptableUsage?: AcceptableUsage[];
 }
 
 export class ACLDto {
@@ -266,7 +284,10 @@ export class ACLDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @Matches(emailPattern, { each: true, message: "Each viewer must be a valid entitlements group (email format)" })
+  @Matches(emailPattern, {
+    each: true,
+    message: "Each viewer must be a valid entitlements group (email format)"
+  })
   viewers!: string[];
 
   @ApiProperty({
@@ -280,7 +301,10 @@ export class ACLDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @Matches(emailPattern, { each: true, message: "Each owner must be a valid entitlements group (email format)" })
+  @Matches(emailPattern, {
+    each: true,
+    message: "Each owner must be a valid entitlements group (email format)"
+  })
   owners!: string[];
 }
 
@@ -308,7 +332,10 @@ export class LegaltagsDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @Matches(/^[A-Z]{2}$/, { each: true, message: "Each country code must be exactly 2 uppercase letters" })
+  @Matches(/^[A-Z]{2}$/, {
+    each: true,
+    message: "Each country code must be exactly 2 uppercase letters"
+  })
   otherRelevantDataCountries!: string[];
 }
 
@@ -396,8 +423,8 @@ export class ManifestInputDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => TechnicalAssuranceDto)
-  technicalAssurances?: TechnicalAssuranceDto[];
+  @Type(() => Array<TechnicalAssuranceDto>)
+  technicalAssurances?: TechnicalAssurance[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",
@@ -513,7 +540,8 @@ export default class ObjectsManifestAPI {
         },
         {
           legaltags: body.legal?.legaltags ?? [],
-          otherRelevantDataCountries: body.legal?.otherRelevantDataCountries ?? []
+          otherRelevantDataCountries:
+            body.legal?.otherRelevantDataCountries ?? []
         },
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
         body.tags,
@@ -531,7 +559,23 @@ export default class ObjectsManifestAPI {
       }
 
       context.bearer = bearer;
-      context.technicalAssurances = body.technicalAssurances;
+
+      // Remove the "array" part of the technical assurances to convert to internal representation
+      if (body.technicalAssurances !== undefined) {
+        context.technicalAssurances = body.technicalAssurances.map(ta => {
+          const nta = { ...ta };
+          if (ta.AcceptableUsage !== undefined) {
+            nta.AcceptableUsage = ta.AcceptableUsage.map(au => ({ ...au }));
+          }
+          if (ta.Reviewers !== undefined) {
+            nta.Reviewers = ta.Reviewers.map(r => ({ ...r }));
+          }
+          if (ta.UnacceptableUsage !== undefined) {
+            nta.UnacceptableUsage = ta.UnacceptableUsage.map(au => ({ ...au }));
+          }
+          return nta;
+        });
+      }
 
       // If connected to OSDU apis, check that the legal tags are part of the platform
       await context.checkLegalTags();
