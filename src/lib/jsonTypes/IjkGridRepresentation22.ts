@@ -173,12 +173,15 @@ export class IjkGridRepresentation22OSDU
       HasTruncations: undefined,
       KDirectionID: context.addReferenceData(
         "KDirectionType",
-        this.capitalize(xml.Geometry?.KDirection)
+        xml.Geometry?.KDirection.replace(" ", "%20")
       ),
       Ni: xml.Ni,
       Nj: xml.Nj,
       Nk: xml.Nk,
-      PillarShapeID: context.addReferenceData("PillarShapeType", "Curved"), //Straight, Linear, Curved
+      PillarShapeID: context.addReferenceData(
+        "PillarShapeType",
+        xml.Geometry?.PillarShape
+      ), //"vertical" | "straight" | "curved"
       IsRadial: xml.RadialGridIsComplete,
       IsRightHanded: xml.Geometry?.GridIsRighthanded,
       ExtensionProperties: undefined

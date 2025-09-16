@@ -787,13 +787,15 @@ export class ReferenceData {
     };
     if (idSplit[1] === "reference-data--PropertyType") {
       // Workaround if Energistics PropertyType are not available
-      this.data.ParentPropertyTypeID = `${
-        context.partition
-      }:reference-data--PropertyType:${getPropertyTypeIDFromResqmlAlias(
-        "quantity"
-      )}:`;
+      this.data.ParentPropertyTypeID = context.addReferenceData(
+        "PropertyType",
+        getPropertyTypeIDFromResqmlAlias("quantity")
+      );
       // none UnitQuantity
-      this.data.UnitQuantityID = `${context.partition}:reference-data--UnitQuantity:none:`;
+      this.data.UnitQuantityID = context.addReferenceData(
+        "UnitQuantity",
+        "none"
+      );
     }
   }
 }
