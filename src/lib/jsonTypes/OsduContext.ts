@@ -196,7 +196,7 @@ export class OSDUContext {
   }
 
   /**
-   * create a reference data SRN
+   * create a reference data SRN (including the trailing :)
    *
    * @param {string} referenceType reference-data type
    * @param {(string | undefined)} value reference-data value
@@ -212,7 +212,7 @@ export class OSDUContext {
     }
     const ref = `${
       this.partition
-    }:reference-data--${referenceType}:${encodeURIComponent(value)}`;
+    }:reference-data--${referenceType}:${encodeURIComponent(value)}:`;
     if (referenceType !== "PropertyType" || PropertyTypesIds.has(value)) {
       // Do not create reference for Standards Resqml PropertyTypes
       this.references.add(ref);
@@ -779,11 +779,10 @@ export class ReferenceData {
     this.id = id;
     this.version = 1;
     this.data = {
-      ExistenceKind: `${context.partition}:reference-data--ExistenceKind:Actual:`,
+      ExistenceKind: context.addReferenceData("ExistenceKind", "Actual"),
       Code,
       Name: `${idSplit[1].slice(16)}-${Code}`,
-      CommitDate: this.createTime,
-      ID: id
+      CommitDate: this.createTime
     };
     if (idSplit[1] === "reference-data--PropertyType") {
       // Workaround if Energistics PropertyType are not available
