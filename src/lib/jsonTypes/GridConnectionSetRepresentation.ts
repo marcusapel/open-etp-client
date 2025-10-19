@@ -50,11 +50,12 @@ export class GridConnectionSetRepresentationOSDU
     const InterpretationIDs = [];
     for (const gr of grids) {
       InterpretationIDs.push(
-        (await this.dorToSrn(
+        (await GridConnectionSetRepresentationOSDU.dorToSrn(
           ReservoirDMSUrl,
           (gr as SimpleJson<resqml20.AbstractRepresentation>)
             .RepresentedInterpretation,
-          client
+          client,
+          context
         )) ?? ""
       );
     }
@@ -72,10 +73,11 @@ export class GridConnectionSetRepresentationOSDU
           )
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await GridConnectionSetRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID: undefined,

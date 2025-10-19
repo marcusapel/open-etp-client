@@ -49,11 +49,12 @@ export class PropertyTypeOSDU
       xml.ParentPropertyKind.$type === "resqml20.LocalPropertyKind";
 
     const ParentPropertyTypeID = localKind
-      ? (await this.dorToSrn(
+      ? (await PropertyTypeOSDU.dorToSrn(
           ReservoirDMSUrl,
           (xml.ParentPropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
             .LocalPropertyKind,
-          client
+          client,
+          context
         )) ?? ""
       : context.addReferenceData(
           "PropertyType",

@@ -42,7 +42,14 @@ export class PersistedCollectionPropertySetOSDU
     const MemberIDs: string[] | undefined =
       xml.Properties.length === 0 ? undefined : [];
     for (const r of xml.Properties) {
-      MemberIDs?.push((await this.dorToSrn(ReservoirDMSUrl, r, client)) ?? "");
+      MemberIDs?.push(
+        (await PersistedCollectionPropertySetOSDU.dorToSrn(
+          ReservoirDMSUrl,
+          r,
+          client,
+          context
+        )) ?? ""
+      );
     }
 
     this.data = {
@@ -53,7 +60,12 @@ export class PersistedCollectionPropertySetOSDU
       MemberIDs,
       ParentCollectionID:
         xml.ParentSet && xml.ParentSet.length > 0
-          ? await this.dorToSrn(ReservoirDMSUrl, xml.ParentSet[0], client)
+          ? await PersistedCollectionPropertySetOSDU.dorToSrn(
+              ReservoirDMSUrl,
+              xml.ParentSet[0],
+              client,
+              context
+            )
           : undefined,
       /**
        * Purpose of the Collection

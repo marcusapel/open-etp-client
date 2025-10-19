@@ -13,6 +13,7 @@ import {
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   GenericProperty
 } from "./Generated/work-product-component/GenericProperty.1.2.0";
 import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.2.0";
@@ -24,6 +25,7 @@ export class GenericProperty22OSDU
   implements GenericProperty
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   private async computeStats(
     ReservoirDMSUrl: string,
@@ -156,10 +158,11 @@ export class GenericProperty22OSDU
         ? (xml as SimpleJson<resqml22.DiscreteProperty>)
         : undefined;
 
-    const PropertyTopologyID = await this.dorToSrn(
+    const PropertyTopologyID = await GenericProperty22OSDU.dorToSrn(
       ReservoirDMSUrl,
       xml.SupportingRepresentation,
-      client
+      client,
+      context
     );
 
     const { MinValue, MaxValue, MeanValue, StdDeviation, ValueCount } =
@@ -199,10 +202,11 @@ export class GenericProperty22OSDU
       UnitQuantityID: undefined,
       ValueCount,
       ValueType: continuous ? "number" : "integer",
-      ClassificationTableID: await this.dorToSrn(
+      ClassificationTableID: await GenericProperty22OSDU.dorToSrn(
         ReservoirDMSUrl,
         categorical?.CategoryLookup,
-        client
+        client,
+        context
       ),
       IndexableElementID: context.addReferenceData(
         "IndexableElement",
@@ -225,10 +229,11 @@ export class GenericProperty22OSDU
     };
 
     if (xml.TimeOrIntervalSeries) {
-      this.data.TimeSeriesID = await this.dorToSrn(
+      this.data.TimeSeriesID = await GenericProperty22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.TimeOrIntervalSeries.TimeSeries,
-        client
+        client,
+        context
       );
       this.data.TimeIndices = undefined; //xml.TimeOrIntervalSeries.Index;
       this.data.TimeValues = xml.Time
@@ -260,10 +265,11 @@ export class GenericProperty22OSDU
     // Get the geometry form supporting representation
     const osduRep = context.created.get(PropertyTopologyID.slice(0, -1));
     if (osduRep === undefined) {
-      const rep = (await this.getObjectFromDor(
+      const rep = (await GenericProperty22OSDU.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml.SupportingRepresentation
+        xml.SupportingRepresentation,
+        context
       )) as Record<string, unknown>;
 
       let geometry = rep["Geometry"] as SimpleJson<resqml22.PointGeometry>;
@@ -299,7 +305,12 @@ export class GenericProperty22OSDU
           new EtpUri(ReservoirDMSUrl).dataSpace
         ).uri;
         const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
-          await this.createSpatialInfo(client, dataspaceUri, [geometry]);
+          await ResqmlWorkProductComponent.createSpatialInfo(
+            client,
+            dataspaceUri,
+            [geometry],
+            context
+          );
         this.data.SpatialPoint = SpatialPoint;
         this.data.SpatialArea = SpatialArea;
 

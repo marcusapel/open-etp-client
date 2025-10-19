@@ -62,7 +62,12 @@ export class PersistedCollectionDataobjectCollection23OSDU
             }
             for (const o of col.Dataobject) {
               MemberIDs?.push(
-                (await this.dorToSrn(ReservoirDMSUrl, o, client)) || ""
+                (await PersistedCollectionDataobjectCollection23OSDU.dorToSrn(
+                  ReservoirDMSUrl,
+                  o,
+                  client,
+                  context
+                )) || ""
               );
             }
           }

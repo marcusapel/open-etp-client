@@ -13,6 +13,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   SeismicBinGrid
 } from "./Generated/work-product-component/SeismicBinGrid.1.3.0";
 
@@ -35,6 +36,7 @@ export class SeismicBinGrid22OSDU
   implements SeismicBinGrid
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml22.Grid2dRepresentation>,
@@ -76,6 +78,7 @@ export class SeismicBinGrid22OSDU
     dataspaceUri: EtpUri,
     client: ResqmlClient
   ): Promise<{ easting: number; northing: number }> {
+    const context = this.__context as OSDUContext;
     let easting = Wgs84Coordinates?.length ? Wgs84Coordinates[0][0] : 0;
     let northing = Wgs84Coordinates?.length ? Wgs84Coordinates[0][1] : 0;
     if (crs.$type === "resqml20.obj_LocalDepth3dCrs") {
@@ -97,10 +100,11 @@ export class SeismicBinGrid22OSDU
       }
     } else {
       const crs23 = crs as SimpleJson<eml23.LocalEngineeringCompoundCrs>;
-      const pcrs23 = (await this.getObjectFromDor(
+      const pcrs23 = (await SeismicBinGrid22OSDU.getObjectFromDor(
         client,
         dataspaceUri.uri,
-        crs23.LocalEngineering2dCrs
+        crs23.LocalEngineering2dCrs,
+        context
       )) as SimpleJson<eml23.LocalEngineering2dCrs>;
       if (
         pcrs23.HorizontalAxes.Direction1 === "north" &&
@@ -199,20 +203,22 @@ export class SeismicBinGrid22OSDU
     C = [ox + nv * vx, oy + nv * vy];
     D = [B[0] + nv * vx, B[1] + nv * vy];
 
-    const crs = (await this.getObjectFromDor(
+    const crs = (await SeismicBinGrid22OSDU.getObjectFromDor(
       client,
       dataspaceUri.uri,
-      xml.Geometry.LocalCrs
+      xml.Geometry.LocalCrs,
+      context
     )) as
       | SimpleJson<resqml20.obj_LocalDepth3dCrs>
       | SimpleJson<eml23._LocalEngineeringCompoundCrs>;
 
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates } =
-      await this.createSpatialInfoFrom2dPoints(
+      await SeismicBinGrid22OSDU.createSpatialInfoFrom2dPoints(
         client,
         dataspaceUri.uri,
         [A, B, C, D],
-        crs
+        crs,
+        context
       );
 
     const { easting, northing } = await this.eastingNorthing(
@@ -260,7 +266,12 @@ export class SeismicBinGrid22OSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await SeismicBinGrid22OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }

@@ -37,10 +37,15 @@ export class StratigraphicUnitInterpretation22OSDU
     const colRank = await client.getSources(ReservoirDMSUrl, false, [
       RESQML20_STRAT_COLUMN_RANK
     ]);
-    if (colRank.length === 0) {
+    const context = this.__context;
+    if (colRank.length === 0 || context === undefined) {
       return undefined;
     }
-    const rank = await this.getObjects(client, [colRank[0].uri]);
+    const rank = await StratigraphicUnitInterpretation22OSDU.getObjects(
+      client,
+      [colRank[0].uri],
+      context
+    );
 
     if (rank.length !== 1) {
       return undefined;
@@ -62,6 +67,7 @@ export class StratigraphicUnitInterpretation22OSDU
   ) {
     let ColumnStratigraphicHorizonTopID = undefined;
     let ColumnStratigraphicHorizonBaseID = undefined;
+    const context = this.__context;
 
     const rank = await this.getContacts(ReservoirDMSUrl, client);
     if (rank === undefined) {
@@ -80,26 +86,30 @@ export class StratigraphicUnitInterpretation22OSDU
     }
     for (const c of rank.ContactInterpretation) {
       const contact = c as SimpleJson<resqml22.BinaryContactInterpretationPart>;
-      if (this.hasUUID(contact, xml.Uuid)) {
+      if (this.hasUUID(contact, xml.Uuid) && context !== undefined) {
         if (
           index > 0 &&
           this.hasUUID(contact, rank.StratigraphicUnits[index - 1].Uuid)
         ) {
-          ColumnStratigraphicHorizonTopID = await this.dorToSrn(
-            ReservoirDMSUrl,
-            contact.PartOf,
-            client
-          );
+          ColumnStratigraphicHorizonTopID =
+            await StratigraphicUnitInterpretation22OSDU.dorToSrn(
+              ReservoirDMSUrl,
+              contact.PartOf,
+              client,
+              context
+            );
         }
         if (
           index < rank.StratigraphicUnits.length - 1 &&
           this.hasUUID(contact, rank.StratigraphicUnits[index + 1].Uuid)
         ) {
-          ColumnStratigraphicHorizonBaseID = await this.dorToSrn(
-            ReservoirDMSUrl,
-            contact.PartOf,
-            client
-          );
+          ColumnStratigraphicHorizonBaseID =
+            await StratigraphicUnitInterpretation22OSDU.dorToSrn(
+              ReservoirDMSUrl,
+              contact.PartOf,
+              client,
+              context
+            );
         }
       }
     }

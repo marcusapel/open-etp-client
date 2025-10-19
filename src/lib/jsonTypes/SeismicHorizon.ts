@@ -7,6 +7,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   SeismicHorizon
 } from "./Generated/work-product-component/SeismicHorizon.2.0.0";
 
@@ -25,6 +26,7 @@ export class SeismicHorizonOSDU
   implements SeismicHorizon
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml20.obj_Grid2dRepresentation>,
@@ -172,23 +174,26 @@ export class SeismicHorizonOSDU
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
       IndexableElementCount: undefined,
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await SeismicHorizonOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: interpretation.Citation.Title,
-      LocalModelCompoundCrsID: await this.dorToSrn(
+      LocalModelCompoundCrsID: await SeismicHorizonOSDU.dorToSrn(
         ReservoirDMSUrl,
         geo.LocalCrs,
-        client
+        client,
+        context
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined,
-      BinGridID: await this.dorToSrn(
+      BinGridID: await SeismicHorizonOSDU.dorToSrn(
         ReservoirDMSUrl,
         lat.SupportingRepresentation,
-        client
+        client,
+        context
       ),
       CrosslineMax:
         startCrossline +
@@ -232,7 +237,12 @@ export class SeismicHorizonOSDU
         FrameOfReferenceCRS,
         NodeCount,
         Domain
-      } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+      } = await SeismicHorizonOSDU.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        geometries,
+        context
+      );
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
@@ -258,7 +268,12 @@ export class SeismicHorizonOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await SeismicHorizonOSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }
