@@ -112,12 +112,17 @@ export class SeismicHorizon22OSDU
       binInterpretation?.InterpretedFeature
         ._data as SimpleJson<resqml22.SeismicLatticeFeature>;
 
-    const inlineCount = feat.InlineLabels?.Offset[0].Count ?? 1;
+    const inlineCount = feat?.InlineLabels?.Offset[0].Count ?? 1;
+
+    const startInlineIndex = feat?.InlineLabels?.StartValue ?? 0;
+    const startCrosslineIndex = feat?.CrosslineLabels?.StartValue ?? 0;
 
     const startInline =
-      lat.NodeIndicesOnSupportingRepresentation.StartValue % inlineCount;
+      startInlineIndex +
+      (lat.NodeIndicesOnSupportingRepresentation.StartValue % inlineCount);
 
     const startCrossline =
+      startCrosslineIndex +
       lat.NodeIndicesOnSupportingRepresentation.StartValue / inlineCount;
 
     let Role = undefined;

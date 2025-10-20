@@ -163,10 +163,15 @@ export class SeismicHorizonOSDU
       binInterpretation?.InterpretedFeature
         ._data as SimpleJson<resqml20.obj_SeismicLatticeFeature>;
 
+    const startInlineIndex = feat?.FirstInlineIndex ?? 0;
+    const startCrosslineIndex = feat?.FirstCrosslineIndex ?? 0;
+
     const startInline =
-      lat.NodeIndicesOnSupportingRepresentation.StartValue % feat.InlineCount;
+      startInlineIndex +
+      (lat.NodeIndicesOnSupportingRepresentation.StartValue % feat.InlineCount);
 
     const startCrossline =
+      startCrosslineIndex +
       lat.NodeIndicesOnSupportingRepresentation.StartValue / feat.InlineCount;
 
     this.data = {
