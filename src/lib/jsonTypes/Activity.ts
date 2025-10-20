@@ -68,13 +68,13 @@ export class ActivityOSDU
 
   private getKind(p: SimpleJson<resqml20.AbstractActivityParameter>) {
     if (p.$type === "resqml20.DataObjectParameter") {
-      return "DataObjectParameter";
+      return "DataObject";
     } else if (p.$type === "resqml20.FloatingPointQuantityParameter") {
-      return "FloatingPointQuantityParameter";
+      return "Double";
     } else if (p.$type === "resqml20.IntegerQuantityParameter") {
-      return "IntegerQuantityParameter";
+      return "Integer";
     } // else if (p.$type === "resqml20.StringParameter") {
-    return "StringParameter";
+    return "String";
   }
 
   public async getParameters(

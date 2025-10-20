@@ -36,6 +36,28 @@ export class GenericRepresentationOSDU
     super(xml, context, "GenericRepresentation.1.2.0");
   }
 
+  /**
+   * Map RESQML representation type to OSDU representation type
+   * @param str
+   * @returns
+   */
+  private mapRepresentationType(type: string | undefined): string {
+    switch (type) {
+      case "Grid2dRepresentation":
+        return "Regular2DGrid";
+      case "TriangulatedSetRepresentation":
+        return "TriangulatedSurface";
+      case "PolylineSetRepresentation":
+        return "PolylineSet";
+      case "PointSetRepresentation":
+        return "PointSet";
+      case "PolylineRepresentation":
+        return "Polyline";
+      default:
+        return type?.replace("Representation", "") || "";
+    }
+  }
+
   private elementCount(xml: SimpleJson<resqml20.AbstractRepresentation>):
     | undefined
     | {
@@ -133,7 +155,7 @@ export class GenericRepresentationOSDU
       ),
       Type: context.addReferenceData(
         "RepresentationType",
-        xml.$type?.split(".")[1].slice(4)
+        this.mapRepresentationType(xml.$type?.split(".")[1].slice(4))
       ),
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
 

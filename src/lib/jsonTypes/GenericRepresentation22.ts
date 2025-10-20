@@ -138,6 +138,28 @@ export class GenericRepresentation22OSDU
     return undefined;
   }
 
+  /**
+   * Map RESQML representation type to OSDU representation type
+   * @param str
+   * @returns
+   */
+  private mapRepresentationType(type: string | undefined): string {
+    switch (type) {
+      case "Grid2dRepresentation":
+        return "Regular2DGrid";
+      case "TriangulatedSetRepresentation":
+        return "TriangulatedSurface";
+      case "PolylineSetRepresentation":
+        return "PolylineSet";
+      case "PointSetRepresentation":
+        return "PointSet";
+      case "PolylineRepresentation":
+        return "Polyline";
+      default:
+        return type?.replace("Representation", "") || "";
+    }
+  }
+
   public async initData(
     ReservoirDMSUrl: string,
     xml: SimpleJson<resqml22.AbstractRepresentation>,
@@ -184,7 +206,10 @@ export class GenericRepresentation22OSDU
         "RepresentationRole",
         this.capitalize(Role)
       ),
-      Type: context.addReferenceData("RepresentationType", repType),
+      Type: context.addReferenceData(
+        "RepresentationType",
+        this.mapRepresentationType(repType)
+      ),
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
 
       ExtensionProperties: undefined
