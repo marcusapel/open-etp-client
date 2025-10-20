@@ -216,17 +216,10 @@ export class SeismicBinGrid22OSDU
       await SeismicBinGrid22OSDU.createSpatialInfoFrom2dPoints(
         client,
         dataspaceUri.uri,
-        [A, B, C, D],
+        [A, B, D, C, A],
         crs,
         context
       );
-
-    const { easting, northing } = await this.eastingNorthing(
-      Wgs84Coordinates,
-      crs,
-      dataspaceUri,
-      client
-    );
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
@@ -242,8 +235,8 @@ export class SeismicBinGrid22OSDU
       P6BinNodeIncrementOnIaxis: feat?.InlineLabels?.Offset[0].Value,
       P6BinGridOriginJ: feat?.CrosslineLabels?.StartValue,
       P6BinNodeIncrementOnJaxis: feat?.CrosslineLabels?.Offset[0].Value,
-      P6BinGridOriginEasting: easting,
-      P6BinGridOriginNorthing: northing,
+      P6BinGridOriginEasting: ox,
+      P6BinGridOriginNorthing: oy,
       P6BinWidthOnIaxis: uLen,
       P6BinWidthOnJaxis: vLen,
       P6MapGridBearingOfBinGridJaxis:

@@ -173,12 +173,10 @@ export class SeismicBinGridOSDU
       await SeismicBinGridOSDU.createSpatialInfoFrom2dPoints(
         client,
         dataspaceUri.uri,
-        [A, B, C, D],
+        [A, B, D, C, A],
         crs,
         context
       );
-
-    const { easting, northing } = this.eastingNorthing(Wgs84Coordinates, crs);
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
@@ -194,8 +192,8 @@ export class SeismicBinGridOSDU
       P6BinNodeIncrementOnIaxis: feat?.InlineIndexIncrement,
       P6BinGridOriginJ: feat?.FirstCrosslineIndex,
       P6BinNodeIncrementOnJaxis: feat?.CrosslineIndexIncrement,
-      P6BinGridOriginEasting: easting,
-      P6BinGridOriginNorthing: northing,
+      P6BinGridOriginEasting: ox,
+      P6BinGridOriginNorthing: oy,
       P6BinWidthOnIaxis: uLen,
       P6BinWidthOnJaxis: vLen,
       P6MapGridBearingOfBinGridJaxis:
