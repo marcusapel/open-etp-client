@@ -188,7 +188,7 @@ export class SeismicLatticeFeatureOSDU
         await ResqmlWorkProductComponent.createSpatialInfoFrom2dPoints(
           client,
           dataspaceUri.uri,
-          [A, B, C, D],
+          [A, B, D, C, A],
           crs,
           context
         );
