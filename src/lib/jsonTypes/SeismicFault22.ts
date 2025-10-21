@@ -164,10 +164,11 @@ export class SeismicFault22OSDU
     let BinGridID = undefined;
     if (seismicSupport !== undefined) {
       if (seismicSupport.$type === "resqml22.Grid2dRepresentation") {
-        BinGridID = await this.dorToSrn(
+        BinGridID = await SeismicFault22OSDU.dorToSrn(
           ReservoirDMSUrl,
           seismicSupport,
-          client
+          client,
+          context
         );
       }
     }
@@ -191,19 +192,21 @@ export class SeismicFault22OSDU
       ...(await this.AbstractWorkProductComponent(xml, context)),
       BinGridID,
       IndexableElementCount: this.elementCount(xml),
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await SeismicFault22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
-        client
+        client,
+        context
       ),
       InterpretationName: interpretation?.Citation.Title,
       LocalModelCompoundCrsID:
         geometries.length === 0
           ? undefined
-          : await this.dorToSrn(
+          : await SeismicFault22OSDU.dorToSrn(
               ReservoirDMSUrl,
               geometries[0].LocalCrs,
-              client
+              client,
+              context
             ),
       RealizationIndex: undefined,
       TimeSeries: undefined,
@@ -227,7 +230,12 @@ export class SeismicFault22OSDU
         FrameOfReferenceCRS,
         NodeCount,
         Domain
-      } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+      } = await SeismicFault22OSDU.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        geometries,
+        context
+      );
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
@@ -249,7 +257,12 @@ export class SeismicFault22OSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await SeismicFault22OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }

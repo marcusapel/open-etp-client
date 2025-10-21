@@ -202,13 +202,13 @@ export class SeismicHorizonOSDU
       ),
       CrosslineMax:
         startCrossline +
-        feat.CrosslineIndexIncrement * xml.Grid2dPatch.SlowestAxisCount,
+        feat.CrosslineIndexIncrement * (xml.Grid2dPatch.SlowestAxisCount - 1),
       CrosslineMin: startCrossline,
       DomainTypeID: undefined,
       GeologicalUnitName: interpretation.InterpretedFeature.Title,
       InlineMax:
         startInline +
-        feat.InlineIndexIncrement * xml.Grid2dPatch.FastestAxisCount,
+        feat.InlineIndexIncrement * (xml.Grid2dPatch.FastestAxisCount - 1),
       InlineMin: startInline,
       Interpreter: xml.Citation.Originator,
       PetroleumSystemElementTypeID: undefined,
