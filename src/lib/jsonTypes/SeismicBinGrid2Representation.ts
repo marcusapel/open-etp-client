@@ -11,6 +11,7 @@ import { ResqmlWorkProductComponent } from "./WorkProductComponent";
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   SeismicBinGrid
 } from "./Generated/work-product-component/SeismicBinGrid.1.3.0";
 
@@ -35,6 +36,7 @@ export class SeismicBinGridOSDU
   implements SeismicBinGrid
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml20.obj_Grid2dRepresentation>,
@@ -159,22 +161,22 @@ export class SeismicBinGridOSDU
     C = [ox + nv * vx, oy + nv * vy];
     D = [B[0] + nv * vx, B[1] + nv * vy];
 
-    const crsObj = await this.getObjectFromDor(
+    const crsObj = await SeismicBinGridOSDU.getObjectFromDor(
       client,
       dataspaceUri.uri,
-      xml.Grid2dPatch.Geometry.LocalCrs
+      xml.Grid2dPatch.Geometry.LocalCrs,
+      context
     );
     const crs = crsObj as SimpleJson<resqml20.obj_LocalDepth3dCrs>;
 
     const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates } =
-      await this.createSpatialInfoFrom2dPoints(
+      await SeismicBinGridOSDU.createSpatialInfoFrom2dPoints(
         client,
         dataspaceUri.uri,
-        [A, B, C, D],
-        crs
+        [A, B, D, C, A],
+        crs,
+        context
       );
-
-    const { easting, northing } = this.eastingNorthing(Wgs84Coordinates, crs);
 
     this.data = {
       ...(await this.AbstractCommonResources(context)),
@@ -190,8 +192,8 @@ export class SeismicBinGridOSDU
       P6BinNodeIncrementOnIaxis: feat?.InlineIndexIncrement,
       P6BinGridOriginJ: feat?.FirstCrosslineIndex,
       P6BinNodeIncrementOnJaxis: feat?.CrosslineIndexIncrement,
-      P6BinGridOriginEasting: easting,
-      P6BinGridOriginNorthing: northing,
+      P6BinGridOriginEasting: ox,
+      P6BinGridOriginNorthing: oy,
       P6BinWidthOnIaxis: uLen,
       P6BinWidthOnJaxis: vLen,
       P6MapGridBearingOfBinGridJaxis:
@@ -214,7 +216,12 @@ export class SeismicBinGridOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await SeismicBinGridOSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }

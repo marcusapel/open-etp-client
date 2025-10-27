@@ -10,6 +10,7 @@ import {
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   GenericRepresentation
 } from "./Generated/work-product-component/GenericRepresentation.1.2.0";
 
@@ -20,6 +21,7 @@ export class GenericRepresentation22OSDU
   implements GenericRepresentation
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml22.AbstractSurfaceRepresentation>,
@@ -183,15 +185,21 @@ export class GenericRepresentation22OSDU
       ...(await this.AbstractWPCGroupType(ReservoirDMSUrl, context)),
       ...(await this.AbstractWorkProductComponent(xml, context)),
       IndexableElementCount: this.elementCount(xml),
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await GenericRepresentation22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedObject?.Title,
       LocalModelCompoundCrsID:
         geometries.length > 0
-          ? await this.dorToSrn(ReservoirDMSUrl, geometries[0].LocalCrs, client)
+          ? await GenericRepresentation22OSDU.dorToSrn(
+              ReservoirDMSUrl,
+              geometries[0].LocalCrs,
+              client,
+              context
+            )
           : undefined,
       RealizationIndex: undefined,
       Role: context.addReferenceData(
@@ -211,7 +219,12 @@ export class GenericRepresentation22OSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await GenericRepresentation22OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }
@@ -225,7 +238,12 @@ export class GenericRepresentation22OSDU
         new EtpUri(ReservoirDMSUrl).dataSpace
       );
       const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, NodeCount } =
-        await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+        await ResqmlWorkProductComponent.createSpatialInfo(
+          client,
+          dataspaceUri.uri,
+          geometries,
+          context
+        );
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;

@@ -10,6 +10,7 @@ import {
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   SeismicFault
 } from "./Generated/work-product-component/SeismicFault.1.3.0";
 
@@ -27,6 +28,7 @@ export class SeismicFaultOSDU
   implements SeismicFault
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml20.AbstractRepresentation>,
@@ -109,7 +111,12 @@ export class SeismicFaultOSDU
       seismicSupport !== undefined &&
       seismicSupport.$type === "resqml20.obj_Grid2dRepresentation"
     ) {
-      BinGridID = await this.dorToSrn(ReservoirDMSUrl, seismicSupport, client);
+      BinGridID = await SeismicFaultOSDU.dorToSrn(
+        ReservoirDMSUrl,
+        seismicSupport,
+        client,
+        context
+      );
     }
 
     const interpretation = xml.RepresentedInterpretation
@@ -121,19 +128,21 @@ export class SeismicFaultOSDU
       ...(await this.AbstractWorkProductComponent(xml, context)),
       BinGridID,
       IndexableElementCount: this.elementCount(xml),
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await SeismicFaultOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: interpretation.Citation.Title,
       LocalModelCompoundCrsID:
         geometries.length === 0
           ? undefined
-          : await this.dorToSrn(
+          : await SeismicFaultOSDU.dorToSrn(
               ReservoirDMSUrl,
               geometries[0].LocalCrs,
-              client
+              client,
+              context
             ),
       RealizationIndex: undefined,
       TimeSeries: undefined,
@@ -156,7 +165,12 @@ export class SeismicFaultOSDU
         FrameOfReferenceCRS,
         NodeCount,
         Domain
-      } = await this.createSpatialInfo(client, dataspaceUri.uri, geometries);
+      } = await SeismicFaultOSDU.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        geometries,
+        context
+      );
 
       this.data.SpatialPoint = SpatialPoint;
       this.data.SpatialArea = SpatialArea;
@@ -180,7 +194,12 @@ export class SeismicFaultOSDU
     if (dors.length > 0) {
       this.data.LineageAssertions = [];
       for (const d of dors) {
-        const l = await this.dorToSrn(ReservoirDMSUrl, d, client);
+        const l = await SeismicFaultOSDU.dorToSrn(
+          ReservoirDMSUrl,
+          d,
+          client,
+          context
+        );
         if (l !== undefined) {
           this.data.LineageAssertions.push({ ID: l });
         }

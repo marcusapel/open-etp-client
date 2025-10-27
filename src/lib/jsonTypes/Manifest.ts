@@ -93,7 +93,7 @@ export const createManifest = async (
       if (uri.match(dataspaceUriPattern)) {
         // Add entire dataspace content
         let dataspaceUris = await client.getDataspaceResources(uri);
-        if (matchPatterns) {
+        if (matchPatterns && matchPatterns.length) {
           dataspaceUris = dataspaceUris.filter(f => {
             const u: EtpUri = new EtpUri(f.uri);
             for (const p of matchPatterns) {

@@ -14,6 +14,7 @@ import {
 
 import {
   Abstract,
+  FrameOfReferenceMetaDataItem,
   IjkGridRepresentation,
   StratigraphicUnits
 } from "./Generated/work-product-component/IjkGridRepresentation.1.2.0";
@@ -39,6 +40,7 @@ export class IjkGridRepresentationOSDU
   implements IjkGridRepresentation
 {
   public data: Abstract = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml20.obj_IjkGridRepresentation>,
@@ -151,13 +153,15 @@ export class IjkGridRepresentationOSDU
           )
         : undefined;
 
-      if (stratiIndices) {
+      const context = this.__context;
+      if (stratiIndices && context) {
         return {
           StratigraphicColumnRankInterpretationID:
-            (await this.dorToSrn(
+            (await IjkGridRepresentationOSDU.dorToSrn(
               ReservoirDMSUrl,
               xml.IntervalStratigraphicUnits?.StratigraphicOrganization,
-              client
+              client,
+              context
             )) ?? "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
@@ -200,16 +204,18 @@ export class IjkGridRepresentationOSDU
           )
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await IjkGridRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
-      LocalModelCompoundCrsID: await this.dorToSrn(
+      LocalModelCompoundCrsID: await IjkGridRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.Geometry?.LocalCrs,
-        client
+        client,
+        context
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -253,9 +259,12 @@ export class IjkGridRepresentationOSDU
     this.assignExtraMetaData(xml.ExtraMetadata);
 
     if (xml.Geometry) {
-      const si = await this.createSpatialInfo(client, dataspaceUri.uri, [
-        xml.Geometry
-      ]);
+      const si = await ResqmlWorkProductComponent.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        [xml.Geometry],
+        context
+      );
 
       this.data.SpatialPoint = si.SpatialPoint;
       this.data.SpatialArea = si.SpatialArea;

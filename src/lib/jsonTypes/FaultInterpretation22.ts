@@ -43,18 +43,20 @@ export class FaultInterpretation22OSDU
           const occ =
             t.HasOccurredDuring as SimpleJson<resqml22.GeneticBoundaryBasedTimeInterval>;
           if (occ.ChronoBottom !== undefined) {
-            const bot = (await this.getObjectFromDor(
+            const bot = (await FaultInterpretation22OSDU.getObjectFromDor(
               client,
               ReservoirDMSUrl,
-              occ.ChronoBottom
+              occ.ChronoBottom,
+              context
             )) as SimpleJson<resqml22.StratigraphicUnitInterpretation>;
             MaximumAge = await this.age(client, ReservoirDMSUrl, bot);
           }
           if (occ.ChronoTop !== undefined) {
-            const top = (await this.getObjectFromDor(
+            const top = (await FaultInterpretation22OSDU.getObjectFromDor(
               client,
               ReservoirDMSUrl,
-              occ.ChronoTop
+              occ.ChronoTop,
+              context
             )) as SimpleJson<resqml22.StratigraphicUnitInterpretation>;
             MinimumAge = await this.age(client, ReservoirDMSUrl, top);
           }

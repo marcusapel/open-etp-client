@@ -38,7 +38,12 @@ export class StratigraphicColumnRankInterpretation22OSDU
       xml.StratigraphicUnits.length === 0 ? undefined : [];
     for (const s of xml.StratigraphicUnits) {
       StratigraphicUnitInterpretationSet?.push(
-        (await this.dorToSrn(ReservoirDMSUrl, s, client)) || ""
+        (await StratigraphicColumnRankInterpretation22OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          s,
+          client,
+          context
+        )) || ""
       );
     }
 

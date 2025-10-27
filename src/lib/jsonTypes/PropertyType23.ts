@@ -49,7 +49,12 @@ export class PropertyType23OSDU
 
     const ParentPropertyTypeID = pwlsKind
       ? context.addReferenceData("PropertyType", xml.Parent?.Uuid ?? "") ?? ""
-      : (await this.dorToSrn(ReservoirDMSUrl, xml.Parent, client)) ?? "";
+      : (await PropertyType23OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          xml.Parent,
+          client,
+          context
+        )) ?? "";
     const representativeUom: string | undefined = undefined; //from xml.QuantityClass
 
     this.data = {

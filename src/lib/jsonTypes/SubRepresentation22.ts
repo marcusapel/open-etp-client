@@ -45,10 +45,11 @@ export class SubRepresentation22OSDU
       const infos = this.arrayInfos(s.Indices);
       Count += infos.rowCount ?? 0;
       const id =
-        (await this.dorToSrn(
+        (await SubRepresentation22OSDU.dorToSrn(
           ReservoirDMSUrl,
           s.SupportingRepresentation,
-          client
+          client,
+          context
         )) || "";
       if (id) {
         SupportingRepresentationIDs.push(id);
@@ -65,10 +66,11 @@ export class SubRepresentation22OSDU
           IndexableElementID
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await SubRepresentation22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedObject?.Title,
       LocalModelCompoundCrsID: undefined,
