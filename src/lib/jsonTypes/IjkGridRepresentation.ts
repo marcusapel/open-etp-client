@@ -8,7 +8,8 @@ import { OSDUContext } from "./OsduContext";
 import {
   ResqmlWorkProductComponent,
   getIntegerValues,
-  visitBooleanValues
+  visitBooleanValues,
+  visitIntegerValues
 } from "./WorkProductComponent";
 
 import {
@@ -58,20 +59,76 @@ export class IjkGridRepresentationOSDU
       return undefined;
     }
     try {
-      let count = 0;
+      let activeCellCount = 0;
       const dataspaceUri = EtpUri.createDataSpaceUri(
         new EtpUri(ReservoirDMSUrl).dataSpace
       ).uri;
+      const dataobjectUri = EtpUri.createObjectUri(
+        new EtpUri(ReservoirDMSUrl).dataSpace,
+        "resqml",
+        "2.0",
+        `obj_IjkGridRepresentation`,
+        xml.Uuid
+      ).uri;
+
+      // Search for the active property : https://docs.energistics.org/#RESQML/RESQML_TOPICS/RESQML-000-289-0-C-sv2010.html
+      const assoc = await client.getSources(dataobjectUri, false, [
+        `resqml20.obj_DiscreteProperty`
+      ]);
+      for (const a of assoc) {
+        const associationUri = a.uri;
+        if (a.uri) {
+          const obj = await client.getObjects([associationUri]);
+          if (obj.length !== 1) {
+            continue;
+          }
+          const target = obj[0] as SimpleJson<resqml20.obj_DiscreteProperty>;
+          if (target) {
+            const pKind =
+              target.PropertyKind.$type === "resqml20.LocalPropertyKind"
+                ? (target.PropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
+                : undefined;
+            if (pKind?.LocalPropertyKind.Title === "active") {
+              const visitor = (
+                nullValue: number | undefined,
+                values: boolean[] | number[] | bigint[],
+                _data: IDataSubarray
+              ) => {
+                for (const n of values) {
+                  if (nullValue !== undefined && n === nullValue) {
+                    continue;
+                  } else if (n !== 0) {
+                    activeCellCount++;
+                  }
+                }
+              };
+
+              for await (const patch of target.PatchOfValues) {
+                await visitIntegerValues(
+                  dataspaceUri,
+                  patch.Values,
+                  client,
+                  visitor
+                );
+              }
+
+              return activeCellCount;
+            }
+          }
+        }
+      }
+
+      // Look for the CellGeometryIsDefined property if no active property found
       await visitBooleanValues(
         dataspaceUri,
         xml.Geometry?.CellGeometryIsDefined,
         client,
         (values: boolean[] | number[] | bigint[], _data: IDataSubarray) => {
           const v = values as boolean[];
-          v.forEach(b => (count += b ? 1 : 0));
+          v.forEach(b => (activeCellCount += b ? 1 : 0));
         }
       );
-      return count;
+      return activeCellCount;
     } catch (e) {
       return undefined;
     }
