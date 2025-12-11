@@ -18,12 +18,13 @@ import { EtpContentType } from "../common/EtpContentType";
 import {
   AbstractSpatialLocation,
   AccessControlList,
-  FrameOfReferenceMetaDataItem,
   LegalMetaData,
   ParentList
 } from "./Generated/work-product-component/GenericRepresentation.1.1.0";
 
-import { OSDUContext } from "./OsduContext";
+import { FrameOfReferenceMetaDataItem } from "./Generated/manifest/Manifest.1.0.0";
+
+import { DataspaceLegalACL, OSDUContext } from "./OsduContext";
 
 import { AbstractCommonResources } from "./Generated/abstract/AbstractCommonResources.1.0.1";
 import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretation.1.1.0";
@@ -887,10 +888,6 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     const id = OSDUContext.osduId(xml.Uuid, xml);
     this.id = `${this.__context.partition}:${resourceType}--${kind}:${id}`;
     this.version = 1;
-
-    this.acl = context.acl;
-    this.legal = context.legal;
-    this.tags = context.tags;
 
     // Init OSDUIntegration from CustomData if available
     this.OSDUIntegration = {};
@@ -1828,6 +1825,7 @@ export class ResqmlWorkProductComponent<
    * Create the AbstractWPCGroupType part of WPC Data
    *
    * @param {string} ReservoirDMSUrl
+   * @param {OSDUContext} context
    * @returns {Promise<AbstractWPCGroupType>}
    * @memberof WorkProductComponent
    */
@@ -1835,6 +1833,9 @@ export class ResqmlWorkProductComponent<
     ReservoirDMSUrl: string,
     context: OSDUContext
   ): Promise<AbstractWPCGroupType> {
+    const aclLegal = context.dataspaceACLs.get(
+      new EtpUri(ReservoirDMSUrl).dataSpace
+    );
     return {
       Artefacts: undefined,
       DDMSDatasets: [
@@ -1845,6 +1846,27 @@ export class ResqmlWorkProductComponent<
       NameAliases: undefined,
       TechnicalAssurances: context.technicalAssurances
     };
+  }
+
+  /**
+   * Create the AbstractACLandLegal part of WPC Data
+   *
+   * @param {OSDUContext} context
+   * @param {string} uri
+   * @return {DataspaceLegalACL}
+   * @memberof ResqmlWorkProductComponent
+   */
+  public AbstractACLandLegal(
+    context: OSDUContext,
+    uri: string
+  ): DataspaceLegalACL {
+    const aclLegal = context.dataspaceACLs.get(new EtpUri(uri).dataSpace);
+    return (
+      aclLegal ?? {
+        acl: { owners: [], viewers: [] },
+        legal: { legaltags: [], otherRelevantDataCountries: [] }
+      }
+    );
   }
 
   /**

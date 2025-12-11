@@ -123,6 +123,11 @@ export interface ITechnicalAssurance {
 
 const ResqmlOSDU = ResqmlOSDUMap.getInstance();
 
+export interface DataspaceLegalACL {
+  acl: AccessControlList;
+  legal: LegalMetaData;
+}
+
 /**
  * Utility class for manipulating OSDU context
  *
@@ -131,17 +136,9 @@ const ResqmlOSDU = ResqmlOSDUMap.getInstance();
  */
 export class OSDUContext {
   public partition: string;
-  public acl: {
-    owners: string[];
-    viewers: string[];
-  };
-  public legal: {
-    legaltags: string[];
-    otherRelevantDataCountries: string[];
-  };
+  public dataspaceACLs = new Map<string, DataspaceLegalACL>();
   public submitter: string;
   public tags?: { [key: string]: string };
-  public fileCollection?: string;
   public references: Set<string> = new Set();
   public srnToUri: Map<string, string> = new Map();
   public uriToObject: Map<string, IResqmlDataObject> = new Map();
@@ -166,27 +163,15 @@ export class OSDUContext {
 
   constructor(
     partition: string,
-    acl: {
-      owners: string[];
-      viewers: string[];
-    },
-    legal: {
-      legaltags: string[];
-      otherRelevantDataCountries: string[];
-    },
     submitter: string,
     tags?: { [key: string]: string },
-    fileCollection?: string,
     createMissingReferences?: boolean,
     useDataArrayForManifest?: boolean,
     rddmsId = "rddms1"
   ) {
     this.partition = partition;
-    this.acl = acl;
-    this.legal = legal;
     this.tags = tags;
     this.submitter = submitter;
-    this.fileCollection = fileCollection;
     if (createMissingReferences !== undefined) {
       this.createMissingReferences = createMissingReferences;
     }
@@ -218,32 +203,6 @@ export class OSDUContext {
       this.references.add(ref);
     }
     return ref;
-  }
-
-  /**
-   * Check that the legal tags are already registered in osdu partition
-   *
-   * @return {Promise<void>}
-   * @memberof OSDUContext
-   */
-  public async checkLegalTags(): Promise<void> {
-    const legaltags = this.legal.legaltags;
-    const r = await this.fetchOSDU<{ legalTags: { name: string }[] }>(
-      "/api/legal/v1/legaltags"
-    );
-    if (r === undefined) {
-      return;
-    }
-
-    const tagNames = r.legalTags.map((s: { name: string }) => s.name);
-    if (legaltags.length === 0) {
-      this.legal.legaltags = tagNames;
-      return;
-    }
-    const found = legaltags.filter(l => tagNames.indexOf(l) !== -1);
-    if (found.length !== legaltags.length) {
-      return Promise.reject("Legal tags not found in OSDU instance");
-    }
   }
 
   /**
@@ -495,10 +454,6 @@ export class OSDUContext {
         new EtpUri(objectUri)
       )}:`
     ];
-
-    if (this.fileCollection) {
-      d.push(this.fileCollection);
-    }
 
     return d.length > 0 ? d : undefined;
   }
@@ -770,8 +725,22 @@ export class ReferenceData {
       kind = `osdu:wks:${idSplit[1]}:1.0.0`;
     }
 
-    this.acl = context.acl;
-    this.legal = context.legal;
+    this.acl = { owners: [], viewers: [] };
+    this.legal = {
+      legaltags: [],
+      otherRelevantDataCountries: []
+    };
+    const dataspaces = context.dataspaceACLs.keys();
+    // Get the acl/legal from the first dataspace if available
+    for (const ds of dataspaces) {
+      const aclLegal = context.dataspaceACLs.get(ds);
+      if (aclLegal !== undefined) {
+        this.acl = aclLegal.acl;
+        this.legal = aclLegal.legal;
+        break;
+      }
+    }
+
     this.tags = context.tags;
     this.createTime = new Date(Date.now());
     this.createUser = context.submitter;
