@@ -2442,7 +2442,7 @@ describe(`Manifest`, () => {
       expect(manifest.Data?.Datasets).toBeDefined();
       expect(manifest.Data?.WorkProduct).toBeUndefined();
       expect(manifest.Data?.WorkProductComponents?.length).toBe(4);
-      expect(manifest.ReferenceData?.length).toBe(7);
+      expect(manifest.ReferenceData?.length).toBe(8);
     },
     maxTime
   );

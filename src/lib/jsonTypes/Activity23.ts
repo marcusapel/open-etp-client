@@ -52,10 +52,11 @@ export class Activity23OSDU
         } else {
           const timeIndex = (k as SimpleJson<eml23.TimeIndexParameterKey>)
             .TimeIndex;
-          const time = (await this.getObjectFromDor(
+          const time = (await Activity23OSDU.getObjectFromDor(
             client,
             ReservoirDMSUrl,
-            timeIndex.TimeSeries
+            timeIndex.TimeSeries,
+            context
           )) as SimpleJson<eml23.TimeSeries>;
           return {
             TimeParameterKey: time.Time[timeIndex.Index].DateTime.toISOString()
@@ -115,10 +116,11 @@ export class Activity23OSDU
 
       let DataObjectParameter: string | undefined = undefined;
       if (p.$type === "eml23.DataObjectParameter") {
-        DataObjectParameter = await this.dorToSrn(
+        DataObjectParameter = await Activity23OSDU.dorToSrn(
           ReservoirDMSUrl,
           dop?.DataObject,
-          client
+          client,
+          context
         );
         if (DataObjectParameter === undefined) {
           StringParameter = dop?.DataObject.QualifiedType;
@@ -202,10 +204,11 @@ export class Activity23OSDU
        * The relation to the ActivityTemplate carrying expected parameter definitions and default
        * values.
        */
-      ActivityTemplateID: await this.dorToSrn(
+      ActivityTemplateID: await Activity23OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.ActivityDescriptor,
-        client
+        client,
+        context
       ),
       /**
        * General parameter value used in one instance of activity.  Includes reference to data
@@ -219,10 +222,11 @@ export class Activity23OSDU
       /**
        * The relationship to a parent activity.
        */
-      ParentActivityID: await this.dorToSrn(
+      ParentActivityID: await Activity23OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.Parent,
-        client
+        client,
+        context
       ),
       /**
        * The relationship to a parent project acting as a parent activity.

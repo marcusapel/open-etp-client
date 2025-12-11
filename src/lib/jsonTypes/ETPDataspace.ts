@@ -45,7 +45,7 @@ class ETPDataspaceOSDU implements ETPDataspace {
     this.version = 1;
 
     this.data = {
-      ExistenceKind: `${context.partition}:reference-data--ExistenceKind:Actual:`,
+      ExistenceKind: context.addReferenceData("ExistenceKind", "Actual"),
       DatasetProperties: { URI: dataspace.uri },
       ResourceCurationStatus: undefined,
       ResourceHomeRegionID: undefined,

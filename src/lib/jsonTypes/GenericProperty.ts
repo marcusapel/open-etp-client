@@ -12,6 +12,7 @@ import {
 
 import {
   Data,
+  FrameOfReferenceMetaDataItem,
   GenericProperty
 } from "./Generated/work-product-component/GenericProperty.1.2.0";
 import { GenericRepresentation } from "./Generated/work-product-component/GenericRepresentation.1.2.0";
@@ -24,6 +25,7 @@ export class GenericPropertyOSDU
   implements GenericProperty
 {
   public data: Data = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   private async computeStats(
     ReservoirDMSUrl: string,
@@ -152,10 +154,11 @@ export class GenericPropertyOSDU
         ? (xml as SimpleJson<resqml20.obj_DiscreteProperty>)
         : undefined;
 
-    const PropertyTopologyID = await this.dorToSrn(
+    const PropertyTopologyID = await GenericPropertyOSDU.dorToSrn(
       ReservoirDMSUrl,
       xml.SupportingRepresentation,
-      client
+      client,
+      context
     );
 
     let {
@@ -209,10 +212,11 @@ export class GenericPropertyOSDU
       PropertyType: pKind
         ? {
             PropertyTypeID:
-              (await this.dorToSrn(
+              (await GenericPropertyOSDU.dorToSrn(
                 ReservoirDMSUrl,
                 pKind.LocalPropertyKind,
-                client
+                client,
+                context
               )) ?? "",
             Name: pKind.LocalPropertyKind.Title
           }
@@ -241,10 +245,11 @@ export class GenericPropertyOSDU
       UnitQuantityID: undefined,
       ValueCount,
       ValueType: continuous ? "number" : "integer",
-      ClassificationTableID: await this.dorToSrn(
+      ClassificationTableID: await GenericPropertyOSDU.dorToSrn(
         ReservoirDMSUrl,
         categorical?.Lookup,
-        client
+        client,
+        context
       ),
       IndexableElementID: context.addReferenceData(
         "IndexableElement",
@@ -269,15 +274,17 @@ export class GenericPropertyOSDU
     };
 
     if (xml.TimeIndex) {
-      const time = (await this.getObjectFromDor(
+      const time = (await GenericPropertyOSDU.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml.TimeIndex.TimeSeries
+        xml.TimeIndex.TimeSeries,
+        context
       )) as SimpleJson<resqml20.obj_TimeSeries>;
-      this.data.TimeSeriesID = await this.dorToSrn(
+      this.data.TimeSeriesID = await GenericPropertyOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.TimeIndex.TimeSeries,
-        client
+        client,
+        context
       );
       this.data.TimeIndices = xml.TimeIndex.Index;
       this.data.TimeValues = [
@@ -309,10 +316,11 @@ export class GenericPropertyOSDU
     // Get the geometry form supporting representation
     const osduRep = context.created.get(PropertyTopologyID.slice(0, -1));
     if (osduRep === undefined) {
-      const rep = (await this.getObjectFromDor(
+      const rep = (await GenericPropertyOSDU.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml.SupportingRepresentation
+        xml.SupportingRepresentation,
+        context
       )) as Record<string, unknown>;
 
       let geometry = rep["Geometry"] as SimpleJson<resqml20.PointGeometry>;
@@ -350,7 +358,12 @@ export class GenericPropertyOSDU
           new EtpUri(ReservoirDMSUrl).dataSpace
         ).uri;
         const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
-          await this.createSpatialInfo(client, dataspaceUri, [geometry]);
+          await GenericPropertyOSDU.createSpatialInfo(
+            client,
+            dataspaceUri,
+            [geometry],
+            context
+          );
         this.data.SpatialPoint = SpatialPoint;
         this.data.SpatialArea = SpatialArea;
 

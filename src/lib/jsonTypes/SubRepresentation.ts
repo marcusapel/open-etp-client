@@ -57,10 +57,11 @@ export class SubRepresentationOSDU
           IndexableElementID
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await SubRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
       LocalModelCompoundCrsID: undefined,
@@ -69,10 +70,11 @@ export class SubRepresentationOSDU
       ElementCount: Count,
       IndexableElementID,
       SupportingRepresentationIDs: [
-        (await this.dorToSrn(
+        (await SubRepresentationOSDU.dorToSrn(
           ReservoirDMSUrl,
           xml.SupportingRepresentation,
-          client
+          client,
+          context
         )) || ""
       ],
       ExtensionProperties: undefined

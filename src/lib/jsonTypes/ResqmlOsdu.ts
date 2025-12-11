@@ -46,6 +46,8 @@ import { PersistedCollectionPropertySetManifest } from "./PersistedCollectionPro
 import { PersistedCollectionRepresentationSetManifest } from "./PersistedCollectionRepresentationSet";
 import { PropertyTypeManifest } from "./PropertyType";
 import { PropertyType23Manifest } from "./PropertyType23";
+import { SeismicLatticeFeatureManifest } from "./SeismicLatticeFeature";
+import { SeismicLatticeFeature22Manifest } from "./SeismicLatticeFeature22";
 import { StratigraphicColumnManifest } from "./StratigraphicColumn";
 import { StratigraphicColumnRankInterpretationManifest } from "./StratigraphicColumnRankInterpretation";
 import { StratigraphicUnitInterpretationManifest } from "./StratigraphicUnitInterpretation";
@@ -282,6 +284,16 @@ ResqmlOSDU.add(
   "eml23.DataobjectCollection",
   () => "osdu:wks:work-product-component--PersistedCollection:1.2.0",
   PersistedCollectionDataobjectCollection23Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_SeismicLatticeFeature",
+  () => "osdu:wks:master-data--SeismicAcquisitionSurvey.1.4.0",
+  SeismicLatticeFeatureManifest
+);
+ResqmlOSDU.add(
+  "resqml22.SeismicLatticeFeature",
+  () => "osdu:wks:master-data--SeismicAcquisitionSurvey.1.4.0",
+  SeismicLatticeFeature22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicColumn",

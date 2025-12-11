@@ -13,6 +13,7 @@ import {
 
 import {
   Abstract,
+  FrameOfReferenceMetaDataItem,
   IjkGridRepresentation,
   StratigraphicUnits
 } from "./Generated/work-product-component/IjkGridRepresentation.1.2.0";
@@ -37,6 +38,7 @@ export class IjkGridRepresentation22OSDU
   implements IjkGridRepresentation
 {
   public data: Abstract = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml22.IjkGridRepresentation>,
@@ -93,14 +95,16 @@ export class IjkGridRepresentation22OSDU
           )
         : undefined;
 
-      if (stratiIndices) {
+      const context = this.__context;
+      if (stratiIndices && context) {
         return {
           StratigraphicColumnRankInterpretationID:
-            (await this.dorToSrn(
+            (await IjkGridRepresentation22OSDU.dorToSrn(
               ReservoirDMSUrl,
               xml.IntervalStratigraphicUnits
                 ?.StratigraphicOrganizationInterpretation,
-              client
+              client,
+              context
             )) || "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
@@ -136,16 +140,18 @@ export class IjkGridRepresentation22OSDU
           )
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await IjkGridRepresentation22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedObject?.Title,
-      LocalModelCompoundCrsID: await this.dorToSrn(
+      LocalModelCompoundCrsID: await IjkGridRepresentation22OSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.Geometry?.LocalCrs,
-        client
+        client,
+        context
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -173,12 +179,15 @@ export class IjkGridRepresentation22OSDU
       HasTruncations: undefined,
       KDirectionID: context.addReferenceData(
         "KDirectionType",
-        this.capitalize(xml.Geometry?.KDirection)
+        xml.Geometry?.KDirection.replace(" ", "%20")
       ),
       Ni: xml.Ni,
       Nj: xml.Nj,
       Nk: xml.Nk,
-      PillarShapeID: context.addReferenceData("PillarShapeType", "Curved"), //Straight, Linear, Curved
+      PillarShapeID: context.addReferenceData(
+        "PillarShapeType",
+        xml.Geometry?.PillarShape
+      ), //"vertical" | "straight" | "curved"
       IsRadial: xml.RadialGridIsComplete,
       IsRightHanded: xml.Geometry?.GridIsRighthanded,
       ExtensionProperties: undefined
@@ -187,9 +196,12 @@ export class IjkGridRepresentation22OSDU
     this.assignExtraMetaData(xml.ExtensionNameValue);
 
     if (xml.Geometry) {
-      const si = await this.createSpatialInfo(client, dataspaceUri.uri, [
-        xml.Geometry
-      ]);
+      const si = await ResqmlWorkProductComponent.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        [xml.Geometry],
+        context
+      );
 
       this.data.SpatialPoint = si.SpatialPoint;
       this.data.SpatialArea = si.SpatialArea;

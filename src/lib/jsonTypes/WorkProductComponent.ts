@@ -31,6 +31,7 @@ import { AbstractInterpretation } from "./Generated/abstract/AbstractInterpretat
 import { AbstractWPCGroupType } from "./Generated/abstract/AbstractWPCGroupType.1.2.0";
 import { AbstractWorkProductComponent } from "./Generated/abstract/AbstractWorkProductComponent.1.1.0";
 import { CoordinateReferenceSystem } from "./Generated/reference-data/CoordinateReferenceSystem.1.1.0";
+import { context } from "../cxml/cxml";
 
 enum AnyCRSGeoJSONPointType {
   AnyCRSGeometryCollection = "AnyCrsGeometryCollection",
@@ -861,7 +862,6 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   public modifyUser: string;
   public version: number;
   public tags?: { [key: string]: string };
-  public meta?: FrameOfReferenceMetaDataItem[];
   public OSDUIntegration?: Record<string, unknown>;
   protected __context?: OSDUContext;
 
@@ -936,24 +936,26 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {string} uri
    * @param {(SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference> | undefined)} dor
    * @param {ResqmlClient} client
+   * @param {OSDUContext} context
    * @returns {Promise<string | undefined>}
+   * @static
    * @memberof WorkProductComponent
    */
-  public async dorToSrn(
+  public static async dorToSrn(
     uri: string,
     dor:
       | SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
       | undefined,
-    client: ResqmlClient
+    client: ResqmlClient,
+    context: OSDUContext
   ): Promise<string | undefined> {
-    const xml = dor ? await this.getObjectFromDor(client, uri, dor) : undefined;
+    const xml = dor
+      ? await this.getObjectFromDor(client, uri, dor, context)
+      : undefined;
     const srn =
-      dor === undefined || this.__context === undefined || xml === undefined
+      dor === undefined || xml === undefined
         ? undefined
-        : this.__context.uriToSrn(
-            ResqmlWorkProductComponent.dorToUri(uri, dor),
-            xml
-          );
+        : context.uriToSrn(ResqmlWorkProductComponent.dorToUri(uri, dor), xml);
     return srn === undefined ? undefined : srn + ":";
   }
 
@@ -1004,21 +1006,19 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    *
    * @param {ResqmlClient} client
    * @param {string[]} uris
+   * @param {OSDUContext} context
    * @returns {(Promise<(IResqmlDataObject | undefined)[]>)}
    * @memberof WorkProductComponent
    */
-  public async getObjects(
+  public static async getObjects(
     client: ResqmlClient,
-    uris: string[]
+    uris: string[],
+    context: OSDUContext
   ): Promise<(IResqmlDataObject | undefined)[]> {
-    const toFind = uris.filter(
-      s => this.__context?.uriToObject.get(s) === undefined
-    );
+    const toFind = uris.filter(s => context?.uriToObject.get(s) === undefined);
     const objects = await client.getObjects(toFind);
-    objects.forEach(
-      (o, i) => o && this.__context?.uriToObject.set(toFind[i], o)
-    );
-    return uris.map(u => this.__context?.uriToObject.get(u));
+    objects.forEach((o, i) => o && context?.uriToObject.set(toFind[i], o));
+    return uris.map(u => context?.uriToObject.get(u));
   }
 
   /**
@@ -1028,19 +1028,21 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
    * @param {ResqmlClient} client
    * @param {string} uri URI of the containing object
    * @param {SimpleJson<eml20.DataObjectReference|eml23.DataObjectReference>} dor
+   * @param {OSDUContext} context
    * @returns {(Promise<IResqmlDataObject | undefined>)}
    * @memberof WorkProductComponent
    */
-  public async getObjectFromDor(
+  public static async getObjectFromDor(
     client: ResqmlClient,
     uri: string,
-    dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
+    dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>,
+    context: OSDUContext
   ): Promise<IResqmlDataObject | undefined> {
     if (dor._data) {
       return dor._data;
     }
     const dorUri = ResqmlWorkProductComponent.dorToUri(uri, dor);
-    const objects = await this.getObjects(client, [dorUri]);
+    const objects = await this.getObjects(client, [dorUri], context);
     return objects.length === 1 && objects[0] !== null ? objects[0] : undefined;
   }
 
@@ -1161,7 +1163,7 @@ export class ResqmlWorkProductComponent<
         >
       | undefined
   ): Promise<number | undefined> {
-    if (interpretation === undefined) {
+    if (interpretation === undefined || this.__context === undefined) {
       return undefined;
     }
     const int2 =
@@ -1170,10 +1172,11 @@ export class ResqmlWorkProductComponent<
     if (a !== undefined) {
       return a;
     }
-    const feat = (await this.getObjectFromDor(
+    const feat = (await ResqmlWorkProductComponent.getObjectFromDor(
       client,
       uri,
-      interpretation.InterpretedFeature
+      interpretation.InterpretedFeature,
+      this.__context
     )) as SimpleJson<resqml20.obj_GeneticBoundaryFeature>;
     return feat?.AbsoluteAge?.YearOffset;
   }
@@ -1183,17 +1186,15 @@ export class ResqmlWorkProductComponent<
    *
    * @param {(CoordinateReferenceSystem | undefined)} crs
    * @param {number} code
+   * @param {OSDUContext} context
    * @returns {(string|undefined)}
    * @memberof ResqmlWorkProductComponent
    */
-  public referenceSystemId(
+  public static referenceSystemId(
     crs: CoordinateReferenceSystem | undefined,
-    code: number
+    code: number,
+    context: OSDUContext
   ): string | undefined {
-    const context = this.__context;
-    if (context === undefined) {
-      return undefined;
-    }
     return crs !== undefined
       ? crs.id + ":"
       : context.addReferenceData(
@@ -1210,15 +1211,10 @@ export class ResqmlWorkProductComponent<
    * @returns {string | undefined}
    * @memberof ResqmlWorkProductComponent
    */
-  public persistableReferenceSystem(
+  public static persistableReferenceSystem(
     crs: CoordinateReferenceSystem | undefined,
     code: number
   ): string | undefined {
-    const context = this.__context;
-    if (context === undefined) {
-      return undefined;
-    }
-
     if (crs?.data?.PersistableReference !== undefined) {
       return crs.data.PersistableReference;
     } else {
@@ -1245,23 +1241,20 @@ export class ResqmlWorkProductComponent<
    *   }>)}
    * @memberof ResqmlWorkProductComponent
    */
-  public async createSpatialInfoFrom2dPoints(
+  public static async createSpatialInfoFrom2dPoints(
     client: ResqmlClient,
     dataspaceUri: string,
     pointCoordinates: [number, number][],
     crs:
       | SimpleJson<resqml20.AbstractLocal3dCrs>
-      | SimpleJson<eml23.LocalEngineeringCompoundCrs>
+      | SimpleJson<eml23.LocalEngineeringCompoundCrs>,
+    context: OSDUContext
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
     Wgs84Coordinates: [number, number][] | undefined;
   }> {
-    const context = this.__context;
-    if (context === undefined) {
-      return Promise.reject(new Error("Undefined context"));
-    }
     if (pointCoordinates.length === 0) {
       return Promise.reject(new Error("No geometry provided"));
     }
@@ -1297,7 +1290,8 @@ export class ResqmlWorkProductComponent<
       const projectedCrs = (await this.getObjectFromDor(
         client,
         dataspaceUri,
-        crs23.LocalEngineering2dCrs
+        crs23.LocalEngineering2dCrs,
+        context
       )) as SimpleJson<eml23.LocalEngineering2dCrs>;
       if (projectedCrs) {
         if (
@@ -1326,7 +1320,11 @@ export class ResqmlWorkProductComponent<
       try {
         epsgCrs = await context.findProjectedEPSGCrs(epsgCode);
 
-        CoordinateReferenceSystemID = this.referenceSystemId(epsgCrs, epsgCode);
+        CoordinateReferenceSystemID = this.referenceSystemId(
+          epsgCrs,
+          epsgCode,
+          context
+        );
         persistableReferenceCrs =
           this.persistableReferenceSystem(epsgCrs, epsgCode) ?? "";
         if (aMinX !== Number.POSITIVE_INFINITY) {
@@ -1446,6 +1444,7 @@ export class ResqmlWorkProductComponent<
    * @param {ResqmlClient} client
    * @param {string} dataspaceUri
    * @param {SimpleJson<resqml20.PointGeometry|resqml22.PointGeometry>[]} geometries
+   * @param {OSDUContext} context
    * @returns {Promise<{
    *     SpatialPoint: AbstractSpatialLocation|undefined;
    *     SpatialArea: AbstractSpatialLocation|undefined;
@@ -1454,10 +1453,12 @@ export class ResqmlWorkProductComponent<
    *   }>}
    * @memberof ResqmlWorkProductComponent
    */
-  public async createSpatialInfo(
+  public static async createSpatialInfo(
     client: ResqmlClient,
     dataspaceUri: string,
-    geometries: SimpleJson<resqml20.PointGeometry | resqml22.PointGeometry>[]
+    geometries: SimpleJson<resqml20.PointGeometry | resqml22.PointGeometry>[],
+    context: OSDUContext,
+    OSDUIntegration?: SimpleJson<eml23.OSDUIntegration>
   ): Promise<{
     SpatialPoint: AbstractSpatialLocation | undefined;
     SpatialArea: AbstractSpatialLocation | undefined;
@@ -1465,10 +1466,6 @@ export class ResqmlWorkProductComponent<
     NodeCount: number | undefined;
     Domain: string;
   }> {
-    const context = this.__context;
-    if (context === undefined) {
-      return Promise.reject(new Error("No context"));
-    }
     if (geometries.length < 1) {
       return Promise.reject(new Error("No geometry provided"));
     }
@@ -1476,7 +1473,8 @@ export class ResqmlWorkProductComponent<
     const crsObj = await this.getObjectFromDor(
       client,
       dataspaceUri,
-      geometries[0].LocalCrs
+      geometries[0].LocalCrs,
+      context
     );
     if (
       crsObj?.$type !== "resqml20.obj_LocalDepth3dCrs" &&
@@ -1512,15 +1510,13 @@ export class ResqmlWorkProductComponent<
         : "Depth";
 
     if (
-      this.OSDUIntegration &&
-      this.OSDUIntegration.WGS84Latitude &&
-      this.OSDUIntegration.WGS84Longitude
+      OSDUIntegration &&
+      OSDUIntegration.WGS84Latitude &&
+      OSDUIntegration.WGS84Longitude
     ) {
-      const osduIntegration = this
-        .OSDUIntegration as SimpleJson<eml23.OSDUIntegration>;
       if (
-        osduIntegration.WGS84Latitude !== undefined &&
-        osduIntegration.WGS84Longitude !== undefined
+        OSDUIntegration.WGS84Latitude !== undefined &&
+        OSDUIntegration.WGS84Longitude !== undefined
       ) {
         const spatialLocation: AbstractSpatialLocation = {
           Wgs84Coordinates: {
@@ -1532,8 +1528,8 @@ export class ResqmlWorkProductComponent<
                 geometry: {
                   type: GeoJSONPointType.Point,
                   coordinates: [
-                    osduIntegration.WGS84Latitude._,
-                    osduIntegration.WGS84Longitude._
+                    OSDUIntegration.WGS84Latitude._,
+                    OSDUIntegration.WGS84Longitude._
                   ]
                 }
               }
@@ -1577,7 +1573,8 @@ export class ResqmlWorkProductComponent<
           [aMinX, aMaxY],
           [aMinX, aMinY]
         ],
-        crs
+        crs,
+        context
       );
 
     return {
@@ -1699,6 +1696,9 @@ export class ResqmlWorkProductComponent<
   ): Promise<
     SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>[]
   > {
+    if (!this.__context) {
+      return [];
+    }
     const RESQML20_ACTIVITY_TYPE = `resqml20.obj_Activity`;
     const sources = await client.getSources(objectUri, false, [
       RESQML20_ACTIVITY_TYPE
@@ -1716,9 +1716,10 @@ export class ResqmlWorkProductComponent<
     // Find all activities for which the the object is an output
     const etpUri = new EtpUri(objectUri);
     const activities: SimpleJson<resqml20.obj_Activity | eml23.Activity>[] = (
-      await this.getObjects(
+      await ResqmlWorkProductComponent.getObjects(
         client,
-        sources.map(r => r.uri)
+        sources.map(r => r.uri),
+        this.__context
       )
     ).filter(r => r !== undefined) as SimpleJson<
       resqml20.obj_Activity | eml23.Activity
@@ -1728,10 +1729,11 @@ export class ResqmlWorkProductComponent<
       eml20.DataObjectReference | eml23.DataObjectReference
     >[] = [];
     for (const a of activities) {
-      const temp = await this.getObjectFromDor(
+      const temp = await ResqmlWorkProductComponent.getObjectFromDor(
         client,
         objectUri,
-        a.ActivityDescriptor
+        a.ActivityDescriptor,
+        this.__context
       );
       if (temp === undefined) {
         continue;
@@ -1792,13 +1794,22 @@ export class ResqmlWorkProductComponent<
       return dors;
     }
     const tgUris = new Set<URI>();
-    const xml = await this.getObjects(client, [objectUri]);
+    const xml = await ResqmlWorkProductComponent.getObjects(
+      client,
+      [objectUri],
+      this.__context
+    );
     if (xml.length !== 1 || xml[0] === undefined) {
       return dors;
     }
     client.getObjectTargets(new EtpUri(objectUri).dataSpace, xml[0], tgUris);
     for (const d of dors) {
-      const tg = await this.getObjectFromDor(client, objectUri, d);
+      const tg = await ResqmlWorkProductComponent.getObjectFromDor(
+        client,
+        objectUri,
+        d,
+        this.__context
+      );
       const oUris = new Set<URI>();
       if (tg) {
         client.getObjectTargets(new EtpUri(objectUri).dataSpace, tg, oUris);
@@ -1915,10 +1926,11 @@ export class ResqmlWorkProductComponent<
     client: ResqmlClient,
     context: OSDUContext
   ): Promise<AbstractInterpretation> {
-    const feat = (await this.getObjectFromDor(
+    const feat = (await ResqmlWorkProductComponent.getObjectFromDor(
       client,
       ReservoirDMSUrl,
-      xml.InterpretedFeature
+      xml.InterpretedFeature,
+      context
     )) as SimpleJson<resqml20.AbstractFeature | resqml22.AbstractFeature>;
 
     const strAge = await this.age(client, ReservoirDMSUrl, xml);
@@ -1926,10 +1938,11 @@ export class ResqmlWorkProductComponent<
     let YoungerPossibleAge = strAge;
     const xml20 = xml as SimpleJson<resqml20.AbstractFeatureInterpretation>;
     if (xml20.HasOccuredDuring?.ChronoBottom !== undefined) {
-      const bot = (await this.getObjectFromDor(
+      const bot = (await ResqmlWorkProductComponent.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml20.HasOccuredDuring?.ChronoBottom
+        xml20.HasOccuredDuring?.ChronoBottom,
+        context
       )) as SimpleJson<
         | resqml20.obj_StratigraphicUnitInterpretation
         | resqml22.StratigraphicUnitInterpretation
@@ -1937,10 +1950,11 @@ export class ResqmlWorkProductComponent<
       OlderPossibleAge = await this.age(client, ReservoirDMSUrl, bot);
     }
     if (xml20.HasOccuredDuring?.ChronoTop !== undefined) {
-      const top = (await this.getObjectFromDor(
+      const top = (await ResqmlWorkProductComponent.getObjectFromDor(
         client,
         ReservoirDMSUrl,
-        xml20.HasOccuredDuring?.ChronoTop
+        xml20.HasOccuredDuring?.ChronoTop,
+        context
       )) as SimpleJson<
         | resqml20.obj_StratigraphicUnitInterpretation
         | resqml22.StratigraphicUnitInterpretation
@@ -1954,10 +1968,11 @@ export class ResqmlWorkProductComponent<
         xml22.HasOccurredDuring as SimpleJson<resqml22.GeneticBoundaryBasedTimeInterval>;
 
       if (boundInterval.ChronoBottom !== undefined) {
-        const bot = (await this.getObjectFromDor(
+        const bot = (await ResqmlWorkProductComponent.getObjectFromDor(
           client,
           ReservoirDMSUrl,
-          boundInterval.ChronoBottom
+          boundInterval.ChronoBottom,
+          context
         )) as SimpleJson<
           | resqml20.obj_StratigraphicUnitInterpretation
           | resqml22.StratigraphicUnitInterpretation
@@ -1965,10 +1980,11 @@ export class ResqmlWorkProductComponent<
         OlderPossibleAge = await this.age(client, ReservoirDMSUrl, bot);
       }
       if (boundInterval.ChronoTop !== undefined) {
-        const top = (await this.getObjectFromDor(
+        const top = (await ResqmlWorkProductComponent.getObjectFromDor(
           client,
           ReservoirDMSUrl,
-          boundInterval.ChronoTop
+          boundInterval.ChronoTop,
+          context
         )) as SimpleJson<
           | resqml20.obj_StratigraphicUnitInterpretation
           | resqml22.StratigraphicUnitInterpretation
@@ -1987,10 +2003,11 @@ export class ResqmlWorkProductComponent<
         "DomainType",
         this.capitalize(xml.Domain)
       ),
-      FeatureID: await this.dorToSrn(
+      FeatureID: await ResqmlWorkProductComponent.dorToSrn(
         ReservoirDMSUrl,
         xml.InterpretedFeature,
-        client
+        client,
+        context
       ),
       FeatureName: feat.Citation.Title,
       OlderPossibleAge,

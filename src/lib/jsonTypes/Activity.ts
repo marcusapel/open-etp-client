@@ -52,10 +52,11 @@ export class ActivityOSDU
         } else {
           const timeIndex = (k as SimpleJson<resqml20.TimeIndexParameterKey>)
             .TimeIndex;
-          const time = (await this.getObjectFromDor(
+          const time = (await ActivityOSDU.getObjectFromDor(
             client,
             ReservoirDMSUrl,
-            timeIndex.TimeSeries
+            timeIndex.TimeSeries,
+            context
           )) as SimpleJson<resqml20.obj_TimeSeries>;
           return {
             TimeParameterKey: time.Time[timeIndex.Index].DateTime.toISOString()
@@ -67,13 +68,13 @@ export class ActivityOSDU
 
   private getKind(p: SimpleJson<resqml20.AbstractActivityParameter>) {
     if (p.$type === "resqml20.DataObjectParameter") {
-      return "DataObjectParameter";
+      return "DataObject";
     } else if (p.$type === "resqml20.FloatingPointQuantityParameter") {
-      return "FloatingPointQuantityParameter";
+      return "Double";
     } else if (p.$type === "resqml20.IntegerQuantityParameter") {
-      return "IntegerQuantityParameter";
+      return "Integer";
     } // else if (p.$type === "resqml20.StringParameter") {
-    return "StringParameter";
+    return "String";
   }
 
   public async getParameters(
@@ -115,10 +116,11 @@ export class ActivityOSDU
 
       let DataObjectParameter: string | undefined = undefined;
       if (p.$type === "resqml20.DataObjectParameter") {
-        DataObjectParameter = await this.dorToSrn(
+        DataObjectParameter = await ActivityOSDU.dorToSrn(
           ReservoirDMSUrl,
           dop?.DataObject,
-          client
+          client,
+          context
         );
         if (DataObjectParameter === undefined) {
           StringParameter = `${dop?.DataObject.ContentType}(${dop?.DataObject.UUID})`;
@@ -202,10 +204,11 @@ export class ActivityOSDU
        * The relation to the ActivityTemplate carrying expected parameter definitions and default
        * values.
        */
-      ActivityTemplateID: await this.dorToSrn(
+      ActivityTemplateID: await ActivityOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.ActivityDescriptor,
-        client
+        client,
+        context
       ),
       /**
        * General parameter value used in one instance of activity.  Includes reference to data
@@ -219,10 +222,11 @@ export class ActivityOSDU
       /**
        * The relationship to a parent activity.
        */
-      ParentActivityID: await this.dorToSrn(
+      ParentActivityID: await ActivityOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.Parent,
-        client
+        client,
+        context
       ),
       /**
        * The relationship to a parent project acting as a parent activity.

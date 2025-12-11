@@ -487,7 +487,8 @@ export const createManifest = async (
         ) {
           return;
         }
-        const rd = ResqmlOSDU.buildReference(r, context);
+        // Since r is a srn, it ends with ':'. We need to remove it to build the reference id
+        const rd = ResqmlOSDU.buildReference(r.slice(0, -1), context);
         if (rd !== undefined) {
           manifests.ReferenceData?.push(rd);
           generatedSrn.set(r, rd);

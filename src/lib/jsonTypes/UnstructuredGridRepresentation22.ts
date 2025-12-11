@@ -10,6 +10,7 @@ import {
 
 import {
   AbstractGridRepresentation,
+  FrameOfReferenceMetaDataItem,
   StratigraphicUnits,
   UnstructuredGridRepresentation
 } from "./Generated/work-product-component/UnstructuredGridRepresentation.1.2.0";
@@ -21,6 +22,7 @@ export class UnstructuredGridRepresentation22OSDU
   implements UnstructuredGridRepresentation
 {
   public data: AbstractGridRepresentation = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml22.UnstructuredGridRepresentation>,
@@ -34,6 +36,9 @@ export class UnstructuredGridRepresentation22OSDU
     xml: SimpleJson<resqml22.AbstractGridRepresentation>,
     client: ResqmlClient
   ): Promise<StratigraphicUnits | undefined> {
+    if (!this.__context) {
+      return undefined;
+    }
     try {
       const dataspaceUri = EtpUri.createDataSpaceUri(
         new EtpUri(ReservoirDMSUrl).dataSpace
@@ -49,11 +54,12 @@ export class UnstructuredGridRepresentation22OSDU
       if (stratiIndices) {
         return {
           StratigraphicColumnRankInterpretationID:
-            (await this.dorToSrn(
+            (await ResqmlWorkProductComponent.dorToSrn(
               ReservoirDMSUrl,
               xml.IntervalStratigraphicUnits
                 ?.StratigraphicOrganizationInterpretation,
-              client
+              client,
+              this.__context
             )) || "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
@@ -89,16 +95,18 @@ export class UnstructuredGridRepresentation22OSDU
           )
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await ResqmlWorkProductComponent.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedObject,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedObject?.Title,
-      LocalModelCompoundCrsID: await this.dorToSrn(
+      LocalModelCompoundCrsID: await ResqmlWorkProductComponent.dorToSrn(
         ReservoirDMSUrl,
         xml.Geometry?.LocalCrs,
-        client
+        client,
+        context
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -138,9 +146,12 @@ export class UnstructuredGridRepresentation22OSDU
     this.assignExtraMetaData(xml.ExtensionNameValue);
 
     if (xml.Geometry) {
-      const si = await this.createSpatialInfo(client, dataspaceUri.uri, [
-        xml.Geometry
-      ]);
+      const si = await ResqmlWorkProductComponent.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        [xml.Geometry],
+        context
+      );
 
       this.data.SpatialPoint = si.SpatialPoint;
       this.data.SpatialArea = si.SpatialArea;

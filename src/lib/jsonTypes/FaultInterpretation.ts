@@ -42,18 +42,20 @@ export class FaultInterpretationOSDU
         let MaximumAge = strAge;
         let MinimumAge = strAge;
         if (t.HasOccuredDuring?.ChronoBottom !== undefined) {
-          const bot = (await this.getObjectFromDor(
+          const bot = (await FaultInterpretationOSDU.getObjectFromDor(
             client,
             ReservoirDMSUrl,
-            t.HasOccuredDuring?.ChronoBottom
+            t.HasOccuredDuring?.ChronoBottom,
+            context
           )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
           MaximumAge = await this.age(client, ReservoirDMSUrl, bot);
         }
         if (t.HasOccuredDuring?.ChronoTop !== undefined) {
-          const top = (await this.getObjectFromDor(
+          const top = (await FaultInterpretationOSDU.getObjectFromDor(
             client,
             ReservoirDMSUrl,
-            t.HasOccuredDuring?.ChronoTop
+            t.HasOccuredDuring?.ChronoTop,
+            context
           )) as SimpleJson<resqml20.obj_StratigraphicUnitInterpretation>;
           MinimumAge = await this.age(client, ReservoirDMSUrl, top);
         }

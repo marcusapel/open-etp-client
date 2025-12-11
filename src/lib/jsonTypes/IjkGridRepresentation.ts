@@ -8,11 +8,13 @@ import { OSDUContext } from "./OsduContext";
 import {
   ResqmlWorkProductComponent,
   getIntegerValues,
-  visitBooleanValues
+  visitBooleanValues,
+  visitIntegerValues
 } from "./WorkProductComponent";
 
 import {
   Abstract,
+  FrameOfReferenceMetaDataItem,
   IjkGridRepresentation,
   StratigraphicUnits
 } from "./Generated/work-product-component/IjkGridRepresentation.1.2.0";
@@ -38,6 +40,7 @@ export class IjkGridRepresentationOSDU
   implements IjkGridRepresentation
 {
   public data: Abstract = {};
+  public meta?: FrameOfReferenceMetaDataItem[];
 
   constructor(
     xml: SimpleJson<resqml20.obj_IjkGridRepresentation>,
@@ -58,20 +61,76 @@ export class IjkGridRepresentationOSDU
       return undefined;
     }
     try {
-      let count = 0;
+      let activeCellCount = 0;
       const dataspaceUri = EtpUri.createDataSpaceUri(
         new EtpUri(ReservoirDMSUrl).dataSpace
       ).uri;
+      const dataobjectUri = EtpUri.createObjectUri(
+        new EtpUri(ReservoirDMSUrl).dataSpace,
+        "resqml",
+        "2.0",
+        `obj_IjkGridRepresentation`,
+        xml.Uuid
+      ).uri;
+
+      // Search for the active property : https://docs.energistics.org/#RESQML/RESQML_TOPICS/RESQML-000-289-0-C-sv2010.html
+      const assoc = await client.getSources(dataobjectUri, false, [
+        `resqml20.obj_DiscreteProperty`
+      ]);
+      for (const a of assoc) {
+        const associationUri = a.uri;
+        if (a.uri) {
+          const obj = await client.getObjects([associationUri]);
+          if (obj.length !== 1) {
+            continue;
+          }
+          const target = obj[0] as SimpleJson<resqml20.obj_DiscreteProperty>;
+          if (target) {
+            const pKind =
+              target.PropertyKind.$type === "resqml20.LocalPropertyKind"
+                ? (target.PropertyKind as SimpleJson<resqml20.LocalPropertyKind>)
+                : undefined;
+            if (pKind?.LocalPropertyKind.Title === "active") {
+              const visitor = (
+                nullValue: number | undefined,
+                values: boolean[] | number[] | bigint[],
+                _data: IDataSubarray
+              ) => {
+                for (const n of values) {
+                  if (nullValue !== undefined && n === nullValue) {
+                    continue;
+                  } else if (n !== 0) {
+                    activeCellCount++;
+                  }
+                }
+              };
+
+              for await (const patch of target.PatchOfValues) {
+                await visitIntegerValues(
+                  dataspaceUri,
+                  patch.Values,
+                  client,
+                  visitor
+                );
+              }
+
+              return activeCellCount;
+            }
+          }
+        }
+      }
+
+      // Look for the CellGeometryIsDefined property if no active property found
       await visitBooleanValues(
         dataspaceUri,
         xml.Geometry?.CellGeometryIsDefined,
         client,
         (values: boolean[] | number[] | bigint[], _data: IDataSubarray) => {
           const v = values as boolean[];
-          v.forEach(b => (count += b ? 1 : 0));
+          v.forEach(b => (activeCellCount += b ? 1 : 0));
         }
       );
-      return count;
+      return activeCellCount;
     } catch (e) {
       return undefined;
     }
@@ -94,13 +153,15 @@ export class IjkGridRepresentationOSDU
           )
         : undefined;
 
-      if (stratiIndices) {
+      const context = this.__context;
+      if (stratiIndices && context) {
         return {
           StratigraphicColumnRankInterpretationID:
-            (await this.dorToSrn(
+            (await IjkGridRepresentationOSDU.dorToSrn(
               ReservoirDMSUrl,
               xml.IntervalStratigraphicUnits?.StratigraphicOrganization,
-              client
+              client,
+              context
             )) ?? "",
           StratigraphicUnitsIndices: stratiIndices.map(i => [i])
         };
@@ -143,16 +204,18 @@ export class IjkGridRepresentationOSDU
           )
         }
       ],
-      InterpretationID: await this.dorToSrn(
+      InterpretationID: await IjkGridRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.RepresentedInterpretation,
-        client
+        client,
+        context
       ),
       InterpretationName: xml.RepresentedInterpretation?.Title,
-      LocalModelCompoundCrsID: await this.dorToSrn(
+      LocalModelCompoundCrsID: await IjkGridRepresentationOSDU.dorToSrn(
         ReservoirDMSUrl,
         xml.Geometry?.LocalCrs,
-        client
+        client,
+        context
       ),
       RealizationIndex: undefined,
       TimeSeries: undefined, //{ TimeIndex: 0, TimeSeriesID: "" },
@@ -179,12 +242,15 @@ export class IjkGridRepresentationOSDU
       HasTruncations: undefined,
       KDirectionID: context.addReferenceData(
         "KDirectionType",
-        this.capitalize(xml.Geometry?.KDirection)
+        xml.Geometry?.KDirection.replace(" ", "%20")
       ),
       Ni: xml.Ni,
       Nj: xml.Nj,
       Nk: xml.Nk,
-      PillarShapeID: context.addReferenceData("PillarShapeType", "Curved"), //Straight, Linear, Curved
+      PillarShapeID: context.addReferenceData(
+        "PillarShapeType",
+        xml.Geometry?.PillarShape
+      ), //"vertical" | "straight" | "curved"
       IsRadial: xml.RadialGridIsComplete,
       IsRightHanded: xml.Geometry?.GridIsRighthanded,
       ExtensionProperties: undefined
@@ -193,9 +259,12 @@ export class IjkGridRepresentationOSDU
     this.assignExtraMetaData(xml.ExtraMetadata);
 
     if (xml.Geometry) {
-      const si = await this.createSpatialInfo(client, dataspaceUri.uri, [
-        xml.Geometry
-      ]);
+      const si = await ResqmlWorkProductComponent.createSpatialInfo(
+        client,
+        dataspaceUri.uri,
+        [xml.Geometry],
+        context
+      );
 
       this.data.SpatialPoint = si.SpatialPoint;
       this.data.SpatialArea = si.SpatialArea;

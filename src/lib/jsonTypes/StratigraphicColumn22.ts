@@ -42,7 +42,12 @@ export class StratigraphicColumn22OSDU
     const StratigraphicColumnRankInterpretationSet = [];
     for (const r of xml.Ranks) {
       StratigraphicColumnRankInterpretationSet.push(
-        (await this.dorToSrn(ReservoirDMSUrl, r, client)) || ""
+        (await StratigraphicColumn22OSDU.dorToSrn(
+          ReservoirDMSUrl,
+          r,
+          client,
+          context
+        )) || ""
       );
     }
     this.data = {
