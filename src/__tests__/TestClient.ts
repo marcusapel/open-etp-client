@@ -2419,14 +2419,6 @@ describe(`Manifest`, () => {
           `eml:///dataspace('${dataspaceName}')/${tSurfType}(${tSurfUid})`,
           `eml:///dataspace('${dataspaceName}')/${targetType}(${targetUid})`
         ],
-        acl: {
-          viewers: ["data.rdms-mygroup.viewers@mypartition.mycompany.com"],
-          owners: ["data.rdms-mygroup.owners@mypartition.mycompany.com"]
-        },
-        legal: {
-          legaltags: ["my.legal.tags"],
-          otherRelevantDataCountries: ["US", "UK"]
-        },
         tags: {
           quality: "good"
         },

@@ -90,8 +90,12 @@ class ETPDataspaceOSDU implements ETPDataspace {
     }
 
     this.tags = context.tags;
-    this.acl = context.acl;
-    this.legal = context.legal;
+
+    const aclLegal = context.dataspaceACLs.get(dataspace.uri);
+    if (aclLegal !== undefined) {
+      this.acl = aclLegal.acl;
+      this.legal = aclLegal.legal;
+    }
   }
 }
 

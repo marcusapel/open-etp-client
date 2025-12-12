@@ -58,12 +58,7 @@ describe("Manifest Conversion", () => {
   it("Check Citation conversion", () => {
     const osdu: GenericPropertyOSDU = new GenericPropertyOSDU(
       xml,
-      new OSDUContext(
-        "test",
-        { owners: ["test"], viewers: ["test"] },
-        { legaltags: ["test"], otherRelevantDataCountries: ["test"] },
-        "test"
-      )
+      new OSDUContext("test", "test")
     );
     osdu.initData("myURI", xml, new ResqmlClient());
     expect(osdu.createUser).toEqual(xml.Citation.Originator);
@@ -75,12 +70,7 @@ describe("Manifest Conversion", () => {
   it("Check extra metadata conversion", () => {
     const osdu: GenericPropertyOSDU = new GenericPropertyOSDU(
       xml,
-      new OSDUContext(
-        "test",
-        { owners: ["test"], viewers: ["test"] },
-        { legaltags: ["test"], otherRelevantDataCountries: ["test"] },
-        "test"
-      )
+      new OSDUContext("test", "test")
     );
     // No real client so initialize directly instead of using initData
     const data: Data = {
@@ -100,14 +90,6 @@ describe("Manifest Conversion", () => {
       {
         Name: "osdu/tags/tag1/tag2", // Add to extension properties (as tags are not nested)
         Value: "tag2"
-      },
-      {
-        Name: "osdu/legal/legaltags/0", // Replace one element of legal tags array
-        Value: "legals0"
-      },
-      {
-        Name: "osdu/acl", // Replace one element of legal tags array
-        Value: `{"owners":["acl1","acl2"]}`
       }
     ];
 
@@ -122,8 +104,5 @@ describe("Manifest Conversion", () => {
       osdu.data.ExtensionProperties &&
         osdu.data.ExtensionProperties["tags/tag1/tag2"]
     ).toEqual("tag2");
-    expect(osdu.legal.legaltags[0]).toEqual("legals0");
-    expect(osdu.acl.owners[0]).toEqual("acl1");
-    expect(osdu.acl.owners[1]).toEqual("acl2");
   });
 });

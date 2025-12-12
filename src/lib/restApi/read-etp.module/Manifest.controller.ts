@@ -272,73 +272,6 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   UnacceptableUsage?: AcceptableUsage[];
 }
 
-export class ACLDto {
-  @ApiProperty({
-    name: "viewers",
-    type: [String],
-    maxItems: 99999,
-    maxLength: 2048,
-    description: "List of groups with viewer role for the dataspace",
-    example: [`data.default.viewers@${partitionId}.mycompany.com`],
-    pattern: patternString(emailPattern)
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(emailPattern, {
-    each: true,
-    message: "Each viewer must be a valid entitlements group (email format)"
-  })
-  viewers!: string[];
-
-  @ApiProperty({
-    name: "owners",
-    type: [String],
-    maxItems: 99999,
-    maxLength: 2048,
-    description: "List of groups with owner role for the dataspace",
-    example: [`data.default.owners@${partitionId}.mycompany.com`],
-    pattern: patternString(emailPattern)
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(emailPattern, {
-    each: true,
-    message: "Each owner must be a valid entitlements group (email format)"
-  })
-  owners!: string[];
-}
-
-export class LegaltagsDto {
-  @ApiProperty({
-    name: "legaltags",
-    type: [String],
-    maxItems: 99999,
-    maxLength: 2048,
-    description: "List of legal tags",
-    example: [`${partitionId}-ReservoirDDMS-Legal-Tag`]
-  })
-  @IsArray()
-  @IsString({ each: true })
-  legaltags!: string[];
-
-  @ApiProperty({
-    name: "otherRelevantDataCountries",
-    type: [String],
-    maxItems: 99999,
-    maxLength: 2048,
-    description: "List of other countries involved in legal tags",
-    example: ["US", "UK"],
-    pattern: patternString(/^[A-Z]{2}$/)
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @Matches(/^[A-Z]{2}$/, {
-    each: true,
-    message: "Each country code must be exactly 2 uppercase letters"
-  })
-  otherRelevantDataCountries!: string[];
-}
-
 /**
  * Represents the input for manifest creation
  *
@@ -374,45 +307,6 @@ export class ManifestInputDto {
   @IsArray()
   @IsString({ each: true })
   typePatterns?: string[];
-
-  @ApiPropertyOptional({
-    name: "acl",
-    type: ACLDto,
-    description: `OSDU access control list information to apply.`,
-    example: {
-      viewers: [`data.default.viewers@${partitionId}.mycompany.com`],
-      owners: [`data.default.owners@${partitionId}.mycompany.com`]
-    }
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => ACLDto)
-  acl?: ACLDto;
-
-  @ApiPropertyOptional({
-    name: "legal",
-    description: `OSDU legal information to apply.`,
-    type: LegaltagsDto
-  })
-  @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => LegaltagsDto)
-  legal?: LegaltagsDto;
-
-  @ApiPropertyOptional({
-    name: "fileCollection",
-    type: String,
-    description: `When resources also included in file, provide file information to be added to manifest resources.`,
-    example: `${partitionId}:dataset--FileCollection.Generic:myepcfile:`,
-    pattern: patternString(
-      /^[\\w\\-\\.]+:dataset\\-\\-[\\w\\-\\.]+:[\\w\\-\\.\\:\\%]+$/
-    )
-  })
-  @IsOptional()
-  @IsString()
-  fileCollection?: string;
 
   @ApiPropertyOptional({
     name: "technicalAssurances",
@@ -534,29 +428,10 @@ export default class ObjectsManifestAPI {
 
       const context = new OSDUContext(
         typeof partition === "string" ? partition : "osdu",
-        {
-          viewers: body.acl?.viewers ?? [],
-          owners: body.acl?.owners ?? []
-        },
-        {
-          legaltags: body.legal?.legaltags ?? [],
-          otherRelevantDataCountries:
-            body.legal?.otherRelevantDataCountries ?? []
-        },
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
         body.tags,
-        body.fileCollection,
         body.createMissingReferences
       );
-
-      if (context.fileCollection) {
-        if (
-          (await context.getOSDUResourceVersion(context.fileCollection)) ===
-          undefined
-        ) {
-          context.fileCollection = undefined;
-        }
-      }
 
       context.bearer = bearer;
 
@@ -577,15 +452,12 @@ export default class ObjectsManifestAPI {
         });
       }
 
-      // If connected to OSDU apis, check that the legal tags are part of the platform
-      await context.checkLegalTags();
-
       c = await createSession(bearer, partition);
       const b = await createManifest(
         c,
         body.uris ?? [],
         context,
-        body.typePatterns ?? [],
+        body.typePatterns,
         maxManifestSize
       );
       await c.closeSession();

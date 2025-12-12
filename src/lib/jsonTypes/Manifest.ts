@@ -1,8 +1,12 @@
-import { EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
+import { Energistics, EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
-import { OSDUContext, OSDUResourceType } from "./OsduContext";
+import {
+  DataspaceLegalACL,
+  OSDUContext,
+  OSDUResourceType
+} from "./OsduContext";
 import ResqmlOSDU, { EtpDataspaceManifest } from "./ResqmlOsdu";
 
 import { ErrorCode, EtpError } from "../common/EtpTypes";
@@ -52,6 +56,39 @@ const registerDMS = async (context: OSDUContext) => {
 };
 
 /**
+ * Get ACL and Legal info from dataspace custom data
+ * @param dataspace
+ * @returns
+ */
+const getACLForDataspace = (
+  dataspace: Energistics.Etp.v12.Datatypes.Object.Dataspace
+): DataspaceLegalACL => {
+  const legalACL: DataspaceLegalACL = {
+    acl: {
+      owners: [],
+      viewers: []
+    },
+    legal: {
+      legaltags: [],
+      otherRelevantDataCountries: [],
+      status: "compliant"
+    }
+  };
+
+  legalACL.acl.viewers =
+    dataspace.customData.get("viewers")?.item?._ArrayOfString?.values ?? [];
+  legalACL.acl.owners =
+    dataspace.customData.get("owners")?.item?._ArrayOfString?.values ?? [];
+  legalACL.legal.legaltags =
+    dataspace.customData.get("legaltags")?.item?._ArrayOfString?.values ?? [];
+  const countries =
+    dataspace.customData.get("otherRelevantDataCountries")?.item?._ArrayOfString
+      ?.values ?? [];
+  legalACL.legal.otherRelevantDataCountries = countries;
+  return legalACL;
+};
+
+/**
  * Create a manifest for a list of uris
  *
  * @param {ResqmlClient} client linked to ETP server
@@ -72,7 +109,12 @@ export const createManifest = async (
     return Promise.reject("No URI provided");
   }
   try {
-    await registerDMS(context);
+    try {
+      await registerDMS(context);
+    } catch {
+      // Ignore registration errors
+      return Promise.reject("Fail to register DMS");
+    }
     const manifests: Manifest = {
       // $schema:
       //   "https://community.opengroup.org/osdu/data/data-definitions/-/raw/master/Generated/manifest/Manifest.1.0.0.json",
@@ -90,10 +132,17 @@ export const createManifest = async (
     );
 
     for (const uri of uris) {
-      if (uri.match(dataspaceUriPattern)) {
-        // Add entire dataspace content
-        let dataspaceUris = await client.getDataspaceResources(uri);
-        if (matchPatterns && matchPatterns.length) {
+      const etpUri = new EtpUri(uri);
+      if (!etpUri.isValid) {
+        continue;
+      }
+      if (etpUri.domain === "") {
+        // Add entire dataspace content by ensuring a proper dataspace uri
+        const dataspaceUri = EtpUri.createDataSpaceUri(etpUri.dataSpace);
+        let dataspaceUris = await client.getDataspaceResources(
+          dataspaceUri.uri
+        );
+        if (matchPatterns) {
           dataspaceUris = dataspaceUris.filter(f => {
             const u: EtpUri = new EtpUri(f.uri);
             for (const p of matchPatterns) {
@@ -106,7 +155,7 @@ export const createManifest = async (
         }
         dataspaceUris.forEach(r => allUris.add(r.uri));
       } else {
-        allUris.add(uri);
+        allUris.add(etpUri.uri);
       }
     }
 
@@ -136,6 +185,8 @@ export const createManifest = async (
         // );
         // manifests.Data.WorkProduct.version = 1;
         currentDataspaces.add(dataspaceId);
+        const aclLegal = getACLForDataspace(dataspace);
+        context.dataspaceACLs.set(dataspaceUri, aclLegal);
 
         manifests.Data.Datasets = manifests.Data.Datasets ?? [];
         manifests.Data.Datasets.push(EtpDataspaceManifest(dataspace, context));
@@ -211,6 +262,15 @@ export const createManifest = async (
             context,
             client
           );
+          const dataspaceUri = EtpUri.createDataSpaceUri(etpUri.dataSpace).uri;
+          const aclLegal = context.dataspaceACLs.get(dataspaceUri);
+          if (aclLegal !== undefined && res !== undefined) {
+            res.acl = aclLegal?.acl ?? { owners: [], viewers: [] };
+            res.legal = aclLegal?.legal ?? {
+              legaltags: [],
+              otherRelevantDataCountries: []
+            };
+          }
           if (res !== undefined && res.id) {
             // Check if it is an explicit osdu resource
             if (OSDUContext.osduAlias(resObj) !== undefined) {
@@ -310,6 +370,21 @@ export const createManifest = async (
                       ) {
                         unknownSrn.add(k);
                       } else {
+                        const dataspaceUri = EtpUri.createDataSpaceUri(
+                          etpUri.dataSpace
+                        ).uri;
+                        const aclLegal =
+                          context.dataspaceACLs.get(dataspaceUri);
+                        if (aclLegal !== undefined && res !== undefined) {
+                          res.acl = aclLegal?.acl ?? {
+                            owners: [],
+                            viewers: []
+                          };
+                          res.legal = aclLegal?.legal ?? {
+                            legaltags: [],
+                            otherRelevantDataCountries: []
+                          };
+                        }
                         generatedSrn.set(`${srn}`, res);
                       }
                       return resolve();

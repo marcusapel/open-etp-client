@@ -70,8 +70,12 @@ class WorkProductOSDU implements WorkProduct {
     };
 
     this.tags = context.tags;
-    this.acl = context.acl;
-    this.legal = context.legal;
+
+    const dataspaceLegalACL = context.dataspaceACLs.get(etpUri.dataSpace);
+    if (dataspaceLegalACL !== undefined) {
+      this.acl = dataspaceLegalACL.acl;
+      this.legal = dataspaceLegalACL.legal;
+    }
   }
 }
 
