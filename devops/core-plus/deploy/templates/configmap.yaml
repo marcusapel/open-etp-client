@@ -6,7 +6,7 @@ metadata:
   name: {{ .Values.conf.configmap | quote }}
   namespace: {{ .Release.Namespace | quote }}
 data:
-  RDMS_REST_MAIN_URL: {{ printf "https://%s" .Values.global.domain | quote }}
+  RDMS_REST_MAIN_URL: {{ printf "https://osdu.%s" .Values.global.domain | quote }}
   RDMS_REST_ROOT_PATH: {{ .Values.data.rdmsRestRootPath | quote }}
   RDMS_REST_PORT: {{ .Values.data.rdmsRestPort | quote }}
   RDMS_ETP_HOST: {{ .Values.data.rdmsEtpHost | quote }}

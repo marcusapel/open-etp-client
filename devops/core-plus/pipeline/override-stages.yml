@@ -3,15 +3,15 @@ variables:
   COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.0.postman_collection_NotRun.json"
   CIMPL_SUPPORTED_PLATFORM: "linux/amd64"
   DATA_PARTITION_ID: "osdu"
-  CIMPL_DNS_NAME: "osdu.dev1.osdu-cimpl.opengroup.org"
-  CIMPL_HELM_DEPLOYMENT_DIR: "devops/cimpl/deploy"
+  CIMPL_DNS_NAME: "osdu.$CIMPL_DOMAIN"
+  CIMPL_HELM_DEPLOYMENT_DIR: "devops/core-plus/deploy"
   CIMPL_HELM_PACKAGE_NAME: "cimpl-$CIMPL_SERVICE-deploy"
 
 cimpl-containerize-gitlab:
   tags: ["osdu-medium"]
   needs: ["compile-and-unit-test"]
   variables:
-    CIMPL_BUILD_PATH: "devops/cimpl/deploy/Dockerfile"
+    CIMPL_BUILD_PATH: "devops/core-plus/deploy/Dockerfile"
     CIMPL_BUILD_ARGS: "--build-arg DIST=dist.tgz"
 
 cimpl-containerize-bootstrap-gitlab:
@@ -43,5 +43,19 @@ cimpl-test:
   retry: 1
   extends:
     - .cimpl-variables
+  script:
+    - !reference [.cimpl_postman_tests, script]
+
+
+# dev2
+
+cimpl-dev2-test:
+  tags: ["osdu-small"]
+  stage: integration
+  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-cimpl/image-for-postman-tests/osdu-cimpl-image-for-postman:df5a6d3c
+  allow_failure: false
+  retry: 1
+  extends:
+    - .cimpl-dev2-variables
   script:
     - !reference [.cimpl_postman_tests, script]

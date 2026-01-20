@@ -5,6 +5,7 @@ variables:
   AWS_DEPLOY_TARGET: TF
   AWS_SERVICE_NAMESPACE_SUFFIX: reservoir-ddms
   AWS_EKS_DEPLOYMENT_NAME: os-rest-to-etp-proxy-server
+  CIMPL: "1"
 
 include:
   # pipeline logic
