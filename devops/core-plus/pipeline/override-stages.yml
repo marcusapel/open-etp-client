@@ -46,6 +46,9 @@ cimpl-test:
   script:
     - !reference [.cimpl_postman_tests, script]
 
+cimpl-acceptance-test:
+  extends:
+    - .cimpl-variables
 
 # dev2
 
