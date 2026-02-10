@@ -66,3 +66,7 @@ cimpl-dev2-test:
 cimpl-dev2-acceptance-test:
   extends:
     - .cimpl-dev2-variables
+
+cimpl-dev2-acceptance-test-python:
+  extends:
+    - .cimpl-dev2-variables
