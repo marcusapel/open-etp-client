@@ -49,7 +49,7 @@ include:
   - project: "osdu/platform/ci-cd-pipelines"
     file: "cloud-providers/cimpl-global.yml"
     
-  - local: "devops/cimpl/pipeline/override-stages.yml"
+  - local: "devops/core-plus/pipeline/override-stages.yml"
 
   # gc
   - project: "osdu/platform/ci-cd-pipelines"
