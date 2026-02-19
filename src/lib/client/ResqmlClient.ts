@@ -198,9 +198,7 @@ export class ResqmlClient {
     name: "Resqml ETP Client"
   });
   private readonly dataArray: ArrayCustomer;
-  private readonly discovery: DiscoveryCustomer = new DiscoveryCustomer(
-    this.client
-  );
+  readonly discovery: DiscoveryCustomer = new DiscoveryCustomer(this.client);
   private readonly supportedTypes: SupportedTypesCustomer =
     new SupportedTypesCustomer(this.client);
   readonly store: StoreCustomer = new StoreCustomer(this.client);
@@ -1254,6 +1252,7 @@ export class ResqmlClient {
     dataObjectTypes?: string[],
     countObjects = false,
     storeLastWriteFilter: Integer64 | null = null,
+    activeStatusFilter: Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind | null = null,
     objects?: Map<URI, IResqmlDataObject>
   ): Promise<Resource[]> {
     let uri: EtpUri;
@@ -1276,7 +1275,13 @@ export class ResqmlClient {
       }
     }
     return this.discovery
-      .getResources(context, scope, countObjects, storeLastWriteFilter)
+      .getResources(
+        context,
+        scope,
+        countObjects,
+        storeLastWriteFilter,
+        activeStatusFilter
+      )
       .then(resources =>
         uri.query?.filter
           ? this.filterResources(resources, [uri.query.filter], objects)
@@ -1333,6 +1338,7 @@ export class ResqmlClient {
     countObjects = false,
     dataObjectTypes?: string[],
     storeLastWriteFilter: Integer64 | null = null,
+    activeStatusFilter: Energistics.Etp.v12.Datatypes.Object.ActiveStatusKind | null = null,
     objects?: Map<URI, IResqmlDataObject>
   ): Promise<ResourceGraph> {
     let uri: EtpUri;
@@ -1355,7 +1361,13 @@ export class ResqmlClient {
       }
     }
     return this.discovery
-      .getGraph(context, scope, countObjects, storeLastWriteFilter)
+      .getGraph(
+        context,
+        scope,
+        countObjects,
+        storeLastWriteFilter,
+        activeStatusFilter
+      )
       .then(async graph => {
         if (uri.query?.filter) {
           const nodes = await this.filterResources(
@@ -1394,6 +1406,7 @@ export class ResqmlClient {
       dataObjectTypes,
       false,
       null,
+      null,
       objects
     );
   }
@@ -1422,6 +1435,7 @@ export class ResqmlClient {
         : Energistics.Etp.v12.Datatypes.Object.ContextScopeKind.targets,
       dataObjectTypes,
       false,
+      null,
       null,
       objects
     );
@@ -2564,6 +2578,7 @@ export class ResqmlClient {
       dataObjectTypes,
       countObjects,
       lastChangedFilter,
+      null,
       objects
     );
   }
@@ -2591,6 +2606,7 @@ export class ResqmlClient {
       countObjects,
       dataObjectTypes,
       lastChangedFilter,
+      null,
       objects
     );
   }

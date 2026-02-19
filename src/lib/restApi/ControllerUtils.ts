@@ -830,6 +830,7 @@ export const findResources = async (
     storeLastWriteFilter
       ? BigInt(storeLastWriteFilter.getTime()) * BigInt(1000)
       : null,
+    null,
     objects
   );
 };
@@ -870,6 +871,7 @@ export const graphResources = async (
     storeLastWriteFilter
       ? BigInt(storeLastWriteFilter.getTime()) * BigInt(1000)
       : null,
+    null,
     objects
   );
 };
