@@ -25,9 +25,20 @@ gc-containerize-bootstrap-gcr:
 
 .gc_postman_tests:
   before_script:
-    - curl https://community.opengroup.org/api/v4/projects/1410/packages/generic/gc_auth_token/master/gc_auth_token -o gc_auth_token && chmod +x gc_auth_token
-    - export GOOGLE_APPLICATION_CREDENTIALS="$GC_INTEGRATION_TESTER_SA_FILE"
-    - git clone https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server.git
+    # Auth token
+    - >
+      curl -sL "https://community.opengroup.org/api/v4/projects/1410/packages/generic/gc_auth_token/master/gc_auth_token"
+      -o gc_auth_token && chmod +x gc_auth_token &&
+      export GOOGLE_APPLICATION_CREDENTIALS="$GC_INTEGRATION_TESTER_SA_FILE"
+    # Install openETPServer + demo data
+    - >
+      mkdir -p etp-tools &&
+      curl -sL "https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/-/archive/main/open-etp-server-main.tar.gz?path=data" |
+      tar -xz --strip-components=1 -C etp-tools &&
+      curl -sL "https://community.opengroup.org/api/v4/projects/osdu%2Fplatform%2Fdomain-data-mgmt-services%2Freservoir%2Fopen-etp-server/jobs/artifacts/main/raw/build/using_docker/dist.tgz?job=compile-and-unit-test" |
+      tar -xz -C etp-tools
+    - export PATH="$PWD/etp-tools/bin:$PATH" LD_LIBRARY_PATH="$PWD/etp-tools/lib:${LD_LIBRARY_PATH:-}"
+    # Setup ETP client function
     - >
       function oetp_sslclient() {
         openETPServer $* -S wss://${GC_DOMAIN}/api/reservoir-ddms-etp/v2/ \
@@ -36,10 +47,16 @@ gc-containerize-bootstrap-gcr:
         --data-partition-id ${GC_TENANT} \
         --log_level=info
       }
-    - oetp_sslclient probe --ping
-    - oetp_sslclient space --list
+    # Setup demo/Volve dataspace
+    - oetp_sslclient probe --ping && oetp_sslclient space --list
     - oetp_sslclient space --delete -s demo/Volve || echo "[INFO] No dataspace demo/Volve to cleanup"
-    - oetp_sslclient space --new -s demo/Volve
+    - >
+      oetp_sslclient space --new -s demo/Volve &&
+      oetp_sslclient space --import-epc ./etp-tools/data/Volve_Demo_Horizons_Depth.epc -s demo/Volve &&
+      oetp_sslclient space --list
+    # Cleanup
+    - rm -rf etp-tools
+
   script:
     - export GET_COLLECTION_URL="${GC_COLLECTION_HOST}/${GC_COLLECTION_BRANCH}/${COLLECTION_PATH}?inline=false"
     - echo "Get a collection from ${GET_COLLECTION_URL}"
@@ -72,6 +89,8 @@ gc-acceptance-test:
   image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
   extends:
     - .gc-variables
+  before_script:
+    - !reference [.gc_postman_tests, before_script]
   script:
     - !reference [.gc_postman_tests, script]
   rules:
@@ -90,5 +109,14 @@ gc-dev2-test:
   retry: 1
   extends:
     - .gc-dev2-variables
+  script:
+    - !reference [.gc_postman_tests, script]
+
+gc-dev2-acceptance-test:
+  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  extends:
+    - .gc-dev2-variables
+  before_script:
+    - !reference [.gc_postman_tests, before_script]
   script:
     - !reference [.gc_postman_tests, script]
