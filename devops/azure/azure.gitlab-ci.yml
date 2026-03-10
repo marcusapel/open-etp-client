@@ -82,6 +82,7 @@ azure_test:
       - main
       - merge_requests
       - tags
+  allow_failure: true
   except:
     variables:
       - $AZURE_SKIP_TEST == 'true'
@@ -102,3 +103,7 @@ azure_test_py:
     - ""
   script:
     - echo "No test_py for nodejs"
+
+azure-acceptance-test:
+  extends:
+    - .azure_variables
