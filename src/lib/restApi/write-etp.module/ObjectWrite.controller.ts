@@ -564,6 +564,11 @@ export default class MutationsAPI {
   /**
    * Convert from array of number or base64 string to javascript typed array
    *
+   * For float arrays (Float32Array, Float64Array), JSON `null` values are converted
+   * to IEEE 754 NaN, which is the standard representation for "missing value" in
+   * floating-point data. This matches the behavior of FETPAPI and other ETP clients
+   * that use native C++ quiet_NaN() for missing data points.
+   *
    * @private
    * @memberof MutationsAPI
    */
@@ -600,31 +605,84 @@ export default class MutationsAPI {
       } else {
         return data;
       }
-    } else if (Array.isArray(data) && data.every(v => typeof v === "number")) {
-      if (arrayType === "Int8Array") {
-        return new Int8Array(data);
-      } else if (arrayType === "Uint8Array") {
-        return new Uint8Array(data);
-      } else if (arrayType === "Uint8ClampedArray") {
-        return new Uint8ClampedArray(data);
-      } else if (arrayType === "Uint16Array") {
-        return new Uint16Array(data);
-      } else if (arrayType === "Int16Array") {
-        return new Int16Array(data);
-      } else if (arrayType === "Uint32Array") {
-        return new Uint32Array(data);
-      } else if (arrayType === "Int32Array") {
-        return new Int32Array(data);
-      } else if (arrayType === "Float32Array") {
-        return new Float32Array(data);
-      } else if (arrayType === "Float64Array") {
-        return new Float64Array(data);
+    } else if (Array.isArray(data)) {
+      const len = data.length;
+      const isFloatType =
+        arrayType === "Float32Array" || arrayType === "Float64Array";
+      const isBigIntType =
+        arrayType === "BigInt64Array" || arrayType === "BigUint64Array";
+
+      if (isFloatType) {
+        const result =
+          arrayType === "Float32Array"
+            ? new Float32Array(len)
+            : new Float64Array(len);
+        for (let i = 0; i < len; i++) {
+          const v = data[i];
+          if (typeof v === "number") {
+            result[i] = v;
+          } else if (v === null) {
+            result[i] = NaN;
+          } else {
+            throw new BadRequestException({
+              description: `Invalid value at index ${i}: expected number or null for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+            });
+          }
+        }
+        return result;
       }
-    } else if (Array.isArray(data) && data.every(v => typeof v === "bigint")) {
-      if (arrayType === "BigInt64Array") {
-        return new BigInt64Array(data as unknown as bigint[]);
-      } else if (arrayType === "BigUint64Array") {
-        return new BigUint64Array(data as unknown as bigint[]);
+
+      // Handle bigint arrays
+      if (isBigIntType) {
+        const result =
+          arrayType === "BigInt64Array"
+            ? new BigInt64Array(len)
+            : new BigUint64Array(len);
+        for (let i = 0; i < len; i++) {
+          const v = data[i];
+          if (typeof v !== "bigint") {
+            throw new BadRequestException({
+              description: `Invalid value at index ${i}: expected bigint for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+            });
+          }
+          result[i] = v;
+        }
+        return result;
+      }
+
+      // Handle integer arrays: only numbers allowed
+      const intArrayConstructors: Record<
+        string,
+        | typeof Int8Array
+        | typeof Uint8Array
+        | typeof Uint8ClampedArray
+        | typeof Int16Array
+        | typeof Uint16Array
+        | typeof Int32Array
+        | typeof Uint32Array
+      > = {
+        Int8Array,
+        Uint8Array,
+        Uint8ClampedArray,
+        Int16Array,
+        Uint16Array,
+        Int32Array,
+        Uint32Array
+      };
+
+      const IntArrayClass = intArrayConstructors[arrayType];
+      if (IntArrayClass) {
+        const result = new IntArrayClass(len);
+        for (let i = 0; i < len; i++) {
+          const v = data[i];
+          if (!Number.isInteger(v)) {
+            throw new BadRequestException({
+              description: `Invalid value at index ${i}: expected integer for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+            });
+          }
+          result[i] = v;
+        }
+        return result;
       }
     }
     return data as unknown as string;
