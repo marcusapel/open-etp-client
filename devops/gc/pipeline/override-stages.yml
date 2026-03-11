@@ -25,37 +25,34 @@ gc-containerize-bootstrap-gcr:
 
 .gc_postman_tests:
   before_script:
-    # Auth token
-    - >
-      curl -sL "https://community.opengroup.org/api/v4/projects/1410/packages/generic/gc_auth_token/master/gc_auth_token"
-      -o gc_auth_token && chmod +x gc_auth_token &&
-      export GOOGLE_APPLICATION_CREDENTIALS="$GC_INTEGRATION_TESTER_SA_FILE"
-    # Install openETPServer + demo data
-    - >
-      mkdir -p etp-tools &&
-      curl -sL "https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/-/archive/main/open-etp-server-main.tar.gz?path=data" |
-      tar -xz --strip-components=1 -C etp-tools &&
-      curl -sL "https://community.opengroup.org/api/v4/projects/osdu%2Fplatform%2Fdomain-data-mgmt-services%2Freservoir%2Fopen-etp-server/jobs/artifacts/main/raw/build/using_docker/dist.tgz?job=compile-and-unit-test" |
-      tar -xz -C etp-tools
-    - export PATH="$PWD/etp-tools/bin:$PATH" LD_LIBRARY_PATH="$PWD/etp-tools/lib:${LD_LIBRARY_PATH:-}"
+    # Ensure Node.js/npm, curl and Google Cloud SDK are available
+    - apt update && apt install apt-transport-https ca-certificates gnupg curl git -y
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt install nodejs -y
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+    - apt update && apt-get install google-cloud-cli -y
+    - gcloud auth activate-service-account --key-file $GC_INTEGRATION_TESTER_SA_FILE
+    # Ensure Newman is available for collection execution
+    - npm install -g newman
     # Setup ETP client function
     - >
-      function oetp_sslclient() {
+      function oetp_client() {
         openETPServer $* -S wss://${GC_DOMAIN}/api/reservoir-ddms-etp/v2/ \
         --auth bearer \
-        --jwt-token ./gc_auth_token \
+        --jwt-token $(gcloud auth print-identity-token) \
         --data-partition-id ${GC_TENANT} \
         --log_level=info
       }
     # Setup demo/Volve dataspace
-    - oetp_sslclient probe --ping && oetp_sslclient space --list
-    - oetp_sslclient space --delete -s demo/Volve || echo "[INFO] No dataspace demo/Volve to cleanup"
-    - >
-      oetp_sslclient space --new -s demo/Volve &&
-      oetp_sslclient space --import-epc ./etp-tools/data/Volve_Demo_Horizons_Depth.epc -s demo/Volve &&
-      oetp_sslclient space --list
-    # Cleanup
-    - rm -rf etp-tools
+    - oetp_client probe --ping && oetp_client space --list
+    - oetp_client space --delete -s demo/Volve || echo "[INFO] No dataspace demo/Volve to cleanup"
+    - |
+      GROUP_DOMAIN="${GC_TENANT}.${ENTITLEMENTS_DOMAIN}"
+      XDATA_ACL="{\"legaltags\":[\"${LEGAL_TAG}\"],\"otherRelevantDataCountries\":[\"${OTHER_RELEVANT_DATA_COUNTRIES}\"],\"owners\":[\"data.default.owners@${GROUP_DOMAIN}\"],\"viewers\":[\"data.default.viewers@${GROUP_DOMAIN}\"]}"
+      oetp_client space --new -s demo/Volve --xdata "$XDATA_ACL"
+    - oetp_client space --import-epc ./devops/data/Volve_Demo_Horizons_Depth.epc -s demo/Volve &&
+    - oetp_client space --list
 
   script:
     - export GET_COLLECTION_URL="${GC_COLLECTION_HOST}/${GC_COLLECTION_BRANCH}/${COLLECTION_PATH}?inline=false"
@@ -71,7 +68,7 @@ gc-containerize-bootstrap-gcr:
     - curl "${GET_COLLECTION_URL}" > collection.json && COLLECTION=collection.json
     - |
       curl --header "data-partition-id: ${DATA_PARTITION_ID}" "${GC_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
-    - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d  test_config_file.json --delay-request 3000 || exit $?
+    - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d test_config_file.json --delay-request 3000 --reporters cli,junit --reporter-junit-export test-results.log || exit $?
 
 # TODO: remove after common gc-test job will be deleted
 gc-test:
@@ -86,7 +83,7 @@ gc-test:
     - !reference [.gc_postman_tests, script]
 
 gc-acceptance-test:
-  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main
   extends:
     - .gc-variables
   before_script:
@@ -113,7 +110,7 @@ gc-dev2-test:
     - !reference [.gc_postman_tests, script]
 
 gc-dev2-acceptance-test:
-  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main
   extends:
     - .gc-dev2-variables
   before_script:
