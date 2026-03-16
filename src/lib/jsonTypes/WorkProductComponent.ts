@@ -890,21 +890,21 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     this.version = 1;
 
     // Init OSDUIntegration from CustomData if available
-    this.OSDUIntegration = {};
     const xml20 = xml as SimpleJson<resqml20.AbstractResqmlDataObject>;
     if (xml20.ExtraMetadata !== undefined) {
-      const osduIntegration = xml20.ExtraMetadata.find(
+      const osduIntegrationMeta = xml20.ExtraMetadata.find(
         e => e.Name === "OSDUIntegration"
       );
-      if (osduIntegration !== undefined) {
-        this.OSDUIntegration = JSON.parse(osduIntegration.Value);
+      if (osduIntegrationMeta !== undefined) {
+        this.OSDUIntegration = JSON.parse(osduIntegrationMeta.Value);
       }
-    }
-    const xml23 = xml as SimpleJson<eml23.AbstractObject>;
-    if (xml23.OSDUIntegration !== undefined) {
-      this.OSDUIntegration = {
-        ...this.OSDUIntegration
-      };
+    } else {
+      const xml23 = xml as SimpleJson<eml23.AbstractObject>;
+      if (xml23.OSDUIntegration !== undefined) {
+        this.OSDUIntegration = {
+          ...xml23.OSDUIntegration
+        };
+      }
     }
   }
 
