@@ -1,4 +1,4 @@
-FROM node:22-alpine AS BASE
+FROM node:22.22.1-alpine AS BASE
 
 ENV NODE_ENV=production
 
@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm pkg delete scripts.prepare && npm ci --quiet
 
 ###############################################################################
-FROM node:18-alpine
+FROM node:22.22.1-alpine
 
 # env
 ENV NODE_ENV=production
