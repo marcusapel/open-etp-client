@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 
 # clean install of production modules and clean private registry access
-RUN npm pkg delete scripts.prepare && npm ci --quiet
+RUN npm install -g npm@11.12.1 && npm pkg delete scripts.prepare && npm ci --quiet
 
 ###############################################################################
 FROM node:22.22.1-alpine
