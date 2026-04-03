@@ -516,6 +516,26 @@ export class ResqmlClient {
   }
 
   /**
+   * Register a callback to be invoked when the client disconnects
+   *
+   * @param {() => void} callback The callback to invoke on disconnect
+   * @memberof ResqmlClient
+   */
+  public onDisconnect(callback: () => void): void {
+    this.client.on("disconnect", callback);
+  }
+
+  /**
+   * Unregister a disconnect callback
+   *
+   * @param {() => void} callback The callback to remove
+   * @memberof ResqmlClient
+   */
+  public offDisconnect(callback: () => void): void {
+    this.client.off("disconnect", callback);
+  }
+
+  /**
    * @returns true if client currently in open session
    *
    * @memberof ResqmlClient

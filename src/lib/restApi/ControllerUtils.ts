@@ -78,14 +78,30 @@ export const swaggerServers = [{ url: serverUIUrl, description: "API server" }];
 
 let userInfo: string;
 
+const PING_INTERVAL_MS = 30000;
+
 const etpClients = new Map<
   string,
   {
     client: ResqmlClient;
     timeoutId: NodeJS.Timeout;
+    pingIntervalId: NodeJS.Timeout;
     timeoutPeriod: number;
+    onDisconnect: () => void;
   }
 >();
+
+const cleanupTransaction = (transactionId: string): void => {
+  const t = etpClients.get(transactionId);
+  if (t) {
+    clearTimeout(t.timeoutId);
+    clearInterval(t.pingIntervalId);
+    etpClients.delete(transactionId);
+    logger.warn(
+      `Transaction ${transactionId} cleaned up due to connection loss`
+    );
+  }
+};
 
 /**
  * Pagination of an array
@@ -556,6 +572,13 @@ export const createSession = async (
         ErrorCode.ENOT_FOUND
       );
     }
+    if (!c1.client.isConnected()) {
+      cleanupTransaction(transactionId);
+      throw new EtpError(
+        `Transaction ${transactionId} connection was lost`,
+        ErrorCode.EINVALID_STATE
+      );
+    }
     clearTimeout(c1.timeoutId);
     etpClients.set(transactionId, {
       ...c1,
@@ -593,7 +616,7 @@ export const createTransaction = async (
   dataspace: string,
   options?: IOptions,
   dataPartitionId?: string,
-  timeoutPeriod: number = 300, // 5 minutes
+  timeoutPeriod: number = 300,
   retries = 6
 ): Promise<string> => {
   const c = new ResqmlClient(options);
@@ -609,6 +632,23 @@ export const createTransaction = async (
     )
     .then(id => {
       const idString = EtpUri.uuidByteArrayToString(id);
+
+      const onDisconnect = () => {
+        cleanupTransaction(idString);
+      };
+
+      c.onDisconnect(onDisconnect);
+
+      const pingIntervalId = setInterval(() => {
+        if (c.isConnected()) {
+          c.ping().catch(() => {
+            cleanupTransaction(idString);
+          });
+        } else {
+          cleanupTransaction(idString);
+        }
+      }, PING_INTERVAL_MS);
+
       etpClients.set(idString, {
         client: c,
         timeoutId: setTimeout(() => {
@@ -616,7 +656,9 @@ export const createTransaction = async (
             rollbackTransaction(idString);
           }
         }, timeoutPeriod * 1000),
-        timeoutPeriod
+        pingIntervalId,
+        timeoutPeriod,
+        onDisconnect
       });
       return idString;
     })
@@ -644,9 +686,20 @@ export const commitTransaction = async (
       ErrorCode.ENOT_FOUND
     );
   }
+  clearTimeout(t.timeoutId);
+  clearInterval(t.pingIntervalId);
+  if (!t.client.isConnected()) {
+    etpClients.delete(transactionId);
+    throw new EtpError(
+      `Transaction ${transactionId} connection was lost`,
+      ErrorCode.EINVALID_STATE
+    );
+  }
+  t.client.offDisconnect(t.onDisconnect);
   await t.client
     .commitTransaction(EtpUri.uuidStringToByteArray(transactionId))
     .catch(err => {
+      etpClients.delete(transactionId);
       throw new EtpError(err.message, err.code);
     });
   await t.client.closeSession();
@@ -669,9 +722,20 @@ export const rollbackTransaction = async (
       ErrorCode.ENOT_FOUND
     );
   }
+  clearTimeout(t.timeoutId);
+  clearInterval(t.pingIntervalId);
+  if (!t.client.isConnected()) {
+    etpClients.delete(transactionId);
+    throw new EtpError(
+      `Transaction ${transactionId} connection was lost`,
+      ErrorCode.EINVALID_STATE
+    );
+  }
+  t.client.offDisconnect(t.onDisconnect);
   await t.client
     .rollbackTransaction(EtpUri.uuidStringToByteArray(transactionId))
     .catch(err => {
+      etpClients.delete(transactionId);
       throw new EtpError(err.message, err.code);
     });
   await t.client.closeSession();
