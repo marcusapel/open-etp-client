@@ -127,7 +127,6 @@ export type AnyTypedArrayString =
 
 export const arrayTypeString: AnyTypedArrayString[] = [
   "Int8Array",
-  "Int8Array",
   "Uint8Array",
   "Int16Array",
   "Int32Array",
