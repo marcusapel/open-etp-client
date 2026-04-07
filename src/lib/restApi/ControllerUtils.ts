@@ -290,8 +290,8 @@ export const errorMessageSchema = (
       additionalProperties: false,
       properties: {
         statusCode: {
-          type: "number",
-          format: "integer",
+          type: "integer",
+          format: "int32",
           minimum: code ?? 100,
           maximum: code ?? 511,
           example: code
