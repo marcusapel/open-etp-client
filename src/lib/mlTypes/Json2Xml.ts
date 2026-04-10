@@ -140,14 +140,14 @@ export class XMLBuilder {
         ? resqml20
         : resqml22
       : qType.domainFamily === "witsml"
-      ? witsml21
-      : qType.domainFamily === "prodml"
-      ? qType.domainVersion === "2.3"
-        ? prodml23
-        : prodml22
-      : qType.domainVersion === "2.0"
-      ? eml20
-      : eml23;
+        ? witsml21
+        : qType.domainFamily === "prodml"
+          ? qType.domainVersion === "2.3"
+            ? prodml23
+            : prodml22
+          : qType.domainVersion === "2.0"
+            ? eml20
+            : eml23;
   }
 
   /**
@@ -307,9 +307,8 @@ export class XMLBuilder {
       }
       return `xsd:${curType.rule.primitiveType}`;
     } else {
-      return `${this.findPrefix(curType.rule.namespace.name, version)}:${
-        curType.name
-      }`;
+      return `${this.findPrefix(curType.rule.namespace.name, version)}:${curType.name
+        }`;
     }
   }
 
@@ -421,10 +420,15 @@ export class XMLBuilder {
 
         // Check if it is an attribute
         const attr = this.isAttribute(key, level);
+        const schemaAttr = this.schemaAttributeName(key, rule);
         if (attr) {
           let newVal = "" + jObj[key];
           newVal = this.replaceEntitiesValue(newVal);
           attrStr += ` ${attr}="${newVal}"`;
+        } else if (schemaAttr) {
+          let newVal = "" + jObj[key];
+          newVal = this.replaceEntitiesValue(newVal);
+          attrStr += ` ${schemaAttr}="${newVal}"`;
         } else {
           // Tag value
           val += this.buildTextValueNode(jObj[key], curKey, xsdType, level);
@@ -473,9 +477,8 @@ export class XMLBuilder {
             if (key2 === "$type") {
               attr2 += ` xsi:type="${jObj[key][key2].replace(".", ":")}"`;
             } else {
-              attr2 += ` ${key2.charAt(0).toLowerCase() + key2.slice(1)}="${
-                jObj[key][key2]
-              }"`;
+              attr2 += ` ${key2.charAt(0).toLowerCase() + key2.slice(1)}="${jObj[key][key2]
+                }"`;
             }
           }
           val += this.buildTextValueNode(jObj[key]["_"], curKey, attr2, level);
@@ -587,7 +590,7 @@ export class XMLBuilder {
 
       return new Date(
         Date.UTC(year, month, day, hours, minutes, seconds, milliseconds) +
-          offsetMilliseconds
+        offsetMilliseconds
       );
     }
   }
@@ -680,6 +683,20 @@ export class XMLBuilder {
     } else {
       return "";
     }
+  }
+
+  private schemaAttributeName(key: string, rule: any): string {
+    if (!rule?.attributeTbl) {
+      return "";
+    }
+    const lowerKey = key.charAt(0).toLowerCase() + key.slice(1);
+    if (
+      rule.attributeTbl["1:" + lowerKey] ||
+      rule.attributeTbl["2:" + lowerKey]
+    ) {
+      return lowerKey;
+    }
+    return "";
   }
 
   /**
