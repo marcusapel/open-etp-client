@@ -33,7 +33,7 @@ import { UrisDto } from "../lib/restApi/read-etp.module/MultiObject.controller";
 describe("ManifestInputDto — uris field", () => {
   it("accepts a valid uris array", async () => {
     const dto = new ManifestInputDto();
-    dto.uris = ["eml:///dataspace('demo')/resqml20.obj_Grid(abc)"];
+    dto.uris = ["eml:///dataspace('demo/Volve')/resqml20.obj_Grid(5d27775e-5c7f-4786-a048-9a303fa1165a)"];
     const errors = await validate(dto);
     expect(errors.filter(e => e.property === "uris")).toHaveLength(0);
   });
@@ -54,7 +54,7 @@ describe("ManifestInputDto — uris field", () => {
 
   it("rejects a uris array containing an empty string", async () => {
     const dto = new ManifestInputDto();
-    dto.uris = ["eml:///dataspace('demo')", ""];
+    dto.uris = ["eml:///dataspace('demo/Volve')", ""];
     const errors = await validate(dto);
     expect(errors.filter(e => e.property === "uris").length).toBeGreaterThan(0);
   });
@@ -63,7 +63,7 @@ describe("ManifestInputDto — uris field", () => {
 describe("ManifestInputDto — typePatterns field", () => {
   it("accepts omitted typePatterns (optional)", async () => {
     const dto = new ManifestInputDto();
-    dto.uris = ["eml:///dataspace('demo')"];
+    dto.uris = ["eml:///dataspace('demo/Volve')"];
     // typePatterns intentionally not set
     const errors = await validate(dto);
     expect(errors.filter(e => e.property === "typePatterns")).toHaveLength(0);
@@ -71,7 +71,7 @@ describe("ManifestInputDto — typePatterns field", () => {
 
   it("accepts a valid typePatterns array", async () => {
     const dto = new ManifestInputDto();
-    dto.uris = ["eml:///dataspace('demo')"];
+    dto.uris = ["eml:///dataspace('demo/Volve')"];
     dto.typePatterns = ["resqml20.obj_*Representation"];
     const errors = await validate(dto);
     expect(errors.filter(e => e.property === "typePatterns")).toHaveLength(0);
@@ -79,7 +79,7 @@ describe("ManifestInputDto — typePatterns field", () => {
 
   it("rejects typePatterns containing an empty string", async () => {
     const dto = new ManifestInputDto();
-    dto.uris = ["eml:///dataspace('demo')"];
+    dto.uris = ["eml:///dataspace('demo/Volve')"];
     dto.typePatterns = ["resqml20.obj_*", ""];
     const errors = await validate(dto);
     expect(
@@ -188,7 +188,7 @@ describe("CreateTransactionDto — Retries field", () => {
 describe("UrisDto — uris field", () => {
   it("accepts a valid uris array", async () => {
     const dto = new UrisDto();
-    dto.uris = ["eml:///dataspace('demo')/resqml20.obj_Grid(abc)"];
+    dto.uris = ["eml:///dataspace('demo/Volve')/resqml20.obj_Grid(5d27775e-5c7f-4786-a048-9a303fa1165a)"];
     const errors = await validate(dto);
     expect(errors).toHaveLength(0);
   });
