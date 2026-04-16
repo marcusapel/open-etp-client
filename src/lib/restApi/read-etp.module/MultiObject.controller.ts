@@ -28,6 +28,8 @@ import {
 
 import express from "express";
 
+import { ArrayNotEmpty, IsArray, IsNotEmpty, IsString } from "class-validator";
+
 import {
   EmlObjectDto,
   arrayMetadataQueryParam,
@@ -66,6 +68,10 @@ export class UrisDto {
     ],
     pattern: patternString(uriPattern)
   })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   uris!: string[];
 }
 

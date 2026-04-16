@@ -14,6 +14,7 @@
 // limitations under the License.
 // ============================================================================
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -213,6 +214,11 @@ export default class DataspaceMutationsAPI {
     @Body() requestBody: DataspaceDto[],
     @Req() request?: express.Request
   ): Promise<string[]> {
+    if (!Array.isArray(requestBody)) {
+      throw new BadRequestException({
+        description: "Invalid request body: expected an array of dataspaces"
+      });
+    }
     let c: ResqmlClient | undefined = undefined;
     try {
       const dataspaces: Energistics.Etp.v12.Datatypes.Object.Dataspace[] =

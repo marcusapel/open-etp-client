@@ -54,6 +54,7 @@ import {
   IsArray,
   IsString,
   IsOptional,
+  ArrayNotEmpty,
   IsBoolean,
   IsObject,
   ValidateNested,

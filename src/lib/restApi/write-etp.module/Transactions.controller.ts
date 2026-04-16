@@ -41,7 +41,7 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID, IsOptional, IsNumber, IsPositive, IsString, IsNotEmpty } from "class-validator";
+import { IsUUID, IsOptional, IsInt, Min, Max, IsString, IsNotEmpty } from "class-validator";
 
 import express from "express";
 
@@ -97,8 +97,9 @@ export class CreateTransactionDto {
     required: false
   })
   @IsOptional()
-  @IsNumber()
-  @IsPositive()
+  @IsInt()
+  @Min(1)
+  @Max(86400)
   TimeoutPeriod?: number;
 
   @ApiProperty({
@@ -110,8 +111,9 @@ export class CreateTransactionDto {
     required: false
   })
   @IsOptional()
-  @IsNumber()
-  @IsPositive()
+  @IsInt()
+  @Min(1)
+  @Max(100)
   Retries?: number;
 }
 

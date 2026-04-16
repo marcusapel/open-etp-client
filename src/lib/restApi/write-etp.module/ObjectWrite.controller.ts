@@ -413,6 +413,21 @@ export default class MutationsAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<boolean> {
+    if (!Array.isArray(requestBody)) {
+      throw new BadRequestException({
+        description: "Invalid request body: expected an array of data objects"
+      });
+    }
+    if (requestBody.some(b => !b.Uuid || typeof b.Uuid !== "string")) {
+      throw new BadRequestException({
+        description: "Each object must have a non-empty Uuid string"
+      });
+    }
+    if (requestBody.some(b => !b.Citation || typeof b.Citation !== "object" || Array.isArray(b.Citation))) {
+      throw new BadRequestException({
+        description: "Each object must have a Citation object"
+      });
+    }
     let c: ResqmlClient | undefined = undefined;
     try {
       // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
@@ -744,6 +759,32 @@ export default class MutationsAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<boolean[]> | never {
+    if (!Array.isArray(requestBody)) {
+      throw new BadRequestException({
+        description: "Invalid request body: expected an array of data arrays"
+      });
+    }
+    if (
+      requestBody.some(
+        a =>
+          !a.ContainerType ||
+          typeof a.ContainerType !== "string" ||
+          !a.PathInResource ||
+          typeof a.PathInResource !== "string" ||
+          !Array.isArray(a.Dimensions) ||
+          a.Dimensions.length === 0 ||
+          !a.Dimensions.every(d => Number.isInteger(d) && d >= 1) ||
+          !a.ContainerUuid ||
+          typeof a.ContainerUuid !== "string" ||
+          !a.ArrayType ||
+          typeof a.ArrayType !== "string"
+      )
+    ) {
+      throw new BadRequestException({
+        description:
+          "Each array entry must have a ContainerType string, PathInResource string, non-empty Dimensions array, ContainerUuid string, and ArrayType string"
+      });
+    }
     let c: ResqmlClient | undefined = undefined;
     try {
       // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
