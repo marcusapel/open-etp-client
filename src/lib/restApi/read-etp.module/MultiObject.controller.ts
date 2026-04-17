@@ -131,7 +131,9 @@ export default class MultiObjectsReadAPI {
   ): Promise<void> {
     const uris = body.uris;
     if (!uris) {
-      throw new BadRequestException({ description: `No uris provided` });
+      throw new BadRequestException({
+        description: `Invalid request body: 'uris' must be a non-empty array`
+      });
     }
     if (!format || format === "xml") {
       res.set("Content-Type", "application/x-resqml+xml");

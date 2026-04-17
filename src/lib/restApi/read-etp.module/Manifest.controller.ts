@@ -13,7 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ============================================================================
-import { Body, Controller, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 
 import {
   ApiBearerAuth,
@@ -426,6 +434,13 @@ export default class ObjectsManifestAPI {
     @Res() res: express.Response
   ): Promise<void> {
     res.set("Content-Type", "application/json");
+
+    if (!body.uris) {
+      throw new BadRequestException({
+        description: "Request body must include a non-empty 'uris' array"
+      });
+    }
+
     let c = undefined;
     try {
       let maxManifestSize = 1000;
