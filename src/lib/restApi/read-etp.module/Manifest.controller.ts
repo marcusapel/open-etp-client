@@ -221,6 +221,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is valid for (e.g., This data has a technical assurance property of "trusted" and it is suitable for Seismic Interpretation).'
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AcceptableUsageDto)
   AcceptableUsage?: AcceptableUsage[];
 
   @ApiPropertyOptional({
@@ -252,6 +256,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     type: [ContactDto],
     maxItems: 99999
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContactDto)
   Reviewers?: Contact[];
 
   @ApiProperty({
@@ -271,6 +279,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is not valid for (e.g., This data has a technical assurance property of "trusted", but it is not suitable for Seismic Interpretation).'
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AcceptableUsageDto)
   UnacceptableUsage?: AcceptableUsage[];
 }
 
@@ -322,8 +334,8 @@ export class ManifestInputDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Array<TechnicalAssuranceDto>)
-  technicalAssurances?: TechnicalAssurance[];
+  @Type(() => TechnicalAssuranceDto)
+  technicalAssurances?: TechnicalAssuranceDto[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",

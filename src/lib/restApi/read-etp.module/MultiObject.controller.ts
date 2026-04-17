@@ -121,7 +121,7 @@ export default class MultiObjectsReadAPI {
     }
   })
   public async GetDataObjects(
-    @Body() body: { uris: string[] },
+    @Body() body: UrisDto,
     @Req() request: express.Request,
     @Res() res: express.Response,
     @Query("$format") format: "xml" | "json" = "json",
