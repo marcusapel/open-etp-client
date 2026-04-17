@@ -53,6 +53,7 @@ import express from "express";
 import {
   IsArray,
   IsString,
+  IsNotEmpty,
   IsOptional,
   ArrayNotEmpty,
   IsBoolean,
@@ -292,7 +293,9 @@ export class ManifestInputDto {
     ]
   })
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   uris!: string[];
 
   @ApiPropertyOptional({
@@ -307,6 +310,7 @@ export class ManifestInputDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   typePatterns?: string[];
 
   @ApiPropertyOptional({
