@@ -343,7 +343,7 @@ export class ManifestInputDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TechnicalAssuranceDto)
-  technicalAssurances?: TechnicalAssuranceDto[];
+  technicalAssurances?: TechnicalAssurance[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",
