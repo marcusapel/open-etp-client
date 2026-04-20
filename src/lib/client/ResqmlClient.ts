@@ -986,7 +986,16 @@ export class ResqmlClient {
         .PutDataspaces([p])
         .then(this.checkErrors.bind(this))
         .then(() => this.dataspaceOSDU.copyDataspacesContent([originURI], uri))
-        .then(this.checkErrors.bind(this));
+        .then(this.checkErrors.bind(this))
+        .catch(async (err) => {
+          // Rollback: delete the destination dataspace to avoid orphaned empty dataspaces
+          try {
+            await this.dataspace.DeleteDataspaces([uri]);
+          } catch (cleanupErr) {
+            this.logger.error("Failed to clean up destination dataspace after clone failure", cleanupErr);
+          }
+          throw err;
+        });
     }
 
     if (!this.client.dataSpaceSupported) {
