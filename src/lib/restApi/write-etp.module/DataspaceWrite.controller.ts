@@ -14,6 +14,7 @@
 // limitations under the License.
 // ============================================================================
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -213,6 +214,40 @@ export default class DataspaceMutationsAPI {
     @Body() requestBody: DataspaceDto[],
     @Req() request?: express.Request
   ): Promise<string[]> {
+    if (!Array.isArray(requestBody)) {
+      throw new BadRequestException({
+        description: "Invalid request body: expected an array of dataspaces"
+      });
+    }
+    if (
+      requestBody.some(
+        item => typeof item !== "object" || item === null || Array.isArray(item)
+      )
+    ) {
+      throw new BadRequestException({
+        description: "Each element must be a valid dataspace object"
+      });
+    }
+    if (
+      requestBody.some(d => !d.DataspaceId || typeof d.DataspaceId !== "string")
+    ) {
+      throw new BadRequestException({
+        description: "Each element must have a non-empty DataspaceId string"
+      });
+    }
+    if (
+      requestBody.some(
+        d =>
+          d.CustomData !== undefined &&
+          (typeof d.CustomData !== "object" ||
+            d.CustomData === null ||
+            Array.isArray(d.CustomData))
+      )
+    ) {
+      throw new BadRequestException({
+        description: "Each element's CustomData must be a plain object"
+      });
+    }
     let c: ResqmlClient | undefined = undefined;
     try {
       const dataspaces: Energistics.Etp.v12.Datatypes.Object.Dataspace[] =
@@ -292,6 +327,33 @@ export default class DataspaceMutationsAPI {
     @Body() requestBody: DataspaceDto,
     @Req() request?: express.Request
   ): Promise<string> {
+    if (
+      typeof requestBody !== "object" ||
+      requestBody === null ||
+      Array.isArray(requestBody)
+    ) {
+      throw new BadRequestException({
+        description: "Request body must be a dataspace object"
+      });
+    }
+    if (
+      !requestBody.DataspaceId ||
+      typeof requestBody.DataspaceId !== "string"
+    ) {
+      throw new BadRequestException({
+        description: "DataspaceId is required"
+      });
+    }
+    if (
+      requestBody.CustomData !== undefined &&
+      (typeof requestBody.CustomData !== "object" ||
+        requestBody.CustomData === null ||
+        Array.isArray(requestBody.CustomData))
+    ) {
+      throw new BadRequestException({
+        description: "CustomData must be a plain object"
+      });
+    }
     let c: ResqmlClient | undefined = undefined;
     try {
       const customData = new Map<string, DataValue>();

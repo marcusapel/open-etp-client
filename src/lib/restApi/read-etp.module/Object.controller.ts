@@ -42,6 +42,8 @@ import {
   ApiUnauthorizedResponse
 } from "@nestjs/swagger";
 
+import { IsDefined, IsNotEmpty, IsString, IsUUID } from "class-validator";
+
 import {
   EtpUri,
   ODataUtils,
@@ -274,6 +276,8 @@ export class EmlObjectDto {
     description: "Unique identifier of the object.",
     maxLength: 2048
   })
+  @IsUUID()
+  @IsNotEmpty()
   Uuid!: string;
 
   @ApiProperty({
@@ -283,6 +287,8 @@ export class EmlObjectDto {
     description: "Eml data object type.",
     maxLength: 2048
   })
+  @IsString()
+  @IsNotEmpty()
   $type!: string;
 
   @ApiProperty({
@@ -292,6 +298,8 @@ export class EmlObjectDto {
     description: "Eml schema version",
     maxLength: 2048
   })
+  @IsString()
+  @IsNotEmpty()
   SchemaVersion!: string;
 
   @ApiProperty({
@@ -299,6 +307,7 @@ export class EmlObjectDto {
     required: true,
     name: "Citation"
   })
+  @IsDefined()
   Citation!: EmlCitationDto;
 }
 

@@ -28,6 +28,8 @@ import {
 
 import express from "express";
 
+import { ArrayNotEmpty, IsArray, IsNotEmpty, IsString } from "class-validator";
+
 import {
   EmlObjectDto,
   arrayMetadataQueryParam,
@@ -66,6 +68,10 @@ export class UrisDto {
     ],
     pattern: patternString(uriPattern)
   })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   uris!: string[];
 }
 
@@ -115,7 +121,7 @@ export default class MultiObjectsReadAPI {
     }
   })
   public async GetDataObjects(
-    @Body() body: { uris: string[] },
+    @Body() body: UrisDto,
     @Req() request: express.Request,
     @Res() res: express.Response,
     @Query("$format") format: "xml" | "json" = "json",
@@ -125,7 +131,9 @@ export default class MultiObjectsReadAPI {
   ): Promise<void> {
     const uris = body.uris;
     if (!uris) {
-      throw new BadRequestException({ description: `No uris provided` });
+      throw new BadRequestException({
+        description: `Invalid request body: 'uris' must be a non-empty array`
+      });
     }
     if (!format || format === "xml") {
       res.set("Content-Type", "application/x-resqml+xml");

@@ -13,7 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 // ============================================================================
-import { Body, Controller, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 
 import {
   ApiBearerAuth,
@@ -53,7 +61,9 @@ import express from "express";
 import {
   IsArray,
   IsString,
+  IsNotEmpty,
   IsOptional,
+  ArrayNotEmpty,
   IsBoolean,
   IsObject,
   ValidateNested,
@@ -219,6 +229,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is valid for (e.g., This data has a technical assurance property of "trusted" and it is suitable for Seismic Interpretation).'
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AcceptableUsageDto)
   AcceptableUsage?: AcceptableUsage[];
 
   @ApiPropertyOptional({
@@ -250,6 +264,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     type: [ContactDto],
     maxItems: 99999
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ContactDto)
   Reviewers?: Contact[];
 
   @ApiProperty({
@@ -269,6 +287,10 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
     description:
       'Describes the workflows and/or personas that the technical assurance value is not valid for (e.g., This data has a technical assurance property of "trusted", but it is not suitable for Seismic Interpretation).'
   })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AcceptableUsageDto)
   UnacceptableUsage?: AcceptableUsage[];
 }
 
@@ -291,7 +313,9 @@ export class ManifestInputDto {
     ]
   })
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   uris!: string[];
 
   @ApiPropertyOptional({
@@ -306,6 +330,7 @@ export class ManifestInputDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   typePatterns?: string[];
 
   @ApiPropertyOptional({
@@ -317,7 +342,7 @@ export class ManifestInputDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => Array<TechnicalAssuranceDto>)
+  @Type(() => TechnicalAssuranceDto)
   technicalAssurances?: TechnicalAssurance[];
 
   @ApiPropertyOptional({
@@ -409,6 +434,13 @@ export default class ObjectsManifestAPI {
     @Res() res: express.Response
   ): Promise<void> {
     res.set("Content-Type", "application/json");
+
+    if (!body.uris) {
+      throw new BadRequestException({
+        description: "Request body must include a non-empty 'uris' array"
+      });
+    }
+
     let c = undefined;
     try {
       let maxManifestSize = 1000;
