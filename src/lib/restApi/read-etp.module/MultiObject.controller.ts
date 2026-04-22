@@ -142,7 +142,6 @@ export default class MultiObjectsReadAPI {
       });
     }
 
-    logger.debug(`URIs provided: ${uris.join(", ")}`);
     if (!format || format === "xml") {
       res.set("Content-Type", "application/x-resqml+xml");
       logger.debug("Response format set to XML.");
