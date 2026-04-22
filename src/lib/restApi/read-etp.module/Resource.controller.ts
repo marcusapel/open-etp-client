@@ -98,6 +98,9 @@ import {
 
 import { ResourceGraph } from "../../common/ResponseHandlers";
 import { ErrorCode, EtpError } from "../../common/EtpTypes";
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
 
 export const uriPattern =
   /^(?<protocol>(?:[^:]+)s?)?:\/\/(?:(?<user>[^:\n\r]+):(?<pass>[^@\n\r]+)@)?(?<host>(?:www\.)?(?:[^:\/\n\r]+))(?::(?<port>\d+))?\/?(?<request>[^?#\n\r]+)?\??(?<query>[^#\n\r]*)?\#?(?<anchor>[^\n\r]*)?$/;
@@ -649,17 +652,24 @@ export default class ResourcesReadAPI {
     storeLastWriteFilter?: Date,
     @Req() request?: express.Request
   ): Promise<Array<DataspaceDto>> {
+    logger.info("Received request to list dataspaces.");
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request)
       );
+      logger.info("Session created successfully.");
+
+      logger.info("Fetching dataspaces...");
       const projects = await c.getDataspaces(
         storeLastWriteFilter
           ? BigInt(storeLastWriteFilter.getTime()) * BigInt(1000)
           : undefined
       );
+      logger.info("Dataspaces fetched successfully.");
+
       const pros = projects
         ? sliceArray<Energistics.Etp.v12.Datatypes.Object.Dataspace>(
             skip,
@@ -667,10 +677,15 @@ export default class ResourcesReadAPI {
             projects
           ).map(p => toJSonDataspace(p))
         : [];
+      logger.info("Dataspaces processed");
+
+      logger.info("Closing session...");
       await c.closeSession();
       c = undefined;
+      logger.info("Session closed successfully.");
       return pros;
     } catch (err) {
+      logger.error(`Error occurred while listing dataspaces: ${err}`);
       await c?.closeSession();
       throw httpErrorFromEtpError(err);
     }
@@ -695,18 +710,29 @@ export default class ResourcesReadAPI {
     @Param() params: FindInDataSpaceParams,
     @Req() request?: express.Request
   ): Promise<DataspaceDto> {
+    logger.info(
+      `Received request to get info for dataspace: ${params.dataspaceId}`
+    );
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request)
       );
+      logger.info("Session created successfully.");
       const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      logger.debug(`Generated URI for dataspace: ${uri.uri}`);
+      logger.info("Fetching dataspace info...");
       const info = await c.getDataspaceInfo([uri.uri]);
+      logger.info("Dataspace info fetched successfully.");
+      logger.info("Closing session...");
       await c.closeSession();
       c = undefined;
+      logger.info("Session closed successfully.");
 
       if (info.length !== 1 || info[0] === null) {
+        logger.warning(`Dataspace ${params.dataspaceId} not found.`);
         throw new EtpError(
           `Dataspace ${params.dataspaceId} not found`,
           ErrorCode.ENOT_FOUND
@@ -715,6 +741,9 @@ export default class ResourcesReadAPI {
 
       return toJSonDataspace(info[0]);
     } catch (err) {
+      logger.error(
+        `Error occurred while fetching info for dataspace ${params.dataspaceId}: ${err}`
+      );
       await c?.closeSession();
       throw httpErrorFromEtpError(err);
     }
@@ -739,18 +768,26 @@ export default class ResourcesReadAPI {
     @Param() params: FindInDataSpaceParams,
     @Req() request?: express.Request
   ): Promise<boolean> {
+    logger.info(`Received request to lock dataspace: ${params.dataspaceId}`);
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request)
       );
+      logger.info("Session created successfully.");
       const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      logger.info("Locking dataspace...");
       const success = await c.lockDataspaces([uri.uri]);
+      logger.info("Dataspace locked successfully.");
+      logger.info("Closing session...");
       await c.closeSession();
       c = undefined;
+      logger.info("Session closed successfully.");
 
       if (!success) {
+        logger.warning(`Dataspace ${params.dataspaceId} not found.`);
         throw new EtpError(
           `Dataspace ${params.dataspaceId} not found`,
           ErrorCode.ENOT_FOUND
@@ -759,6 +796,9 @@ export default class ResourcesReadAPI {
 
       return success;
     } catch (err) {
+      logger.error(
+        `Error occurred while locking dataspace ${params.dataspaceId}: ${err}`
+      );
       await c?.closeSession();
       throw httpErrorFromEtpError(err);
     }
@@ -783,18 +823,27 @@ export default class ResourcesReadAPI {
     @Param() params: FindInDataSpaceParams,
     @Req() request?: express.Request
   ): Promise<boolean> {
+    logger.info(`Received request to unlock dataspace: ${params.dataspaceId}`);
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request)
       );
+      logger.info("Session created successfully.");
       const uri = EtpUri.createDataSpaceUri(params.dataspaceId);
+      logger.debug(`Generated URI for dataspace: ${uri.uri}`);
+      logger.info("Unlocking dataspace...");
       const success = await c.unlockDataspaces([uri.uri]);
+      logger.info("Dataspace unlocked successfully.");
+      logger.info("Closing session...");
       await c.closeSession();
       c = undefined;
+      logger.info("Session closed successfully.");
 
       if (!success) {
+        logger.warning(`Dataspace ${params.dataspaceId} not found.`);
         throw new EtpError(
           `Dataspace ${params.dataspaceId} not found`,
           ErrorCode.ENOT_FOUND
@@ -803,6 +852,9 @@ export default class ResourcesReadAPI {
 
       return success;
     } catch (err) {
+      logger.error(
+        `Error occurred while unlocking dataspace ${params.dataspaceId}: ${err}`
+      );
       await c?.closeSession();
       throw httpErrorFromEtpError(err);
     }
@@ -838,28 +890,42 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<TypeCountDto[] | null> {
+    logger.info(
+      `Received request to list types for dataspace: ${params.dataspaceId}`
+    );
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching dataspace types...");
       const types = await c.getDataspaceTypes(
         EtpUri.createDataSpaceUri(params.dataspaceId).uri
       );
+      logger.info("Dataspace types fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sliceArray<SupportedType>(skip, top, types).map(r => {
+      const result = sliceArray<SupportedType>(skip, top, types).map(r => {
         return {
           name: r.dataObjectType,
           count: r.objectCount ?? 0
         };
       });
+      logger.info("Result generated successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while listing types for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -899,6 +965,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
+    logger.info(
+      `Received request to list resources for dataspace: ${params.dataspaceId}`
+    );
     const query = {
       top,
       skip,
@@ -906,12 +975,15 @@ export default class ResourcesReadAPI {
     };
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching resources...");
       const resources = await findResources(
         c,
         {
@@ -925,12 +997,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Resources fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendResources(skip, top, resources);
+      const result = sendResources(skip, top, resources);
+      logger.info("Processed resources successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while listing resources for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -978,6 +1058,12 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
+    logger.info(
+      `Received request to graph resources for dataspace: ${params.dataspaceId}`
+    );
+    logger.debug(
+      `Query parameters: skip=${skip}, top=${top}, filter=${filter}, storeLastWriteFilter=${storeLastWriteFilter}, dataObjectTypes=${dataObjectTypes}, countObjects=${countObjects}, transactionId=${transactionId}`
+    );
     const query = {
       top,
       skip,
@@ -985,12 +1071,15 @@ export default class ResourcesReadAPI {
     };
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching resource graph...");
       const graph = await graphResources(
         c,
         {
@@ -1004,12 +1093,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Resource graph fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendGraph(skip, top, graph);
+      const result = sendGraph(skip, top, graph);
+      logger.info("Processed resource graph successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while graphing resources for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -1047,6 +1144,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
+    logger.info(
+      `Received request to list resources by type for dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}`
+    );
     const query = {
       top,
       skip,
@@ -1054,12 +1154,15 @@ export default class ResourcesReadAPI {
     };
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching resources by type...");
       const resources = await findResources(
         c,
         {
@@ -1073,12 +1176,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Resources by type fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendResources(skip, top, resources);
+      const result = sendResources(skip, top, resources);
+      logger.info("Processed resources by type successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while listing resources by type for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -1126,6 +1237,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
+    logger.info(
+      `Received request to list targets for dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}, guid: ${params.guid}`
+    );
     const query = {
       top,
       skip,
@@ -1142,12 +1256,15 @@ export default class ResourcesReadAPI {
     ).uri;
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching targets...");
       const resources = await findResources(
         c,
         {
@@ -1162,12 +1279,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Targets fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendResources(skip, top, resources);
+      const result = sendResources(skip, top, resources);
+      logger.info(`Processed targets successfully.`);
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while listing targets for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -1229,6 +1354,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
+    logger.info(
+      `Received request to graph targets for dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}, guid: ${params.guid}`
+    );
     const query = {
       top,
       skip,
@@ -1245,12 +1373,15 @@ export default class ResourcesReadAPI {
     ).uri;
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching target graph...");
       const graph = await graphResources(
         c,
         {
@@ -1265,12 +1396,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Target graph fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendGraph(skip, top, graph);
+      const result = sendGraph(skip, top, graph);
+      logger.info("Processed target graph successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while graphing targets for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -1318,6 +1457,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceDto[] | null> {
+    logger.info(
+      `Received request to list sources for dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}, guid: ${params.guid}`
+    );
     const query = {
       top,
       skip,
@@ -1332,14 +1474,18 @@ export default class ResourcesReadAPI {
       params.guid,
       version
     ).uri;
+    logger.debug(`Generated URI succesfully`);
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching sources...");
       const resources = await findResources(
         c,
         {
@@ -1354,12 +1500,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Sources fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendResources(skip, top, resources);
+      const result = sendResources(skip, top, resources);
+      logger.info("Processed sources successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while listing sources for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -1418,6 +1572,9 @@ export default class ResourcesReadAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<ResourceGraphDto | null> {
+    logger.info(
+      `Received request to graph sources for dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}, guid: ${params.guid}`
+    );
     const query = {
       top,
       skip,
@@ -1432,14 +1589,18 @@ export default class ResourcesReadAPI {
       params.guid,
       version
     ).uri;
+    logger.debug(`Generated URI for graph sources successfully`);
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Fetching source graph...");
       const graph = await graphResources(
         c,
         {
@@ -1454,12 +1615,20 @@ export default class ResourcesReadAPI {
         countObjects,
         storeLastWriteFilter
       );
+      logger.info("Source graph fetched successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
-      return sendGraph(skip, top, graph);
+      const result = sendGraph(skip, top, graph);
+      logger.info("Processed source graph successfully.");
+      return result;
     } catch (err) {
+      logger.error(
+        `Error occurred while graphing sources for dataspace ${params.dataspaceId}: ${err}`
+      );
       if (!transactionId) {
         await c?.closeSession();
       }

@@ -41,7 +41,15 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { IsUUID, IsOptional, IsInt, Min, Max, IsString, IsNotEmpty } from "class-validator";
+import {
+  IsUUID,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsString,
+  IsNotEmpty
+} from "class-validator";
 
 import express from "express";
 
@@ -64,6 +72,9 @@ import {
   swaggerServers,
   uuidPattern
 } from "../ControllerUtils";
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
 
 /**
  * Add parameters to identify transaction in the data space
@@ -180,6 +191,7 @@ export default class TransactionsAPI {
     @Req() request?: express.Request
   ): Promise<string> {
     const uri = EtpUri.createDataSpaceUri(params.dataspaceId).uri;
+    logger.info("Creating transaction...");
     // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
     return createTransaction(
       extractToken(request),
@@ -188,9 +200,15 @@ export default class TransactionsAPI {
       extractDataPartitionId(request),
       requestBody?.TimeoutPeriod ?? 300,
       requestBody?.Retries ?? 6
-    ).catch(err => {
-      throw httpErrorFromEtpError(err);
-    });
+    )
+      .then(transactionId => {
+        logger.info(`Transaction created: ${transactionId}`);
+        return transactionId;
+      })
+      .catch(err => {
+        logger.error(`Error while creating transaction: ${err}`);
+        throw httpErrorFromEtpError(err);
+      });
   }
 
   /**
@@ -214,9 +232,26 @@ export default class TransactionsAPI {
   public async CommitTransaction(
     @Param() params: TransactionParams
   ): Promise<boolean> {
-    return commitTransaction(params.transactionId).catch(err => {
-      throw httpErrorFromEtpError(err);
-    });
+    logger.info(`Committing transaction ${params.transactionId}...`);
+    return commitTransaction(params.transactionId)
+      .then(result => {
+        if (result) {
+          logger.info(
+            `Transaction committed successfully: ${params.transactionId}`
+          );
+        } else {
+          logger.warning(
+            `Transaction commit returned false: ${params.transactionId}`
+          );
+        }
+        return result;
+      })
+      .catch(err => {
+        logger.error(
+          `Error committing transaction ${params.transactionId}: ${err}`
+        );
+        throw httpErrorFromEtpError(err);
+      });
   }
 
   /**
@@ -239,8 +274,25 @@ export default class TransactionsAPI {
   public async RollbackTransaction(
     @Param() params: TransactionParams
   ): Promise<boolean> {
-    return rollbackTransaction(params.transactionId).catch(err => {
-      throw httpErrorFromEtpError(err);
-    });
+    logger.info(`Rolling back transaction ${params.transactionId}...`);
+    return rollbackTransaction(params.transactionId)
+      .then(result => {
+        if (result) {
+          logger.info(
+            `Transaction rolled back successfully: ${params.transactionId}`
+          );
+        } else {
+          logger.warning(
+            `Transaction rollback was not successful: ${params.transactionId}`
+          );
+        }
+        return result;
+      })
+      .catch(err => {
+        logger.error(
+          `Error rolling back transaction ${params.transactionId}: ${err}`
+        );
+        throw httpErrorFromEtpError(err);
+      });
   }
 }
