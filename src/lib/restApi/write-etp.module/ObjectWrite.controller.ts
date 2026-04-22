@@ -51,9 +51,10 @@ import {
   IsNotEmpty,
   IsArray,
   IsOptional,
-  IsEnum,
   IsInt,
-  ArrayMinSize
+  ArrayNotEmpty,
+  IsIn,
+  Min
 } from "class-validator";
 
 import express from "express";
@@ -151,8 +152,9 @@ export class DataArrayDto {
     maximum: 1000000
   })
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayNotEmpty()
   @IsInt({ each: true })
+  @Min(1, { each: true })
   Dimensions!: Integer32[];
 
   @ApiProperty({
@@ -239,7 +241,8 @@ export class DataArrayDto {
     enum: arrayTypeString,
     example: "Int32Array"
   })
-  @IsEnum(arrayTypeString)
+  @IsNotEmpty()
+  @IsIn(arrayTypeString)
   ArrayType!: AnyTypedArrayString;
 }
 

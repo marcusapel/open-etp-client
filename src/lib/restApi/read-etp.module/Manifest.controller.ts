@@ -233,7 +233,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AcceptableUsageDto)
-  AcceptableUsage?: AcceptableUsage[];
+  AcceptableUsage?: AcceptableUsageDto[];
 
   @ApiPropertyOptional({
     name: "Comment",
@@ -268,7 +268,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ContactDto)
-  Reviewers?: Contact[];
+  Reviewers?: ContactDto[];
 
   @ApiProperty({
     name: "TechnicalAssuranceTypeID",
@@ -291,7 +291,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AcceptableUsageDto)
-  UnacceptableUsage?: AcceptableUsage[];
+  UnacceptableUsage?: AcceptableUsageDto[];
 }
 
 /**
@@ -343,7 +343,7 @@ export class ManifestInputDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TechnicalAssuranceDto)
-  technicalAssurances?: TechnicalAssurance[];
+  technicalAssurances?: TechnicalAssuranceDto[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",
