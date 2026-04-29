@@ -20,6 +20,7 @@ import {
   Controller,
   Delete,
   HttpCode,
+  InternalServerErrorException,
   Param,
   Put,
   Query,
@@ -795,7 +796,9 @@ export default class MutationsAPI {
         transactionId
       );
       if (!c) {
-        throw new Error("Failed to create session");
+        throw new InternalServerErrorException({
+          description: "Failed to create session"
+        });
       }
       const r = await Promise.all(
         requestBody.map(async a => {
