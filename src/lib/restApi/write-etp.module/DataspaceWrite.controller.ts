@@ -20,6 +20,7 @@ import {
   Delete,
   HttpCode,
   InternalServerErrorException,
+  NotFoundException,
   Param,
   Post,
   Req,
@@ -381,9 +382,16 @@ export default class DataspaceMutationsAPI {
         customData
       );
       await c.closeSession();
-      logger.info("Dataspace cloned successfully:", { uri });
+      // Null out the client so the catch block doesn't try to close it a
+      // second time if we throw NotFoundException below.
+      c = undefined;
       if (!dataspaces) {
-        throw new InternalServerErrorException("Unable to clone Dataspaces");
+        // cloneDataspace returns falsy when the source dataspace cannot be
+        // resolved or copied. Surface this as a 404 with the source identifier
+        // instead of a generic 500 so the client can react appropriately.
+        throw new NotFoundException({
+          description: `Source dataspace ${params.dataspaceId} not found or not clonable`
+        });
       }
       return EtpUri.createDataSpaceUri(requestBody.DataspaceId).uri;
     } catch (err) {

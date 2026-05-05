@@ -51,6 +51,16 @@ export default {
     }
     const opts: bunyan.LoggerOptions =
       typeof options === "string" ? { name: options } : options;
-    return bunyan.createLogger(opts);
+    const log = bunyan.createLogger(opts) as bunyan & {
+      warning?: (data: unknown) => void;
+    };
+    // bunyan exposes `warn` natively, but the AbstractLogger interface used
+    // throughout the codebase declares `warning`. Without this alias, calls to
+    // `logger.warning(...)` from controllers throw "logger.warning is not a
+    // function" and surface to clients as confusing error messages.
+    if (typeof log.warning !== "function") {
+      log.warning = log.warn.bind(log);
+    }
+    return log;
   }
 };

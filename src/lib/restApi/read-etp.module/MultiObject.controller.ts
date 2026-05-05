@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  InternalServerErrorException,
   Post,
   Query,
   Req,
@@ -11,6 +10,7 @@ import {
 } from "@nestjs/common";
 
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiDefaultResponse,
@@ -41,12 +41,14 @@ import {
 
 import {
   HasBearerGuard,
+  HasDataPartitionGuard,
   OptionalParseBoolPipe,
   createSession,
   errorMessageSchema,
   extractDataPartitionId,
   extractToken,
   getSchemasForType,
+  httpErrorFromEtpError,
   patternString,
   swaggerServers
 } from "../ControllerUtils";
@@ -80,7 +82,9 @@ export class UrisDto {
 
 @ApiBearerAuth("access-token")
 @UseGuards(HasBearerGuard("jwt"))
+@UseGuards(HasDataPartitionGuard())
 @ApiTags("Resources")
+@ApiBadRequestResponse(errorMessageSchema("Bad Request", 400))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
@@ -177,11 +181,10 @@ export default class MultiObjectsReadAPI {
       c = undefined;
       logger.info("Session closed successfully.");
     } catch (err) {
-      logger.error(`Error occurred while processing data objects: ${err}`);
+      // httpErrorFromEtpError logs the error server-side with the
+      // operation context; no need to duplicate the log here.
       await c?.closeSession();
-      throw new InternalServerErrorException(
-        err instanceof Error ? err : { description: `Unknown Error` }
-      );
+      throw httpErrorFromEtpError(err, "MultiObject get-content");
     }
   }
 }
