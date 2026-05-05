@@ -18,6 +18,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { decode, JwtPayload } from 'jsonwebtoken';
 
+import { AuditLog } from '../../common/auditLog';
 import Logging from '../../common/Logging';
 
 const logger = Logging.getLogger("EtpClient");
@@ -28,9 +29,27 @@ export default class RequestLoggingMiddleware implements NestMiddleware {
     const startTime = Date.now();
     const method = req.method;
     const path = req.originalUrl;
+
+    // Skip logging for health/metrics probe endpoints to avoid log noise
+    if (path.includes('health') || path.includes('metrics')) {
+      return next();
+    }
+
     const userAgent = req.get('User-Agent') || 'Unknown';
     const ip = req.ip || req.connection.remoteAddress || 'Unknown';
-    
+
+    // Headers used for the structured audit log entry
+    const authHeader = req.get('Authorization');
+    const requestId =
+      req.get('x-request-id') ||
+      req.get('request-id') ||
+      req.get('x-user-id') ||
+      'unknown';
+    const dataPartitionId =
+      req.get('data-partition-id') ||
+      req.get('x-data-partition-id') ||
+      'unknown';
+
     let userId = 'Anonymous';
     let uniqueUserId = 'Anonymous';
     
@@ -70,6 +89,28 @@ export default class RequestLoggingMiddleware implements NestMiddleware {
     
     // Log the initial request information
     logger.info(`[REQUEST] ${loggingPrefix} - IP: ${ip} - UserAgent: ${userAgent}`);
+
+    // Emit a structured audit log entry to stdout. Gated by RDMS_AUDIT_LOG_ENABLED
+    // so the existing access-log behaviour is preserved unless the operator opts in.
+    const logAudit = (statusCode: number, message: string) => {
+      if (process.env.RDMS_AUDIT_LOG_ENABLED !== 'true') {
+        return;
+      }
+      try {
+        AuditLog.log(
+          method,
+          path,
+          statusCode,
+          authHeader,
+          requestId,
+          dataPartitionId,
+          message
+        );
+      } catch (error) {
+        logger.error(`Error writing audit log: ${error}`);
+      }
+    };
+
     const logResponse = function(contentLength: number | string) {
       const endTime = Date.now();
       const responseTime = endTime - startTime;
@@ -77,6 +118,9 @@ export default class RequestLoggingMiddleware implements NestMiddleware {
       
       // Log the response information
       logger.info(`[RESPONSE] ${loggingPrefix} - Status: ${statusCode} - Duration: ${responseTime}ms - Size: ${contentLength} bytes`);
+
+      // Audit log entry
+      logAudit(statusCode, `${method} ${path} - Status: ${statusCode}`);
     };
     
     // Capture response information when the response finishes

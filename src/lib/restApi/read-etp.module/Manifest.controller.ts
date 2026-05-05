@@ -80,6 +80,9 @@ import {
 import { createManifest } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
 
 const emailPattern =
   /^[a-zA-Z0-9_+&*-]+(?:\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,7}$/;
@@ -233,7 +236,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AcceptableUsageDto)
-  AcceptableUsage?: AcceptableUsage[];
+  AcceptableUsage?: AcceptableUsageDto[];
 
   @ApiPropertyOptional({
     name: "Comment",
@@ -268,7 +271,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ContactDto)
-  Reviewers?: Contact[];
+  Reviewers?: ContactDto[];
 
   @ApiProperty({
     name: "TechnicalAssuranceTypeID",
@@ -291,7 +294,7 @@ export class TechnicalAssuranceDto implements ITechnicalAssurance {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => AcceptableUsageDto)
-  UnacceptableUsage?: AcceptableUsage[];
+  UnacceptableUsage?: AcceptableUsageDto[];
 }
 
 /**
@@ -343,7 +346,7 @@ export class ManifestInputDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TechnicalAssuranceDto)
-  technicalAssurances?: TechnicalAssurance[];
+  technicalAssurances?: TechnicalAssuranceDto[];
 
   @ApiPropertyOptional({
     name: "createMissingReferences",
@@ -433,6 +436,7 @@ export default class ObjectsManifestAPI {
     @Req() request: express.Request,
     @Res() res: express.Response
   ): Promise<void> {
+    logger.info("Received request to create OSDU manifest.");
     res.set("Content-Type", "application/json");
 
     if (!body.uris) {
@@ -443,6 +447,7 @@ export default class ObjectsManifestAPI {
 
     let c = undefined;
     try {
+      logger.info("Initializing manifest creation process.");
       let maxManifestSize = 1000;
 
       // Reduce the manifest size for browsers
@@ -453,11 +458,13 @@ export default class ObjectsManifestAPI {
         userAgent?.includes("Safari")
       ) {
         maxManifestSize = 1;
+        logger.info("Detected browser user-agent, reducing manifest size.");
       }
       const bearer = extractToken(request);
       const jwt = bearer ? (decode(bearer) as JwtPayload) : {};
       const partition = extractDataPartitionId(request);
 
+      logger.info(`Extracted partition ID: ${partition}`);
       const context = new OSDUContext(
         typeof partition === "string" ? partition : "osdu",
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
@@ -484,6 +491,7 @@ export default class ObjectsManifestAPI {
         });
       }
 
+      logger.debug("Creating session.");
       c = await createSession(bearer, partition);
       const b = await createManifest(
         c,
@@ -492,10 +500,12 @@ export default class ObjectsManifestAPI {
         body.typePatterns,
         maxManifestSize
       );
+      logger.info("Manifest creation successful.");
       await c.closeSession();
       c = undefined;
       res.send(JSON.stringify(b, bigIntToString, 2));
     } catch (err) {
+      logger.error("Error occurred during manifest creation.");
       c?.closeSession();
       throw httpErrorFromEtpError(err);
     }

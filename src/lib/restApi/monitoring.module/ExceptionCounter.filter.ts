@@ -20,6 +20,9 @@ import { BaseExceptionFilter } from '@nestjs/core';
 import { Request } from 'express';
 
 import MetricsProvider from './Metrics.provider';
+import Logging from '../../common/Logging';
+
+const logger = Logging.getLogger("EtpClient");
 
 @Catch()
 export default class ExceptionCounterFilter extends BaseExceptionFilter {
@@ -28,6 +31,8 @@ export default class ExceptionCounterFilter extends BaseExceptionFilter {
   }
 
   catch(exception: unknown, host: ArgumentsHost) {
+    logger.error("Exception caught by filter.", exception);
+
     const errorLabels: string[] = [];
 
     if (exception instanceof HttpException) {

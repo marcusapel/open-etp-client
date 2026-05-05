@@ -29,6 +29,9 @@ import {
 } from "../ControllerUtils";
 
 import MetricsProvider from './Metrics.provider';
+import Logging from '../../common/Logging';
+
+const logger = Logging.getLogger("EtpClient");
 
 @ApiTags("Metrics")
 @ApiInternalServerErrorResponse(errorMessageSchema(`Unknown Error`, 500))
@@ -40,6 +43,7 @@ export default class MetricsController {
   @ApiOkResponse({ description: "Success", type: String })
   @ApiOperation({ security: [], servers: swaggerServers })
   public metrics(): Promise<string> {
+    logger.info("Fetching metrics...");
     return this.metricsProvider.metrics;
   }
 }

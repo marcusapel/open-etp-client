@@ -54,6 +54,9 @@ import {
 } from "../ControllerUtils";
 
 import { uriPattern } from "./Resource.controller";
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
 
 const xmlDocPattern = /^<\?xml.+$/;
 
@@ -133,24 +136,34 @@ export default class MultiObjectsReadAPI {
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
     @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
   ): Promise<void> {
+    logger.info("Received request to fetch data objects.");
+
     const uris = body.uris;
     if (!uris) {
+      logger.warning("No URIs provided in the request body.");
       throw new BadRequestException({
         description: `Invalid request body: 'uris' must be a non-empty array`
       });
     }
+
     if (!format || format === "xml") {
       res.set("Content-Type", "application/x-resqml+xml");
+      logger.debug("Response format set to XML.");
     } else {
       res.set("Content-Type", "application/json");
+      logger.debug("Response format set to JSON.");
     }
+
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request)
       );
+      logger.info("Session created successfully.");
 
+      logger.info("Sending objects...");
       const b = await sendObjects(
         {},
         c,
@@ -160,9 +173,13 @@ export default class MultiObjectsReadAPI {
         arrayValues,
         arrayMetadata
       );
+      logger.info("Objects sent successfully.");
       res.send(b);
+
+      logger.info("Closing session...");
       await c.closeSession();
       c = undefined;
+      logger.info("Session closed successfully.");
     } catch (err) {
       // httpErrorFromEtpError logs the error server-side with the
       // operation context; no need to duplicate the log here.
