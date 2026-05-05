@@ -36,6 +36,9 @@ import {
 } from "../ControllerUtils";
 
 import { XmlUtils } from "../../client/ResqmlClient";
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
 
 /**
  * Data transfer object representing Json Web Token
@@ -85,8 +88,9 @@ export default class Authentication {
     servers: swaggerServers
   })
   public async GetToken(): Promise<TokenDto> {
-    return {
-      token: XmlUtils.createDefaultJWT()
-    };
+    logger.info("Processing request for authentication token...");
+    const token = XmlUtils.createDefaultJWT();
+    logger.info("Authentication token request processed.");
+    return { token };
   }
 }

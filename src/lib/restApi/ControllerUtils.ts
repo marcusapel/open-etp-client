@@ -900,6 +900,10 @@ export function isEtpError(err: unknown): err is EtpError {
 export const httpErrorFromEtpError = (error: unknown): HttpException => {
   //add a typeguard to check if err is an EtpError
   if (isEtpError(error)) {
+    logger.error("[ETP] Error while making request:", {
+      errorCode: error.code,
+      message: error.message
+    });
     if (
       error.code == ErrorCode.EAUTHORIZATION_REQUIRED ||
       error.code == ErrorCode.EREQUEST_DENIED
@@ -931,6 +935,9 @@ export const httpErrorFromEtpError = (error: unknown): HttpException => {
   if (error && typeof error === "object" && "message" in error) {
     logger.error(error.message);
   }
+  logger.error("Error while making request:", {
+    error: JSON.stringify(error, null, 2)
+  });
   return new BadRequestException({
     description: `Cannot process this request: ${
       error && typeof error === "object" && "message" in error

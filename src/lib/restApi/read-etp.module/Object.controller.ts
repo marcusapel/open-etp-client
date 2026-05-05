@@ -87,6 +87,10 @@ import type { QueryInput } from "../ControllerUtils";
 
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 
+import logging from "../../common/Logging";
+
+const logger = logging.getLogger("EtpClient");
+
 /**
  * Sort the response based on the orderBy criteria of the query
  *
@@ -381,6 +385,8 @@ export default class ObjectsReadAPI {
     @Query("arrayValues", OptionalParseBoolPipe) arrayValues = false,
     @Query("arrayMetadata", OptionalParseBoolPipe) arrayMetadata = false
   ): Promise<void> {
+    logger.info("Received request to fetch data object.");
+
     const m = params.dataObjectType.match(
       /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
     );
@@ -394,22 +400,32 @@ export default class ObjectsReadAPI {
         version
       ).uri
     ];
+    logger.info("URIs generated successfully.");
+
     if (request.headers["accept"]?.includes("application/x-resqml+json")) {
       format = "json";
+      logger.info("Response format set to JSON based on 'accept' header.");
     }
     if (!format || format === "xml") {
       res.contentType("application/x-resqml+xml");
+      logger.info("Response format set to XML.");
     } else {
       res.contentType("application/json");
+      logger.info("Response format set to JSON.");
     }
+
     let c = undefined;
     try {
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+
+      logger.info("Fetching data object...");
       const b = await sendObjects(
         {},
         c,
@@ -419,14 +435,23 @@ export default class ObjectsReadAPI {
         arrayValues,
         arrayMetadata
       );
+      logger.info("Data object fetched successfully.");
+
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       c = undefined;
+
       res.send(b);
+      logger.info("Response sent successfully.");
     } catch (err) {
+      logger.error("Error occurred while processing data object.", err);
       if (!transactionId) {
+        logger.info("Closing session due to error...");
         await c?.closeSession();
+        logger.info("Session closed successfully.");
       }
       throw httpErrorFromEtpError(err);
     }

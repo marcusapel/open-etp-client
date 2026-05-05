@@ -51,9 +51,10 @@ import {
   IsNotEmpty,
   IsArray,
   IsOptional,
-  IsEnum,
   IsInt,
-  ArrayMinSize
+  ArrayNotEmpty,
+  IsIn,
+  Min
 } from "class-validator";
 
 import express from "express";
@@ -151,8 +152,9 @@ export class DataArrayDto {
     maximum: 1000000
   })
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayNotEmpty()
   @IsInt({ each: true })
+  @Min(1, { each: true })
   Dimensions!: Integer32[];
 
   @ApiProperty({
@@ -239,7 +241,8 @@ export class DataArrayDto {
     enum: arrayTypeString,
     example: "Int32Array"
   })
-  @IsEnum(arrayTypeString)
+  @IsNotEmpty()
+  @IsIn(arrayTypeString)
   ArrayType!: AnyTypedArrayString;
 }
 
@@ -413,6 +416,9 @@ export default class MutationsAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<boolean> {
+    logger.info(
+      `Received request to put data objects in dataspace: ${params.dataspaceId}`
+    );
     if (!Array.isArray(requestBody)) {
       throw new BadRequestException({
         description: "Invalid request body: expected an array of data objects"
@@ -423,7 +429,14 @@ export default class MutationsAPI {
         description: "Each object must have a non-empty Uuid string"
       });
     }
-    if (requestBody.some(b => !b.Citation || typeof b.Citation !== "object" || Array.isArray(b.Citation))) {
+    if (
+      requestBody.some(
+        b =>
+          !b.Citation ||
+          typeof b.Citation !== "object" ||
+          Array.isArray(b.Citation)
+      )
+    ) {
       throw new BadRequestException({
         description: "Each object must have a Citation object"
       });
@@ -431,12 +444,14 @@ export default class MutationsAPI {
     let c: ResqmlClient | undefined = undefined;
     try {
       // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
 
       const builder = new XMLBuilder();
       const dataObjects = requestBody.map(b => {
@@ -511,12 +526,17 @@ export default class MutationsAPI {
           blobId: null
         };
       });
+      logger.info("Sending data objects...");
       const r = await c.putDataObjects(dataObjects as DataObject[]);
+      logger.info("Data objects sent successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
       return r;
     } catch (err) {
+      logger.error(`Error occurred while putting data objects: ${err}`);
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -544,6 +564,9 @@ export default class MutationsAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<void> {
+    logger.info(
+      `Received request to delete data object in dataspace: ${params.dataspaceId}, type: ${params.dataObjectType}, guid: ${params.guid}`
+    );
     const m = qualifiedTypeRegex.exec(params.dataObjectType);
     const uris = [
       EtpUri.createObjectUri(
@@ -558,17 +581,24 @@ export default class MutationsAPI {
     let c: ResqmlClient | undefined = undefined;
     try {
       // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
         undefined,
         transactionId
       );
+      logger.info("Session created successfully.");
+      logger.info("Deleting data object...");
       await c.deleteObjects(uris);
+      logger.info("Data object deleted successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c.closeSession();
+        logger.info("Session closed successfully.");
       }
     } catch (err) {
+      logger.error(`Error occurred while deleting data object: ${err}`);
       if (!transactionId) {
         await c?.closeSession();
       }
@@ -640,7 +670,9 @@ export default class MutationsAPI {
             result[i] = NaN;
           } else {
             throw new BadRequestException({
-              description: `Invalid value at index ${i}: expected number or null for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+              description: `Invalid value at index ${i}: expected number or null for ${arrayType}, got ${
+                typeof v === "object" ? JSON.stringify(v) : String(v)
+              }`
             });
           }
         }
@@ -657,7 +689,9 @@ export default class MutationsAPI {
           const v = data[i];
           if (typeof v !== "bigint") {
             throw new BadRequestException({
-              description: `Invalid value at index ${i}: expected bigint for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+              description: `Invalid value at index ${i}: expected bigint for ${arrayType}, got ${
+                typeof v === "object" ? JSON.stringify(v) : String(v)
+              }`
             });
           }
           result[i] = v;
@@ -692,7 +726,9 @@ export default class MutationsAPI {
           const v = data[i];
           if (!Number.isInteger(v)) {
             throw new BadRequestException({
-              description: `Invalid value at index ${i}: expected integer for ${arrayType}, got ${typeof v === "object" ? JSON.stringify(v) : String(v)}`
+              description: `Invalid value at index ${i}: expected integer for ${arrayType}, got ${
+                typeof v === "object" ? JSON.stringify(v) : String(v)
+              }`
             });
           }
           result[i] = v;
@@ -759,6 +795,9 @@ export default class MutationsAPI {
     @Query("transactionId") transactionId?: string,
     @Req() request?: express.Request
   ): Promise<boolean[]> | never {
+    logger.info(
+      `Received request to put data arrays in dataspace: ${params.dataspaceId}`
+    );
     if (!Array.isArray(requestBody)) {
       throw new BadRequestException({
         description: "Invalid request body: expected an array of data arrays"
@@ -788,6 +827,7 @@ export default class MutationsAPI {
     let c: ResqmlClient | undefined = undefined;
     try {
       // Snyk is reporting this as an XSS issue, but as we ensure token as the right format it can be ignored.
+      logger.info("Creating session...");
       c = await createSession(
         extractToken(request),
         extractDataPartitionId(request),
@@ -797,6 +837,7 @@ export default class MutationsAPI {
       if (!c) {
         throw new Error("Failed to create session");
       }
+      logger.info("Session created successfully.");
       const r = await Promise.all(
         requestBody.map(async a => {
           const m = qualifiedTypeRegex.exec(a.ContainerType);
@@ -813,6 +854,7 @@ export default class MutationsAPI {
           };
 
           if (!a.Data) {
+            logger.info("Creating empty data array...");
             return c!.putEmptyDataArray(
               dataArray,
               this.toTypeArray("", a.ArrayType),
@@ -824,7 +866,9 @@ export default class MutationsAPI {
           const dataArr = this.toTypeArray(a.Data, a.ArrayType);
 
           if (a.Starts || a.Counts) {
+            logger.info("Creating subarray...");
             if (!a.Starts || !a.Counts) {
+              logger.error("Validation Failed: Starts or Counts required.");
               throw new EtpError(
                 `Validation Failed: Invalid Range: Starts or Counts required`,
                 ErrorCode.EINVALID_ARGUMENT
@@ -834,6 +878,9 @@ export default class MutationsAPI {
               a.Starts.length !== a.Counts.length ||
               a.Starts.length !== a.Dimensions.length
             ) {
+              logger.error(
+                "Validation Failed: Starts and Counts must match Dimensions."
+              );
               throw new EtpError(
                 `Validation Failed: Invalid Range: Starts and Counts must have the same size than Dimensions`,
                 ErrorCode.EINVALID_ARGUMENT
@@ -846,6 +893,9 @@ export default class MutationsAPI {
                 break;
               }
               if (a.Starts[d] + a.Counts[d] > a.Dimensions[d]) {
+                logger.error(
+                  "Validation Failed: Starts + Counts exceed Dimensions."
+                );
                 throw new EtpError(
                   `Validation Failed: Invalid Range: Starts + Counts exceed Dimensions`,
                   ErrorCode.EINVALID_ARGUMENT
@@ -855,6 +905,7 @@ export default class MutationsAPI {
             if (
               a.Counts.reduce((prev, cur) => prev * cur, 1) !== dataArr.length
             ) {
+              logger.error("Validation Failed: Data length must match Counts.");
               throw new EtpError(
                 `Validation Failed: Invalid Range: Data length must be the product of Counts`,
                 ErrorCode.EINVALID_ARGUMENT
@@ -865,7 +916,7 @@ export default class MutationsAPI {
                 ? c!.putDataArray(dataArray, a.Dimensions, dataArr)
                 : c!.putDataSubArray(dataArray, a.Starts, a.Counts, dataArr);
             } catch (err) {
-              logger.error(err);
+              logger.error(`Error occurred while creating subarray: ${err}`);
               throw err;
             }
           }
@@ -874,19 +925,27 @@ export default class MutationsAPI {
             typeof a.Data !== "string" &&
             a.Dimensions.reduce((prev, cur) => prev * cur, 1) !== a.Data.length
           ) {
+            logger.error(
+              "Validation Failed: Data length must match Dimensions."
+            );
             throw new EtpError(
               `Validation Failed: Invalid Range: Data length must be the product of Dimensions`,
               ErrorCode.EINVALID_ARGUMENT
             );
           }
+          logger.info("Creating full data array...");
           return c!.putDataArray(dataArray, a.Dimensions, dataArr);
         })
       );
+      logger.info("Data arrays processed successfully.");
       if (!transactionId) {
+        logger.info("Closing session...");
         await c?.closeSession();
+        logger.info("Session closed successfully.");
       }
       return r;
     } catch (err) {
+      logger.error(`Error occurred while putting data arrays: ${err}`);
       if (!transactionId) {
         await c?.closeSession();
       }

@@ -276,9 +276,13 @@ export default class DataspaceMutationsAPI {
         throw new InternalServerErrorException("Unable to create Dataspaces");
       }
       await c.closeSession();
+      logger.info("Dataspace(s) created successfully:", {
+        dataspaces: dataspaces.map(d => d.uri)
+      });
       return dataspaces.map(d => d.uri);
     } catch (err) {
       await c?.closeSession();
+      logger.error("Error creating dataspaces:", err);
       throw httpErrorFromEtpError(err);
     }
   }
@@ -377,6 +381,7 @@ export default class DataspaceMutationsAPI {
         customData
       );
       await c.closeSession();
+      logger.info("Dataspace cloned successfully:", { uri });
       if (!dataspaces) {
         throw new InternalServerErrorException("Unable to clone Dataspaces");
       }
@@ -387,6 +392,7 @@ export default class DataspaceMutationsAPI {
       } catch (closeError) {
         logger.error("Could not successfully close connection.");
       }
+      logger.error("Error cloning dataspace:", err);
       throw httpErrorFromEtpError(err);
     }
   }
@@ -417,8 +423,10 @@ export default class DataspaceMutationsAPI {
       );
       await c.deleteDataspaces([uri]);
       await c.closeSession();
+      logger.info("Dataspace deleted successfully:", { uri });
     } catch (err) {
       await c?.closeSession();
+      logger.error("Error deleting dataspace:", err);
       throw httpErrorFromEtpError(err);
     }
   }
