@@ -1,0 +1,100 @@
+variables:
+  GC_SERVICE: "oetp-client"
+  COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.0.postman_collection_NotRun.json"
+  GC_SUPPORTED_PLATFORM: "linux/amd64"
+
+gc-containerize-gitlab:
+  tags: ["osdu-medium"]
+  needs: ["compile-and-unit-test"]
+  variables:
+    BUILD_PATH: "devops/gc/deploy/Dockerfile"
+    BUILD_ARGS: "--build-arg DIST=dist.tgz"
+
+gc-containerize-gcr:
+  tags: ["osdu-medium"]
+  needs: ["compile-and-unit-test"]
+  variables:
+    BUILD_PATH: "devops/gc/deploy/Dockerfile"
+    BUILD_ARGS: "--build-arg DIST=dist.tgz"
+
+gc-containerize-bootstrap-gitlab:
+  needs: []
+
+gc-containerize-bootstrap-gcr:
+  needs: []
+
+.gc_postman_tests:
+  before_script:
+    # Ensure Node.js/npm, curl and Google Cloud SDK are available
+    - apt update && apt install apt-transport-https ca-certificates gnupg curl git -y
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt install nodejs -y
+    - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+    - apt update && apt-get install google-cloud-cli -y
+    - gcloud auth activate-service-account --key-file $GC_INTEGRATION_TESTER_SA_FILE
+    # Ensure Newman is available for collection execution
+    - npm install -g newman
+    # Setup ETP client function
+    - >
+      function oetp_client() {
+        openETPServer $* -S wss://${GC_DOMAIN}/api/reservoir-ddms-etp/v2/ \
+        --auth bearer \
+        --jwt-token $(gcloud auth print-identity-token) \
+        --data-partition-id ${GC_TENANT} \
+        --log_level=info
+      }
+    # Setup demo/Volve dataspace
+    - oetp_client probe --ping && oetp_client space --list
+    - oetp_client space --delete -s demo/Volve || echo "[INFO] No dataspace demo/Volve to cleanup"
+    - |
+      GROUP_DOMAIN="${GC_TENANT}.${ENTITLEMENTS_DOMAIN}"
+      XDATA_ACL="{\"legaltags\":[\"${LEGAL_TAG}\"],\"otherRelevantDataCountries\":[\"${OTHER_RELEVANT_DATA_COUNTRIES}\"],\"owners\":[\"data.default.owners@${GROUP_DOMAIN}\"],\"viewers\":[\"data.default.viewers@${GROUP_DOMAIN}\"]}"
+      oetp_client space --new -s demo/Volve --xdata "$XDATA_ACL"
+    - oetp_client space --import-epc ./devops/data/Volve_Demo_Horizons_Depth.epc -s demo/Volve &&
+    - oetp_client space --list
+
+  script:
+    - export GET_COLLECTION_URL="${GC_COLLECTION_HOST}/${GC_COLLECTION_BRANCH}/${COLLECTION_PATH}?inline=false"
+    - echo "Get a collection from ${GET_COLLECTION_URL}"
+    - >
+      if [[ -v TEST_SOURCE_FILES_DIR ]]; then
+        wget -q -O tmp.zip "${GC_COLLECTION_ARCHIVE_HOST}/${GC_COLLECTION_BRANCH}/testing-master.zip?path=${TEST_SOURCE_FILES_DIR}" \
+        && unzip -j tmp.zip \
+        && rm tmp.zip
+      fi
+    - >
+      echo "[{ \"CLIENT_ID\": \"${GC_CLIENT_ID}\", \"CLIENT_SECRET\": \"${GC_CLIENT_SECRET}\", \"grant_type\": \"${GC_GRANT_TYPE}\", \"refresh_token\": \"${GC_REFRESH_TOKEN}\"}]" > test_config_file.json
+    - curl "${GET_COLLECTION_URL}" > collection.json && COLLECTION=collection.json
+    - |
+      curl --header "data-partition-id: ${DATA_PARTITION_ID}" "${GC_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
+    - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d test_config_file.json --delay-request 3000 --reporters cli,junit --reporter-junit-export test-results.log || exit $?
+
+# TODO: remove after common gc-test job will be deleted
+gc-test:
+  tags: ["osdu-small"]
+  stage: integration
+  image: community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-gcp/image-for-postman-tests/osdu-gcp-image-for-postman
+  allow_failure: false
+  retry: 1
+  extends:
+    - .gc-variables
+  script:
+    - !reference [.gc_postman_tests, script]
+
+gc-acceptance-test:
+  image: community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-main
+  extends:
+    - .gc-variables
+  before_script:
+    - !reference [.gc_postman_tests, before_script]
+  script:
+    - !reference [.gc_postman_tests, script]
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: never
+    - if: "$CI_COMMIT_TAG"
+      when: never
+    - if: '$GC == "1" && $GC_INT_TEST_TYPE != "python"'
+      when: on_success
+

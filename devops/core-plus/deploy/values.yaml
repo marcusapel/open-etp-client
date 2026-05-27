@@ -1,0 +1,47 @@
+global:
+  domain: ""
+  onPremEnabled: false
+  limitsEnabled: true
+  tier: ""
+  autoscaling: true
+
+data:
+  # Configmaps
+  cloudProvider: "google"
+  rdmsRestRootPath: "/api/reservoir-ddms/v2"
+  rdmsRestPort: "8003"
+  rdmsEtpHost: "oetp-server"
+  rdmsEtpPort: "9002"
+  rdmsEtpProtocol: "ws"
+  logLevel: "error"
+  # Deployments
+  requestsCpu: "5m"
+  requestsMemory: "250Mi"
+  limitsCpu: "1"
+  limitsMemory: "1G"
+  serviceAccountName: "oetp-client"
+  image: ""
+  imagePullPolicy: "IfNotPresent"
+
+conf:
+  appName: "oetp-client"
+  configmap: "oetp-client-config"
+  oetpClientSecret: "oetp-client-secret"
+  replicas: 2
+
+hpa:
+  minReplicas: 6
+  maxReplicas: 15
+  targetType: "AverageValue"
+  targetValue: 16
+  behaviorScaleUpStabilizationWindowSeconds: 10
+  behaviorScaleUpPoliciesValue: 50
+  behaviorScaleUpPoliciesPeriodSeconds: 15
+  behaviorScaleDownStabilizationWindowSeconds: 60
+  behaviorScaleDownPoliciesValue: 25
+  behaviorScaleDownPoliciesPeriodSeconds: 60
+
+limits:
+  maxTokens: 12
+  tokensPerFill: 12
+  fillInterval: "1s"

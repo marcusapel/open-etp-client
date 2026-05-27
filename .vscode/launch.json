@@ -1,0 +1,235 @@
+{
+  // Use IntelliSense to learn about possible Node.js debug attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run Current File",
+      "args": [
+        "${fileBasename}"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "RESQML Example1",
+      "args": [
+        "${workspaceRoot}/src/examples/Example1.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "RESQML Example2",
+      "args": [
+        "${workspaceRoot}/src/examples/Example2.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "RESQML Get statistics",
+      "args": [
+        "${workspaceRoot}/src/examples/ExampleStatistics.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Generate Message file",
+      "args": [
+        "${workspaceFolder}/src/build/Generator.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Generate JSON Schema",
+      "args": [
+        "${workspaceFolder}/src/examples/CreateJsonSchema.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "protocol": "inspector",
+      "name": "Attach to Jest Process",
+      "cwd": "${workspaceRoot}",
+      "port": 9229
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest All",
+      "args": [
+        "--runInBand",
+        "--detectOpenHandles"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+      "envFile": "${workspaceFolder}/config.user.env",
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Current File",
+      "program": "${workspaceRoot}\\node_modules\\jest\\bin\\jest.js",
+      "args": [
+        "${fileBasename}",
+        "--runInBand"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "sourceMaps": true,
+      "envFile": "${workspaceFolder}/config.user.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Jest Tests related",
+      "cwd": "${workspaceRoot}",
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceRoot}/node_modules/jest/bin/jest.js",
+        "--runInBand",
+        "--findRelatedTests",
+        "${relativeFile}"
+      ],
+      "disableOptimisticBPs": true,
+      "console": "integratedTerminal",
+      "outFiles": [
+        "${workspaceRoot}/dist/**/*"
+      ],
+      "port": 9229,
+      "envFile": "${workspaceFolder}/config.user.env"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "protocol": "inspector",
+      "name": "Attach to Jest Process",
+      "cwd": "${workspaceRoot}",
+      "port": 9229,
+      "envFile": "${workspaceFolder}/config.user.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "REST API",
+      "args": [
+        "${workspaceRoot}/src/lib/restApi/RestServer.ts"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "protocol": "inspector",
+      "name": "Attach to Process",
+      "cwd": "${workspaceRoot}",
+      "port": 9271
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch server debug",
+      "cwd": "${workspaceRoot}",
+      "runtimeExecutable": "npm",
+      "restart": true,
+      "args": [
+        "run",
+        "start:dev"
+      ],
+      "protocol": "inspector",
+      "disableOptimisticBPs": true,
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch server production debug",
+      "cwd": "${workspaceRoot}",
+      "runtimeExecutable": "npm",
+      "restart": true,
+      "args": [
+        "run",
+        "start"
+      ],
+      "protocol": "inspector",
+      "disableOptimisticBPs": true,
+      "outputCapture": "std"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Create JSON documents from XML",
+      "args": [
+        "${workspaceRoot}/src/certification/CreateJsonFromXML.ts",
+        "${workspaceRoot}/data/examples"
+      ],
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "envFile": "${workspaceFolder}/config.user.env",
+      "protocol": "inspector",
+      "cwd": "${workspaceRoot}",
+      "outputCapture": "std"
+    },
+  ]
+}

@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+  etp-client-postgresql:
+    image: postgres
+    container_name: etp-client-postgresql
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - target: 5432
+        published: 5432
+    environment:
+      - POSTGRES_PASSWORD=tester
+      - POSTGRES_USER=tester
+      - POSTGRES_DB=openetp
+    volumes:
+      - ./devops/scripts/init-db:/docker-entrypoint-initdb.d
+    networks:
+      - etp12
+    extra_hosts:
+      host.docker.internal: host-gateway
+
+  etp-client-etp-server:
+    depends_on:
+      - etp-client-postgresql
+    container_name: etp-client-etp-server
+    image: ${RDMS_ETP_IMAGE?}
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - target: ${RDMS_ETP_PORT?}
+        published: ${RDMS_ETP_PORT?}
+    labels:
+      OpenETPServer.service: runtime
+    logging:
+      driver: json-file
+    environment:
+      - POSTGRESQL_CONN_STRING=host=etp-client-postgresql port=5432 dbname=openetp user=tester password=tester
+      - RDMS_DATA_PARTITION_MODE=${RDMS_DATA_PARTITION_MODE}
+    command: >
+      bash -c "
+        sleep 5 &&
+        openETPServer server --start -Q 500 --verbose --port ${RDMS_ETP_PORT?} --jwt-secret ${RDMS_JWT_SECRET}
+      "
+    networks:
+      - etp12
+    extra_hosts:
+      host.docker.internal: host-gateway
+
+  etp-client-etp-server-init:
+    depends_on:
+      - etp-client-etp-server
+    container_name: etp-client-etp-server-init
+    image: ${RDMS_ETP_IMAGE?}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${SOURCE_HOST_DIR:-../../..}/devops/data:/home/pdgm/data:ro
+    labels:
+      OpenETPServer.service: runtime
+    logging:
+      driver: json-file
+    command: >
+      bash -c "
+        sleep 10 &&
+        openETPServer space -S ws://etp-client-etp-server:${RDMS_ETP_PORT?} -u foo -p bar -s demo/Volve --new
+        for file in ${RDMS_PROJECTS_TO_IMPORT_IN_EML?}; do
+        openETPServer space -S ws://etp-client-etp-server:${RDMS_ETP_PORT?} -u foo -p bar -s demo/Volve --import-epc /home/pdgm/data/$$file.epc
+        done
+      "
+    networks:
+      - etp12
+    extra_hosts:
+      host.docker.internal: host-gateway
+
+  etp-rest-api:
+    depends_on:
+      - etp-client-etp-server-init
+    container_name: etp-rest-api
+    image: ${RDMS_REST_RUNTIME_IMAGE}
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - target: ${RDMS_REST_PORT?}
+        published: ${RDMS_REST_PORT?}
+    build:
+      context: ../../..
+      dockerfile: devops/osdu/docker/Dockerfile
+    environment:
+      - RDMS_ETP_HOST=etp-client-etp-server
+      - RDMS_ETP_PORT=${RDMS_ETP_PORT?}
+      - RDMS_JWT_SECRET=${RDMS_JWT_SECRET?}
+      - RDMS_AUTHENTICATION_KEY_BASE=${RDMS_AUTHENTICATION_KEY_BASE?}
+      - RDMS_ETP_PROTOCOL=${RDMS_ETP_PROTOCOL}
+      - RDMS_REST_MAIN_URL=${RDMS_REST_MAIN_URL}
+      - RDMS_OSDU_URL=${RDMS_OSDU_URL}
+      - RDMS_REST_ROOT_PATH=${RDMS_REST_ROOT_PATH}
+      - RDMS_REST_SERVER_PATH=${RDMS_REST_SERVER_PATH}
+      - RDMS_REST_PORT=${RDMS_REST_PORT}
+      - OPEN_API_PORT=${OPEN_API_PORT}
+      - RDMS_DATA_PARTITION_MODE=${RDMS_DATA_PARTITION_MODE}
+    labels:
+      OpenETPServer.service: runtime
+    logging:
+      driver: json-file
+    networks:
+      - etp12
+    extra_hosts:
+      host.docker.internal: host-gateway
+
+networks:
+  etp12:

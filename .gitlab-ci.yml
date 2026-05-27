@@ -1,0 +1,62 @@
+variables:
+  #azure
+  AZURE_SWAGGER_PATH: api/reservoir-ddms/v2/
+  AWS_SERVICE: rest-to-etp-proxy-server
+  AWS_DEPLOY_TARGET: TF
+  AWS_SERVICE_NAMESPACE_SUFFIX: reservoir-ddms
+  AWS_EKS_DEPLOYMENT_NAME: os-rest-to-etp-proxy-server
+
+include:
+  # pipeline logic
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "standard-setup.yml"
+
+  # global
+  - local: "devops/osdu/global/gitlab.yml"
+
+  # build
+  - local: "devops/osdu/build/open-etp-client.yml"
+
+  # scan
+  ## security scanners
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "scanners/gitlab-ultimate.yml"
+
+  ## fossa
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "scanners/fossa-npm.yml"
+
+  # lint
+  - local: "devops/osdu/scanners/lint-node.yml"
+
+  # scan for secrets
+  - local: "devops/osdu/scanners/scan-for-secrets-node.yml"
+
+  # containerize
+  # osdu
+  - local: "devops/osdu/containerize/osdu.yml"
+
+  # deploy
+  # azure
+  # Comment at first to only run build image.
+  - local: "devops/azure/azure.gitlab-ci.yml"
+
+  # aws
+  - local: "devops/aws/pipeline/override-stages.yml"
+
+  # cimpl
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/cimpl-global.yml"
+    
+  - local: "devops/core-plus/pipeline/override-stages.yml"
+
+  # gc
+  - project: "osdu/platform/ci-cd-pipelines"
+    file: "cloud-providers/gc-global.yml"
+
+  - local: "devops/gc/pipeline/override-stages.yml"
+
+  # ibm Disable IBM until fixed
+  # - local: "devops/ibm/pipeline/override-stages.yml"
+  # - project: "osdu/platform/ci-cd-pipelines"
+  #   file: "cloud-providers/ibm-open-etp-client.yml"

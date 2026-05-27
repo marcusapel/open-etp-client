@@ -1,0 +1,47 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+  // Support using flow through your node_modules folder, WARNING: Checking this box is a security risk. When you open a project we will immediately run code contained within it.
+  "flow.useNPMPackagedFlow": true,
+  // Enable/disable JavaScript validation. (For Flow)
+  "javascript.validate.enable": false,
+  // Set the default
+  "editor.formatOnSave": true,
+  // Enable per-language
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.formatOnSave": true
+  },
+  "prettier.trailingComma": "none",
+  "prettier.printWidth": 100,
+  "cSpell.words": [
+    "2F",
+    "cwebsocket",
+    "Dataspace",
+    "Dataspaces",
+    "Datatypes",
+    "energyml",
+    "EPSG",
+    "FINALPART",
+    "Hugin",
+    "multipart",
+    "nestjs",
+    "ODATA",
+    "prodml",
+    "RDMS",
+    "RESQML",
+    "subarrays",
+    "tsoa",
+    "Volve",
+    "witsml",
+    "xmlns"
+  ],
+  "jest.debugMode": true,
+  "xml.fileAssociations": [
+    {
+      "pattern": "**/obj_*.xml",
+      "systemId": "file:///c%3A/Users/deny/Documents/Energistics/resqml_v2.0.1_data_schema/energyml/data/resqmlv2/v2.0.1/xsd_schemas/ResqmlAllObjects.xsd"
+    }
+  ]
+}

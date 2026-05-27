@@ -1,0 +1,19 @@
+{
+  "etpServerUrl": "ws://host.docker.internal:9005",
+  "jwtToken": "value of a JWT token",
+  "supportTransportAuthentication": true,
+  "supportApplicationAuthentication": true,
+  "serverRequiresAuthorization": false,
+  "runExperimental": false,
+
+  "protocols": {
+    "discovery": {
+      "supported": true
+    },
+
+    "store": {
+      "supported": true,
+      "supportsWrite": true
+    }
+  }
+}

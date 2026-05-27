@@ -1,0 +1,74 @@
+  <Wellbore xmlns="http://www.energistics.org/energyml/data/witsmlv2" xmlns:eml="http://www.energistics.org/energyml/data/commonv2" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gsr="http://www.isotc211.org/2005/gsr" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ns0="http://www.energistics.org/energyml/data/witsmlv2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="2.1" uuid="WELLBORE_UUID_PH" xsi:schemaLocation="http://www.energistics.org/energyml/data/witsmlv2 ../xsd_schemas/Wellbore.xsd">
+      <eml:Aliases authority="witsml1411.uid">
+          <eml:Identifier>74878761-baf8-4091-ae93-b4f80084fa56</eml:Identifier>
+      </eml:Aliases>
+      <eml:Aliases authority="witsml1411.uidWell">
+          <eml:Identifier>1bf1cc58-83af-4e13-9696-4fae2f9294ae</eml:Identifier>
+      </eml:Aliases>
+      <eml:Aliases authority="witsml1411.nameWell">
+          <eml:Identifier>NO 15/9-F-1 C</eml:Identifier>
+      </eml:Aliases>
+      <eml:Citation>
+          <eml:Title>NO 15/9-F-1</eml:Title>
+          <eml:Originator>Bardasz Octosuite 1.4.1.1 to 2.x Conversion</eml:Originator>
+          <eml:Creation>2025-01-16T16:47:30.244148Z</eml:Creation>
+          <eml:Format>Bardasz Converter</eml:Format>
+          <eml:LastUpdate>2025-01-23T16:08:41.127057Z</eml:LastUpdate>
+      </eml:Citation>
+      <Existence xmlns="http://www.energistics.org/energyml/data/commonv2">actual</Existence>
+      <CustomData xmlns="http://www.energistics.org/energyml/data/commonv2">
+          <priv_JobNumber xmlns="http://www.witsml.org/schemas/1series">3RJGJ56</priv_JobNumber>
+      </CustomData>
+      <ExtensionNameValue xmlns="http://www.energistics.org/energyml/data/commonv2">
+          <eml:Name>SourceName</eml:Name>
+          <eml:Value>INTEQ</eml:Value>
+      </ExtensionNameValue>
+      <ActiveStatus xmlns="http://www.energistics.org/energyml/data/commonv2">inactive</ActiveStatus>
+      <StatusWellbore>active</StatusWellbore>
+      <PurposeWellbore>appraisal</PurposeWellbore>
+      <TypeWellbore>initial</TypeWellbore>
+      <Shape>deviated</Shape>
+      <DTimKickoff>2014-01-21T07:28:22Z</DTimKickoff>
+      <MdBit>
+          <MeasuredDepth xmlns="http://www.energistics.org/energyml/data/commonv2" uom="m">0</MeasuredDepth>
+          <Datum xmlns="http://www.energistics.org/energyml/data/commonv2">
+              <eml:Uuid>00000000-0000-0000-0000-000000000000</eml:Uuid>
+              <eml:QualifiedType>eml23.ReferencePointInACrs</eml:QualifiedType>
+              <eml:Title>converterNilDatum</eml:Title>
+          </Datum>
+      </MdBit>
+      <TvdBit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="eml:DatumVerticalDepth">
+          <VerticalDepth xmlns="http://www.energistics.org/energyml/data/commonv2" uom="m">0</VerticalDepth>
+          <Datum xmlns="http://www.energistics.org/energyml/data/commonv2">
+              <eml:Uuid>00000000-0000-0000-0000-000000000000</eml:Uuid>
+              <eml:QualifiedType>eml23.ReferencePointInACrs</eml:QualifiedType>
+              <eml:Title>converterNilDatum</eml:Title>
+          </Datum>
+      </TvdBit>
+      <MdKickoff>
+          <MeasuredDepth xmlns="http://www.energistics.org/energyml/data/commonv2" uom="m">16000</MeasuredDepth>
+          <Datum xmlns="http://www.energistics.org/energyml/data/commonv2">
+              <eml:Uuid>00000000-0000-0000-0000-000000000000</eml:Uuid>
+              <eml:QualifiedType>eml23.ReferencePointInACrs</eml:QualifiedType>
+              <eml:Title>converterNilDatum</eml:Title>
+          </Datum>
+      </MdKickoff>
+      <TvdKickoff xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="eml:DatumVerticalDepth">
+          <VerticalDepth xmlns="http://www.energistics.org/energyml/data/commonv2" uom="m">-999.25</VerticalDepth>
+          <Datum xmlns="http://www.energistics.org/energyml/data/commonv2">
+              <eml:Uuid>00000000-0000-0000-0000-000000000000</eml:Uuid>
+              <eml:QualifiedType>eml23.ReferencePointInACrs</eml:QualifiedType>
+              <eml:Title>converterNilDatum</eml:Title>
+          </Datum>
+      </TvdKickoff>
+      <Well>
+          <eml:Uuid>WELL_UUID_PH</eml:Uuid>
+          <eml:ObjectVersion>2.1</eml:ObjectVersion>
+          <eml:QualifiedType>witsml20.Well</eml:QualifiedType>
+          <eml:Title>NO 15/9-F-1 C</eml:Title>
+          <eml:ExtensionNameValue>
+              <eml:Name>uidRef1411</eml:Name>
+              <eml:Value>ca96314d-a048-46bf-9a1e-a27edd9bac09</eml:Value>
+          </eml:ExtensionNameValue>
+      </Well>
+  </Wellbore>

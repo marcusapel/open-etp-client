@@ -1,0 +1,24 @@
+push_runtime_image:
+  extends: .skipForTriggeringMergeRequests
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
+  tags: ["osdu-medium"]
+  stage: containerize
+  needs: ["compile-and-unit-test"]
+  variables:
+    SHA_IMAGE: ${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}:${CI_COMMIT_SHA}
+    LATEST_IMAGE: ${CI_PROJECT_NAME}-${CI_COMMIT_REF_SLUG}:latest
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    # Gitlab Container Registry
+    - ls -l
+    - docker build -t $RDMS_REST_RUNTIME_IMAGE --file devops/osdu/docker/Dockerfile.runtime --build-arg DIST=dist.tgz  .
+    - docker tag $RDMS_REST_RUNTIME_IMAGE $CI_REGISTRY_IMAGE/$SHA_IMAGE
+    - docker push $CI_REGISTRY_IMAGE/$SHA_IMAGE
+    - docker tag $RDMS_REST_RUNTIME_IMAGE $CI_REGISTRY_IMAGE/$LATEST_IMAGE
+    - docker push $CI_REGISTRY_IMAGE/$LATEST_IMAGE
+    - docker build -t ${RDMS_REST_RUNTIME_IMAGE}-cert --file devops/osdu/docker/Dockerfile.certification --build-arg DIST=dist.tgz  .
+    - docker tag ${RDMS_REST_RUNTIME_IMAGE}-cert $CI_REGISTRY_IMAGE/certification-$SHA_IMAGE
+    - docker push $CI_REGISTRY_IMAGE/certification-$SHA_IMAGE

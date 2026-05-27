@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "checkJs": false,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "jsx": "react",
+    "lib": ["es2022", "esnext.disposable", "dom"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    // kept for now
+    "outDir": "./dist/src",
+    "rootDir": "src",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2022",
+    "typeRoots": ["./node_modules/@types", "./@types"]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "docs",
+    "coverage",
+    "commitlint.config.js",
+    "devops",
+    "tests"
+  ],
+  "typedocOptions": {
+    "out": "docs"
+  }
+}

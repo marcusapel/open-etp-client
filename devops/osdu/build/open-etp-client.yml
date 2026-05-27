@@ -1,0 +1,39 @@
+compile-and-unit-test:
+  image: alpine:3.16
+  tags: ["osdu-medium"]
+  stage: build
+  artifacts:
+    reports:
+      junit: junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+      - dist.tgz
+    expire_in: 15 days
+  script:
+    - apk update && apk upgrade && apk add --no-cache python3 && ln -sf python3 /usr/bin/python
+    - apk add --update docker docker-compose make g++ nodejs-current npm git
+    - npm ci
+    - npm run build
+    - tar -czvf dist.tgz dist node_modules package*
+    - echo "Setting up for OpenETPServer in docker compose"
+    - echo "Give rights to postgres user to run init script:"
+    - chmod o+rwx -R devops/scripts/init-db
+    - export DOCKER_GATEWAY_HOST=172.17.0.1
+    - echo "Looking for host path for bind mounts"
+    - export CONTAINER_ID=$(docker ps -q -f "label=com.gitlab.gitlab-runner.job.id=$CI_JOB_ID" -f "label=com.gitlab.gitlab-runner.type=build")
+    - export MOUNT_NAME=$(docker inspect $CONTAINER_ID -f "{{ range .Mounts }}{{ if eq .Destination \"/builds\" }}{{ .Source }}{{end}}{{end}}")
+    - export SOURCE_HOST_DIR=$MOUNT_NAME/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client
+    - npm run docker:compose:start
+    - npm run test
+  only:
+    changes:
+      - devops/**/*
+      - src/**/*
+    refs:
+      - branches
+      - main
+      - merge_requests
+      - tags

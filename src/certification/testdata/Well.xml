@@ -1,0 +1,35 @@
+  <Well xmlns="http://www.energistics.org/energyml/data/witsmlv2" xmlns:eml="http://www.energistics.org/energyml/data/commonv2" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gsr="http://www.isotc211.org/2005/gsr" xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ns0="http://www.energistics.org/energyml/data/witsmlv2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="2.1" uuid="WELL_UUID_PH" xsi:schemaLocation="http://www.energistics.org/energyml/data/witsmlv2 ../xsd_schemas/Well.xsd">
+      <eml:Aliases authority="witsml1411.uid">
+          <eml:Identifier>aa2bd4fd-2767-4602-a613-cf8f59c69b7c</eml:Identifier>
+      </eml:Aliases>
+      <eml:Citation>
+          <eml:Title>NO 15/9-F-1 C</eml:Title>
+          <eml:Originator>Bardasz Octosuite 1.4.1.1 to 2.x Conversion</eml:Originator>
+          <eml:Creation>2024-10-15T16:16:42.157446Z</eml:Creation>
+          <eml:Format>Bardasz Converter</eml:Format>
+          <eml:LastUpdate>2025-04-16T10:57:14.933179Z</eml:LastUpdate>
+      </eml:Citation>
+      <Existence xmlns="http://www.energistics.org/energyml/data/commonv2">actual</Existence>
+      <CustomData xmlns="http://www.energistics.org/energyml/data/commonv2">
+          <missingfields xmlns=""><MissingConversionFields><wellDatum uid="SL"><name>Mean Sea Level</name><code>SL</code></wellDatum><wellDatum uid="SF"><name>sea floor</name><code>SF</code><elevation uom="m" datum="SL">-139.9</elevation></wellDatum><wellDatum uid="RT"><name>Rotary Table</name><code>RT</code><elevation uom="m" datum="SL">54.9</elevation></wellDatum><wellDatum uid="KB"><name>kelly bushing</name><code>KB</code><elevation uom="m" datum="SL">54.9</elevation></wellDatum><wellDatum uid="FlowLine"><name>flow line</name><code>unknown</code><elevation uom="m" datum="KB">-6</elevation></wellDatum><wellLocation uid="3QKUJ48"><wellCRS>31CM3E</wellCRS><latitude uom="dega">58.4416</latitude><longitude uom="dega">1.8874</longitude></wellLocation><wellLocation uid="3QKUJ48_UTM"><wellCRS>31CM3E</wellCRS><easting uom="m">435</easting><northing uom="m">6</northing></wellLocation><wellLocation uid="8RGUI47"><wellCRS>31CM3E</wellCRS><latitude uom="dega">58.4416</latitude><longitude uom="dega">1.8874</longitude></wellLocation><wellLocation uid="8RGUI47_UTM"><wellCRS>31CM3E</wellCRS><easting uom="m">435</easting><northing uom="m">6</northing></wellLocation><wellLocation uid="15VFNI35"><wellCRS>None</wellCRS><latitude uom="dega">58.4416</latitude><longitude uom="dega">1.8874</longitude></wellLocation></MissingConversionFields></missingfields>
+      </CustomData>
+      <ExtensionNameValue xmlns="http://www.energistics.org/energyml/data/commonv2">
+          <eml:Name>SourceName</eml:Name>
+          <eml:Value>INTEQ</eml:Value>
+      </ExtensionNameValue>
+      <ActiveStatus xmlns="http://www.energistics.org/energyml/data/commonv2">inactive</ActiveStatus>
+      <UniqueIdentifier></UniqueIdentifier>
+      <TimeZone>+02:00</TimeZone>
+      <Field>VOLVE</Field>
+      <Country>Norway</Country>
+      <Region>Offshore</Region>
+      <Block>PL046B</Block>
+      <Operator>
+          <eml:Uuid>00000000-0000-0000-0000-000000000000</eml:Uuid>
+          <eml:QualifiedType>eml23.BusinessAssociate</eml:QualifiedType>
+          <eml:Title>Statoil</eml:Title>
+      </Operator>
+      <PurposeWell>development</PurposeWell>
+      <DTimSpud>2014-02-19T16:22:04Z</DTimSpud>
+      <WaterDepth uom="m">139.9</WaterDepth>
+  </Well>

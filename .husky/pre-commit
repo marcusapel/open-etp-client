@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "-------------------------------------------------------"
+echo "1)"
+echo "scans for the inclusion of AWS keys"
+cd npx scan-for-secrets src
+echo "-------------------------------------------------------"

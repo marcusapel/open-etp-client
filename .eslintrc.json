@@ -1,0 +1,60 @@
+{
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "env": {
+    "node": true,
+    "es6": true,
+    "jest": true,
+    "jasmine": true
+  },
+  "ignorePatterns": [
+    // same as exclude in tsconfig.json
+    "node_modules",
+    "dist",
+    "docs",
+    "coverage",
+    "src/lib/jsonTypes/Generated/"
+  ],
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    // Base recommended set of rules
+    "eslint:recommended",
+    // https://github.com/typescript-eslint/typescript-eslint/tree/master/packages/eslint-plugin/src/configs
+    // recommended extends @typescript-eslint/eslint-recommended which disables some of eslint:recommended
+    "plugin:@typescript-eslint/recommended",
+    // Prettier config comes last as it disables conflicting ESLint rules enabled by other sets
+    "prettier"
+  ],
+  "rules": {
+    "curly": "warn",
+    // Set console calls to emit warnings as not enabled by eslint:recommended
+    "no-console": "warn",
+    // enforce types
+    "@typescript-eslint/no-explicit-any": "warn",
+    // Bans specific types from being used (e.g. builtin types)
+    "@typescript-eslint/ban-types": "warn",
+    // enforce typed exports
+    "@typescript-eslint/explicit-module-boundary-types": "warn",
+    // enforce clean code
+    "@typescript-eslint/no-unused-vars": "warn",
+    // FIXME: temporary, to be reviewed
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    // FIXME: temporary, to be reviewed
+    "@typescript-eslint/no-explicit-any": "off",
+    // FIXME: temporary, to be reviewed
+    "@typescript-eslint/no-redeclare": "off",
+    // FIXME: temporary, to be reviewed
+    "import/first": "off",
+    // Allow unused variables that start with an underscore
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  }
+}

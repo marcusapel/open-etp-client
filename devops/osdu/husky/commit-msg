@@ -1,0 +1,8 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# The goal of this hook is to ensure the commit message matches the conventional commit convention.
+
+# See git hook documentation: https://git-scm.com/docs/githooks#_commit_msg
+
+npx --no-install commitlint --edit "$1"
