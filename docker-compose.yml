@@ -1,0 +1,60 @@
+# Reservoir DDMS — Docker Compose
+#
+# Architecture (matches OSDU design):
+#   [REST clients :8080] → [etp-client (TypeScript)] → [etp-server (C++) :9002] → [PostgreSQL :5432]
+#
+# Usage:
+#   docker-compose up                    # start all
+#   docker-compose up etp-client         # start client + deps
+#   docker-compose up etp-server         # start server + postgres only
+
+services:
+  # ─── PostgreSQL (storage backend) ─────────────────────────────────────────
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rddms
+      POSTGRES_PASSWORD: rddms
+      POSTGRES_DB: openetp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rddms"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── Open ETP Server (C++ — ETP 1.2 protocol + storage) ──────────────────
+  etp-server:
+    build:
+      context: ./open-etp-server
+      dockerfile: Dockerfile.runtime
+    environment:
+      POSTGRESQL_CONN_STRING: "host=postgresql port=5432 dbname=openetp user=rddms password=rddms"
+      RDMS_DATA_PARTITION_MODE: single
+      RDMS_DATA_CONNECTIVITY_MODE: standalone
+    ports:
+      - "9002:9002"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    command: ["openETPServer", "server", "--start", "--authN", "none", "--authZ", "none"]
+
+  # ─── Open ETP Client (TypeScript — REST API + Manifests + WITSML) ─────────
+  etp-client:
+    build:
+      context: ./etp-client
+    environment:
+      ETP_SERVER_URL: ws://etp-server:9002
+      ETP_DATA_PARTITION_ID: opendes
+      REST_PORT: "8080"
+      REST_HOST: "0.0.0.0"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - etp-server
+
+volumes:
+  pgdata:

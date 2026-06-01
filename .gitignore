@@ -1,0 +1,6 @@
+build/
+.cache/
+rddms_local.db
+compile_commands.json
+*.o
+*.a
