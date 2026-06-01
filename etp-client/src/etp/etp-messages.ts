@@ -146,6 +146,7 @@ export interface DataspaceInfo {
   path: string;
   storeLastWrite: number;
   storeCreated: number;
+  customData: Record<string, string>;
 }
 
 export function decodeGetDataspacesResponse(r: AvroReader): DataspaceInfo[] {
@@ -158,15 +159,16 @@ export function decodeGetDataspacesResponse(r: AvroReader): DataspaceInfo[] {
       const storeLastWrite = r.readLongAsNumber();
       const storeCreated = r.readLongAsNumber();
       // customData: map<DataValue>
+      const customData: Record<string, string> = {};
       let mapCount = r.readMapCount();
       while (mapCount > 0) {
         for (let j = 0; j < mapCount; j++) {
-          r.readString(); // key
-          skipDataValue(r); // value
+          const key = r.readString();
+          customData[key] = readDataValueAsString(r);
         }
         mapCount = r.readMapCount();
       }
-      dataspaces.push({ uri, path, storeLastWrite, storeCreated });
+      dataspaces.push({ uri, path, storeLastWrite, storeCreated, customData });
     }
     count = r.readArrayCount();
   }
@@ -350,7 +352,13 @@ export function encodeGetResources(w: AvroWriter, uri: string, depth: number): v
 
 export interface ResourceInfo {
   uri: string;
+  alternateUris: string[];
   name: string;
+  lastChanged: string;
+  storeLastWrite: string;
+  storeCreated: string;
+  activeStatus: string;
+  customData: Record<string, string>;
   dataObjectType: string;
 }
 
@@ -362,21 +370,34 @@ export function decodeGetResourcesResponse(r: AvroReader): ResourceInfo[] {
     for (let i = 0; i < count; i++) {
       const uri = r.readString();
       // alternateUris
+      const alternateUris: string[] = [];
       let arrCount = r.readArrayCount();
       while (arrCount > 0) {
-        for (let j = 0; j < arrCount; j++) r.readString();
+        for (let j = 0; j < arrCount; j++) alternateUris.push(r.readString());
         arrCount = r.readArrayCount();
       }
       const name = r.readString();
       skipNullableInt(r); // sourceCount
       skipNullableInt(r); // targetCount
-      r.readLong(); // lastChanged
-      r.readLong(); // storeLastWrite
-      r.readLong(); // storeCreated
-      r.readInt(); // activeStatus enum
-      skipMap(r); // customData
+      const lastChangedMicros = r.readLongAsNumber(); // microseconds since epoch
+      const storeLastWriteMicros = r.readLongAsNumber();
+      const storeCreatedMicros = r.readLongAsNumber();
+      const activeStatusIdx = r.readInt(); // enum: 0=Inactive, 1=Active
+      const customData = readMap(r);
       const dataObjectType = r.readString();
-      resources.push({ uri, name, dataObjectType });
+
+      const activeStatus = activeStatusIdx === 1 ? "Active" : "Inactive";
+      resources.push({
+        uri,
+        alternateUris,
+        name,
+        lastChanged: microsToIso(lastChangedMicros),
+        storeLastWrite: microsToIso(storeLastWriteMicros),
+        storeCreated: microsToIso(storeCreatedMicros),
+        activeStatus,
+        customData,
+        dataObjectType,
+      });
     }
     count = r.readArrayCount();
   }
@@ -416,6 +437,40 @@ function skipMap(r: AvroReader): void {
     }
     count = r.readMapCount();
   }
+}
+
+/** Read a map<string, DataValue> and return as Record<string, string> (stringify values) */
+function readMap(r: AvroReader): Record<string, string> {
+  const result: Record<string, string> = {};
+  let count = r.readMapCount();
+  while (count > 0) {
+    for (let i = 0; i < count; i++) {
+      const key = r.readString();
+      result[key] = readDataValueAsString(r);
+    }
+    count = r.readMapCount();
+  }
+  return result;
+}
+
+function readDataValueAsString(r: AvroReader): string {
+  const idx = r.readUnionIndex();
+  switch (idx) {
+    case 0: return "";           // null
+    case 1: return String(r.readBoolean());
+    case 2: return String(r.readInt());
+    case 3: return String(r.readLong());
+    case 4: return String(r.readFloat());
+    case 5: return String(r.readDouble());
+    case 6: return r.readString();
+    case 7: return r.readString(); // ArrayOfBoolean — simplified
+    default: return "";
+  }
+}
+
+function microsToIso(micros: number): string {
+  if (micros === 0) return "1970-01-01T00:00:00.000Z";
+  return new Date(micros / 1000).toISOString();
 }
 
 // ─── Compose full ETP message ────────────────────────────────────────────────

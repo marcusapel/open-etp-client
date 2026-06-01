@@ -84,10 +84,15 @@ export interface DataObject {
 
 export interface Resource {
   uri: string;
+  alternateUris?: string[];
   name: string;
   dataObjectType: string;
   uuid?: string;
   lastChanged?: string;
+  storeLastWrite?: string;
+  storeCreated?: string;
+  activeStatus?: string;
+  customData?: Record<string, string>;
 }
 
 export interface Dataspace {
@@ -401,7 +406,9 @@ export class EtpClient {
           return dataspaces.map((d) => ({
             uri: d.uri,
             path: d.path,
-            lastChanged: new Date(d.storeLastWrite / 1000).toISOString(),
+            storeLastWrite: new Date(d.storeLastWrite / 1000).toISOString(),
+            storeCreated: new Date(d.storeCreated / 1000).toISOString(),
+            customData: d.customData,
           }));
         }
         // PutDataspacesResponse / DeleteDataspacesResponse — success ack
@@ -428,9 +435,14 @@ export class EtpClient {
           const resources = decodeGetResourcesResponse(reader);
           return resources.map((r) => ({
             uri: r.uri,
+            alternateUris: r.alternateUris,
             name: r.name,
+            lastChanged: r.lastChanged,
+            storeLastWrite: r.storeLastWrite,
+            storeCreated: r.storeCreated,
+            activeStatus: r.activeStatus,
+            customData: r.customData,
             dataObjectType: r.dataObjectType,
-            uuid: r.uri.match(/\(([^)]+)\)$/)?.[1],
           }));
         }
         return {};
