@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { EtpClient } from "../etp";
-import { WitsmlParser, WitsmlObject } from "../witsml/parser";
+import { WitsmlParser } from "../witsml/parser";
 
 export function createWitsmlRoutes(etp: EtpClient): Router {
   const router = Router();

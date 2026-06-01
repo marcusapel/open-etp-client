@@ -11,12 +11,12 @@ import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 export interface WitsmlObject {
   uid: string;
-  type: string;     // "Log", "Trajectory", "Well", "Wellbore", etc.
+  type: string; // "Log", "Trajectory", "Well", "Wellbore", etc.
   name: string;
   wellName?: string;
   wellboreName?: string;
-  xml: string;      // Normalized XML for storage
-  version: string;  // "1.4.1" or "2.0" or "2.1"
+  xml: string; // Normalized XML for storage
+  version: string; // "1.4.1" or "2.0" or "2.1"
   curves?: WitsmlCurve[];
 }
 
@@ -25,8 +25,6 @@ export interface WitsmlCurve {
   unit: string;
   description?: string;
 }
-
-const WITSML_141_NS = "http://www.witsml.org/schemas/1series";
 
 // Map of WITSML 1.4.1 plural→singular type names
 const PLURAL_TO_SINGULAR: Record<string, string> = {
@@ -90,8 +88,9 @@ export class WitsmlParser {
   private parse141(root: any, pluralKey: string, singularType: string): WitsmlObject[] {
     const objects: WitsmlObject[] = [];
 
-    // version attribute on the plural container
-    const version = root["@_version"] || "1.4.1.1";
+    // version attribute on the plural container — normalize to major.minor.patch
+    const rawVersion = root["@_version"] || "1.4.1";
+    const version = rawVersion.replace(/^(\d+\.\d+\.\d+).*/, "$1");
 
     // Singular key (e.g., "log" inside "logs")
     const singularKey = singularType.charAt(0).toLowerCase() + singularType.slice(1);
@@ -107,7 +106,7 @@ export class WitsmlParser {
         uid,
         type: singularType,
         name: typeof name === "string" ? name : String(name),
-        version: "1.4.1",
+        version,
         xml: this.xmlBuilder.build({ [singularKey]: item }),
       };
 

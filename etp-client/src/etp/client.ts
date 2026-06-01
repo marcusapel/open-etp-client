@@ -8,7 +8,6 @@
  */
 
 import WebSocket from "ws";
-import { v4 as uuidv4 } from "uuid";
 
 // ─── ETP 1.2 Protocol Constants ─────────────────────────────────────────────
 
@@ -22,32 +21,27 @@ enum Protocol {
   Dataspace = 24,
 }
 
-enum MessageType {
-  // Core
-  RequestSession = 1,
-  OpenSession = 2,
-  CloseSession = 5,
-
-  // Discovery
-  GetResources = 1,
-  GetResourcesResponse = 4,
-
-  // Store
-  GetDataObjects = 1,
-  GetDataObjectsResponse = 4,
-  PutDataObjects = 2,
-  PutDataObjectsResponse = 5,
-  DeleteDataObjects = 3,
-  DeleteDataObjectsResponse = 6,
-
-  // Dataspace
-  GetDataspaces = 1,
-  GetDataspacesResponse = 2,
-  PutDataspaces = 3,
-  PutDataspacesResponse = 4,
-  DeleteDataspaces = 5,
-  DeleteDataspacesResponse = 6,
-}
+// Message type IDs — per-protocol (same ID can appear in different protocols)
+const Msg = {
+  Core: { RequestSession: 1, OpenSession: 2, CloseSession: 5 },
+  Discovery: { GetResources: 1, GetResourcesResponse: 4 },
+  Store: {
+    GetDataObjects: 1,
+    PutDataObjects: 2,
+    DeleteDataObjects: 3,
+    GetDataObjectsResponse: 4,
+    PutDataObjectsResponse: 5,
+    DeleteDataObjectsResponse: 6,
+  },
+  Dataspace: {
+    GetDataspaces: 1,
+    GetDataspacesResponse: 2,
+    PutDataspaces: 3,
+    PutDataspacesResponse: 4,
+    DeleteDataspaces: 5,
+    DeleteDataspacesResponse: 6,
+  },
+} as const;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -118,7 +112,7 @@ export class EtpClient {
       });
 
       this.ws.on("open", () => {
-        this.sendMessage(Protocol.Core, MessageType.RequestSession, {
+        this.sendMessage(Protocol.Core, Msg.Core.RequestSession, {
           applicationName: "open-etp-client",
           applicationVersion: "0.1.0",
           requestedProtocols: [
@@ -157,7 +151,7 @@ export class EtpClient {
 
   async closeSession(): Promise<void> {
     if (this.ws && this.sessionOpen) {
-      this.sendMessage(Protocol.Core, MessageType.CloseSession, { reason: "" });
+      this.sendMessage(Protocol.Core, Msg.Core.CloseSession, { reason: "" });
       this.ws.close();
       this.ws = null;
       this.sessionOpen = false;
@@ -171,7 +165,7 @@ export class EtpClient {
   // ─── Dataspace Operations ────────────────────────────────────────────────
 
   async getDataspaces(): Promise<Dataspace[]> {
-    const response = await this.request(Protocol.Dataspace, MessageType.GetDataspaces, {});
+    const response = await this.request(Protocol.Dataspace, Msg.Dataspace.GetDataspaces, {});
     return response.dataspaces || [];
   }
 
@@ -185,7 +179,7 @@ export class EtpClient {
         ...(ds.extraMetadata && { customData: ds.extraMetadata }),
       };
     }
-    await this.request(Protocol.Dataspace, MessageType.PutDataspaces, { dataspaces: dsMap });
+    await this.request(Protocol.Dataspace, Msg.Dataspace.PutDataspaces, { dataspaces: dsMap });
   }
 
   async deleteDataspaces(paths: string[]): Promise<void> {
@@ -193,7 +187,7 @@ export class EtpClient {
     for (const path of paths) {
       uris[`eml:///dataspace('${path}')`] = `eml:///dataspace('${path}')`;
     }
-    await this.request(Protocol.Dataspace, MessageType.DeleteDataspaces, { uris });
+    await this.request(Protocol.Dataspace, Msg.Dataspace.DeleteDataspaces, { uris });
   }
 
   // ─── Data Object Operations ──────────────────────────────────────────────
@@ -203,7 +197,7 @@ export class EtpClient {
     for (const uri of uris) {
       uriMap[uri] = uri;
     }
-    const response = await this.request(Protocol.Store, MessageType.GetDataObjects, { uris: uriMap });
+    const response = await this.request(Protocol.Store, Msg.Store.GetDataObjects, { uris: uriMap });
     return Object.values(response.dataObjects || {});
   }
 
@@ -215,7 +209,7 @@ export class EtpClient {
         data: obj.data,
       };
     }
-    await this.request(Protocol.Store, MessageType.PutDataObjects, { dataObjects: objMap });
+    await this.request(Protocol.Store, Msg.Store.PutDataObjects, { dataObjects: objMap });
   }
 
   async deleteDataObjects(uris: string[]): Promise<void> {
@@ -223,13 +217,13 @@ export class EtpClient {
     for (const uri of uris) {
       uriMap[uri] = uri;
     }
-    await this.request(Protocol.Store, MessageType.DeleteDataObjects, { uris: uriMap });
+    await this.request(Protocol.Store, Msg.Store.DeleteDataObjects, { uris: uriMap });
   }
 
   // ─── Discovery ───────────────────────────────────────────────────────────
 
   async getResources(uri: string, depth?: number): Promise<Resource[]> {
-    const response = await this.request(Protocol.Discovery, MessageType.GetResources, {
+    const response = await this.request(Protocol.Discovery, Msg.Discovery.GetResources, {
       context: { uri, depth: depth ?? 1, dataObjectTypes: [] },
       scope: "targets",
     });
@@ -274,7 +268,7 @@ export class EtpClient {
       const { header, body } = msg;
 
       // Handle OpenSession response
-      if (header.protocol === Protocol.Core && header.messageType === MessageType.OpenSession) {
+      if (header.protocol === Protocol.Core && header.messageType === Msg.Core.OpenSession) {
         this.sessionOpen = true;
         sessionResolve?.();
         return;

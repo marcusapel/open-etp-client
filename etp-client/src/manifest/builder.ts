@@ -35,72 +35,108 @@ export interface Manifest {
 // ─── M27 RESQML → OSDU Type Mapping ─────────────────────────────────────────
 
 interface OsduTypeMapping {
-  kind: string;       // e.g. "IjkGridRepresentation:1.1.0"
+  kind: string; // e.g. "IjkGridRepresentation:1.1.0"
   category: "wpc" | "master_data" | "reference_data";
-  prefix: string;     // "work-product-component" | "master-data" | "reference-data"
+  prefix: string; // "work-product-component" | "master-data" | "reference-data"
 }
 
 const RESQML_TO_OSDU: Record<string, OsduTypeMapping> = {
   // ─── Features ────────────────────────────────────────────────────────────
-  "BoundaryFeature":    { kind: "LocalBoundaryFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "WellboreFeature":    { kind: "Wellbore:1.3.0", category: "master_data", prefix: "master-data" },
-  "RockVolumeFeature":  { kind: "LocalRockVolumeFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "Model":              { kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "OrganizationFeature":{ kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "SeismicLatticeFeature": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  BoundaryFeature: { kind: "LocalBoundaryFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
+  WellboreFeature: { kind: "Wellbore:1.3.0", category: "master_data", prefix: "master-data" },
+  RockVolumeFeature: { kind: "LocalRockVolumeFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
+  Model: { kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
+  OrganizationFeature: { kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
+  SeismicLatticeFeature: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
 
   // ─── Interpretations ─────────────────────────────────────────────────────
-  "HorizonInterpretation":   { kind: "HorizonInterpretation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "FaultInterpretation":     { kind: "FaultInterpretation:1.3.0", category: "wpc", prefix: "work-product-component" },
-  "GeobodyInterpretation":   { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "WellboreInterpretation":  { kind: "WellboreInterpretation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "StratigraphicColumnRankInterpretation": { kind: "StratigraphicColumn:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "StructuralOrganizationInterpretation":  { kind: "StructuralModel:1.0.0", category: "wpc", prefix: "work-product-component" },
-  "EarthModelInterpretation":  { kind: "StructuralModel:1.0.0", category: "wpc", prefix: "work-product-component" },
-  "RockFluidOrganizationInterpretation": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  HorizonInterpretation: { kind: "HorizonInterpretation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  FaultInterpretation: { kind: "FaultInterpretation:1.3.0", category: "wpc", prefix: "work-product-component" },
+  GeobodyInterpretation: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  WellboreInterpretation: { kind: "WellboreInterpretation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  StratigraphicColumnRankInterpretation: {
+    kind: "StratigraphicColumn:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  StructuralOrganizationInterpretation: {
+    kind: "StructuralModel:1.0.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  EarthModelInterpretation: { kind: "StructuralModel:1.0.0", category: "wpc", prefix: "work-product-component" },
+  RockFluidOrganizationInterpretation: {
+    kind: "GenericRepresentation:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
 
   // ─── Representations ─────────────────────────────────────────────────────
-  "IjkGridRepresentation":       { kind: "IjkGridRepresentation:1.1.0", category: "wpc", prefix: "work-product-component" },
-  "UnstructuredGridRepresentation": { kind: "IjkGridRepresentation:1.1.0", category: "wpc", prefix: "work-product-component" },
-  "Grid2dRepresentation":        { kind: "StructureMap:1.0.0", category: "wpc", prefix: "work-product-component" },
-  "TriangulatedSetRepresentation": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "PolylineSetRepresentation":   { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "PointSetRepresentation":      { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "WellboreTrajectoryRepresentation": { kind: "WellboreTrajectory:1.3.0", category: "wpc", prefix: "work-product-component" },
-  "WellboreFrameRepresentation": { kind: "WellLog:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "WellboreMarkerFrameRepresentation": { kind: "WellboreMarkerSet:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "BlockedWellboreRepresentation": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "SeismicLineSetRepresentation": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  IjkGridRepresentation: { kind: "IjkGridRepresentation:1.1.0", category: "wpc", prefix: "work-product-component" },
+  UnstructuredGridRepresentation: {
+    kind: "IjkGridRepresentation:1.1.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  Grid2dRepresentation: { kind: "StructureMap:1.0.0", category: "wpc", prefix: "work-product-component" },
+  TriangulatedSetRepresentation: {
+    kind: "GenericRepresentation:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  PolylineSetRepresentation: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  PointSetRepresentation: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  WellboreTrajectoryRepresentation: {
+    kind: "WellboreTrajectory:1.3.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  WellboreFrameRepresentation: { kind: "WellLog:1.2.0", category: "wpc", prefix: "work-product-component" },
+  WellboreMarkerFrameRepresentation: {
+    kind: "WellboreMarkerSet:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  BlockedWellboreRepresentation: {
+    kind: "GenericRepresentation:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
+  SeismicLineSetRepresentation: {
+    kind: "GenericRepresentation:1.2.0",
+    category: "wpc",
+    prefix: "work-product-component",
+  },
 
   // ─── Properties ──────────────────────────────────────────────────────────
-  "ContinuousProperty":    { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "DiscreteProperty":      { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "CategoricalProperty":   { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "CommentProperty":       { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "PointsProperty":        { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
+  ContinuousProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
+  DiscreteProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
+  CategoricalProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
+  CommentProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
+  PointsProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
 
   // ─── CRS ─────────────────────────────────────────────────────────────────
-  "LocalDepth3dCrs":   { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
-  "LocalTime3dCrs":    { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
-  "LocalEngineering2dCrs": { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
+  LocalDepth3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
+  LocalTime3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
+  LocalEngineering2dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
 
   // ─── Activities ──────────────────────────────────────────────────────────
-  "Activity":         { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
-  "ActivityTemplate": { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  Activity: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  ActivityTemplate: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
 };
 
 // ─── RESQML 2.0.1 → 2.2 Normalization ───────────────────────────────────────
 
 const RESQML201_TO_22: Record<string, string> = {
-  "GeneticBoundaryFeature":      "BoundaryFeature",
-  "TectonicBoundaryFeature":     "BoundaryFeature",
-  "GeologicUnitFeature":         "RockVolumeFeature",
-  "BoundaryFeatureInterpretation": "HorizonInterpretation",
-  "obj_IjkGridRepresentation":   "IjkGridRepresentation",
-  "obj_Grid2dRepresentation":    "Grid2dRepresentation",
-  "obj_WellboreFeature":         "WellboreFeature",
-  "obj_ContinuousProperty":      "ContinuousProperty",
-  "obj_DiscreteProperty":        "DiscreteProperty",
+  GeneticBoundaryFeature: "BoundaryFeature",
+  TectonicBoundaryFeature: "BoundaryFeature",
+  GeologicUnitFeature: "RockVolumeFeature",
+  BoundaryFeatureInterpretation: "HorizonInterpretation",
+  obj_IjkGridRepresentation: "IjkGridRepresentation",
+  obj_Grid2dRepresentation: "Grid2dRepresentation",
+  obj_WellboreFeature: "WellboreFeature",
+  obj_ContinuousProperty: "ContinuousProperty",
+  obj_DiscreteProperty: "DiscreteProperty",
 };
 
 // Types to skip (metadata-only, not mapped to OSDU records)
@@ -116,19 +152,19 @@ const SKIP_TYPES = new Set([
 // ─── WITSML → OSDU Mapping ──────────────────────────────────────────────────
 
 const WITSML_TO_OSDU: Record<string, string> = {
-  "Log":                  "work-product-component--WellLog:1.2.0",
-  "Trajectory":           "work-product-component--WellboreTrajectory:1.3.0",
-  "Well":                 "master-data--Well:1.2.0",
-  "Wellbore":             "master-data--Wellbore:1.3.0",
-  "FluidsReport":         "work-product-component--FluidReport:1.0.0",
-  "MudLog":               "work-product-component--MudLogReport:1.1.0",
+  Log: "work-product-component--WellLog:1.2.0",
+  Trajectory: "work-product-component--WellboreTrajectory:1.3.0",
+  Well: "master-data--Well:1.2.0",
+  Wellbore: "master-data--Wellbore:1.3.0",
+  FluidsReport: "work-product-component--FluidReport:1.0.0",
+  MudLog: "work-product-component--MudLogReport:1.1.0",
 };
 
 // ─── Builder ─────────────────────────────────────────────────────────────────
 
 interface StoredObject {
   uri: string;
-  type: string;     // qualified type e.g. "resqml22.IjkGridRepresentation"
+  type: string; // qualified type e.g. "resqml22.IjkGridRepresentation"
   xml: string;
   name: string;
 }
@@ -173,7 +209,11 @@ export class ManifestBuilder {
     };
   }
 
-  private makeRecord(obj: StoredObject, dataspace: string, opts: ManifestOptions): (ManifestRecord & { _category: string }) | null {
+  private makeRecord(
+    obj: StoredObject,
+    dataspace: string,
+    opts: ManifestOptions,
+  ): (ManifestRecord & { _category: string }) | null {
     const { standard, objectType } = this.parseQualifiedType(obj.type);
 
     if (standard === "resqml") {
@@ -190,7 +230,7 @@ export class ManifestBuilder {
     objectType: string,
     obj: StoredObject,
     dataspace: string,
-    opts: ManifestOptions
+    opts: ManifestOptions,
   ): (ManifestRecord & { _category: string }) | null {
     // Normalize v2.0.1 types
     const normalized = RESQML201_TO_22[objectType] ?? objectType;
@@ -226,7 +266,7 @@ export class ManifestBuilder {
     objectType: string,
     obj: StoredObject,
     dataspace: string,
-    opts: ManifestOptions
+    opts: ManifestOptions,
   ): (ManifestRecord & { _category: string }) | null {
     const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
     const kind = `osdu:wks:work-product-component--${objectType}:1.0.0`;
@@ -251,7 +291,7 @@ export class ManifestBuilder {
     objectType: string,
     obj: StoredObject,
     dataspace: string,
-    opts: ManifestOptions
+    opts: ManifestOptions,
   ): (ManifestRecord & { _category: string }) | null {
     const osduKind = WITSML_TO_OSDU[objectType];
     if (!osduKind) return null;
@@ -279,7 +319,7 @@ export class ManifestBuilder {
     obj: StoredObject,
     dataspace: string,
     opts: ManifestOptions,
-    prefix: string
+    prefix: string,
   ): ManifestRecord & { _category: string } {
     const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
     const kind = "osdu:wks:work-product-component--GenericRepresentation:1.2.0";
@@ -331,6 +371,7 @@ export class ManifestBuilder {
   }
 
   private stripCategory(record: ManifestRecord & { _category: string }): ManifestRecord {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _category, ...rest } = record;
     return rest;
   }
