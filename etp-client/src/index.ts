@@ -15,28 +15,33 @@ dotenv.config({ path: "config.default.env" });
 dotenv.config({ path: "config.user.env", override: true });
 
 const ETP_SERVER_URL = process.env.ETP_SERVER_URL || "ws://localhost:9002";
+const REST_PROXY_URL = process.env.REST_PROXY_URL || ""; // e.g. http://localhost:3000
 const REST_PORT = parseInt(process.env.REST_PORT || "8080", 10);
 const REST_HOST = process.env.REST_HOST || "0.0.0.0";
 const DATA_PARTITION_ID = process.env.ETP_DATA_PARTITION_ID || "opendes";
 
 async function main() {
+  const mode = REST_PROXY_URL ? "REST proxy" : "ETP WebSocket";
+  const target = REST_PROXY_URL || ETP_SERVER_URL;
   console.log("┌─────────────────────────────────────────────────┐");
   console.log("│  @osdu/open-etp-client                          │");
   console.log("│  REST API for Reservoir DDMS                    │");
   console.log("│                                                 │");
-  console.log(`│  ETP Server:  ${ETP_SERVER_URL.padEnd(33)}│`);
+  console.log(`│  Mode:        ${mode.padEnd(33)}│`);
+  console.log(`│  Backend:     ${target.padEnd(33)}│`);
   console.log(`│  REST:        http://${REST_HOST}:${REST_PORT}`.padEnd(50) + "│");
   console.log("│                                                 │");
-  console.log("│  WITSML: v1.4.1 + v2.1 (via ETP)               │");
-  console.log("│  RESQML: v2.0.1 + v2.2 (via ETP)               │");
-  console.log("│  PRODML: v2.2 (via ETP)                         │");
+  console.log("│  WITSML: v1.4.1 + v2.1                          │");
+  console.log("│  RESQML: v2.0.1 + v2.2                          │");
+  console.log("│  PRODML: v2.2                                    │");
   console.log("│  Manifests: OSDU M27                            │");
   console.log("└─────────────────────────────────────────────────┘");
 
-  // Connect to ETP server
+  // Connect to ETP server (or use REST proxy)
   const etpClient = new EtpClient({
     serverUrl: ETP_SERVER_URL,
     dataPartitionId: DATA_PARTITION_ID,
+    restProxyUrl: REST_PROXY_URL || undefined,
   });
 
   try {
