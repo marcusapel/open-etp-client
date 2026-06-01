@@ -4,10 +4,14 @@
   "description": "TypeScript REST client for open-etp-server — WITSML 1.4.1, M27 manifests, RESQML type utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "rddms": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "cli": "ts-node src/cli.ts",
     "test": "jest --coverage",
     "test:single": "jest --runInBand --no-coverage",
     "lint": "eslint src/ --ext .ts",

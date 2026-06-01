@@ -165,7 +165,7 @@ describe("ManifestBuilder", () => {
     expect(wpc.kind).toBe("osdu:wks:work-product-component--WellLog:1.2.0");
   });
 
-  it("normalizes RESQML 2.0.1 types (GeneticBoundaryFeature → BoundaryFeature)", () => {
+  it("normalizes RESQML 2.0.1 types (GeneticBoundaryFeature → master-data LocalBoundaryFeature)", () => {
     const objects = [
       {
         uri: "eml:///dataspace('ds')/resqml201.GeneticBoundaryFeature('hz1')",
@@ -176,12 +176,12 @@ describe("ManifestBuilder", () => {
     ];
 
     const manifest = builder.build(objects, "ds", opts);
-    const wpc = manifest.Data.WorkProductComponents[0];
+    const md = manifest.MasterData[0];
 
-    expect(wpc.kind).toBe("osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0");
+    expect(md.kind).toBe("osdu:wks:master-data--LocalBoundaryFeature:1.1.0");
   });
 
-  it("maps LocalDepth3dCrs to reference_data", () => {
+  it("maps LocalDepth3dCrs to work-product-component (matching ores)", () => {
     const objects = [
       {
         uri: "eml:///dataspace('ds')/resqml22.LocalDepth3dCrs('crs1')",
@@ -193,8 +193,8 @@ describe("ManifestBuilder", () => {
 
     const manifest = builder.build(objects, "ds", opts);
 
-    expect(manifest.Data.WorkProductComponents).toHaveLength(0);
-    expect(manifest.ReferenceData).toHaveLength(1);
-    expect(manifest.ReferenceData[0].kind).toBe("osdu:wks:reference-data--LocalModelCompoundCrs:1.2.0");
+    expect(manifest.ReferenceData).toHaveLength(0);
+    expect(manifest.Data.WorkProductComponents).toHaveLength(1);
+    expect(manifest.Data.WorkProductComponents[0].kind).toBe("osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0");
   });
 });

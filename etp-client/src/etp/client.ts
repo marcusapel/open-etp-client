@@ -181,9 +181,7 @@ export class EtpClient {
 
   async putDataspaces(dataspaces: Array<{ path: string; extraMetadata?: Record<string, string> }>): Promise<void> {
     if (this.proxyMode) {
-      for (const ds of dataspaces) {
-        await this.proxyPost("/dataspaces", { path: ds.path });
-      }
+      await this.proxyPost("/dataspaces", dataspaces.map((ds) => ({ DataspaceId: ds.path })));
       return;
     }
     const dsMap: Record<string, any> = {};
@@ -215,9 +213,20 @@ export class EtpClient {
   async getDataObjects(uris: string[]): Promise<DataObject[]> {
     if (this.proxyMode) {
       const results: DataObject[] = [];
-      for (const uri of uris) {
-        const obj = await this.proxyGet(`/objects?uri=${encodeURIComponent(uri)}`);
-        if (obj) results.push(obj);
+      const objects = await this.proxyPost("/dataspaces/multi-resources/get-content", { uris });
+      if (Array.isArray(objects)) {
+        for (let i = 0; i < objects.length; i++) {
+          const obj = objects[i];
+          const xml = typeof obj === "string" ? obj : JSON.stringify(obj);
+          const uri = uris[i] || "";
+          // Match the LAST type(uuid) in URI — skip the dataspace('...') part
+          const matches = [...uri.matchAll(/\/([^/'(]+)\(([0-9a-f-]+)\)/gi)];
+          const m = matches.length > 0 ? matches[matches.length - 1] : null;
+          results.push({
+            resource: { uri, name: obj?.Citation?.Title || m?.[2] || "", dataObjectType: m?.[1] || "", uuid: m?.[2] },
+            data: xml,
+          });
+        }
       }
       return results;
     }
@@ -260,7 +269,13 @@ export class EtpClient {
 
   async getResources(uri: string, depth?: number): Promise<Resource[]> {
     if (this.proxyMode) {
-      return this.proxyGet(`/resources?uri=${encodeURIComponent(uri)}&depth=${depth ?? 1}`);
+      // Extract dataspace from URI: eml:///dataspace('x/y') → x/y
+      const dsMatch = uri.match(/dataspace\('([^']+)'\)/);
+      if (dsMatch) {
+        const dsId = encodeURIComponent(dsMatch[1]);
+        return this.proxyGet(`/dataspaces/${dsId}/resources/all`);
+      }
+      return this.proxyGet(`/dataspaces/${encodeURIComponent(uri)}/resources/all`);
     }
     const response = await this.request(Protocol.Discovery, Msg.Discovery.GetResources, {
       context: { uri, depth: depth ?? 1, dataObjectTypes: [] },

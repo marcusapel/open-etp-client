@@ -1,0 +1,37 @@
+{
+  "kind": "osdu:wks:Manifest:1.0.0",
+  "ReferenceData": [],
+  "MasterData": [],
+  "Data": {
+    "Datasets": [
+      {
+        "id": "opendes:dataset--ETPDataspace:maap-witsml",
+        "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ]
+        },
+        "data": {
+          "Name": "maap/witsml",
+          "Description": "RDDMS dataspace",
+          "DatasetProperties": {
+            "URI": "eml:///dataspace('maap/witsml')"
+          }
+        }
+      }
+    ],
+    "WorkProductComponents": []
+  }
+}

@@ -12,6 +12,8 @@
 export interface ManifestOptions {
   acl: { owners: string[]; viewers: string[] };
   legal: { legaltags: string[]; otherRelevantDataCountries: string[] };
+  /** Data partition ID — used in record IDs. Defaults to "opendes". */
+  partition?: string;
 }
 
 export interface ManifestRecord {
@@ -42,12 +44,15 @@ interface OsduTypeMapping {
 
 const RESQML_TO_OSDU: Record<string, OsduTypeMapping> = {
   // ─── Features ────────────────────────────────────────────────────────────
-  BoundaryFeature: { kind: "LocalBoundaryFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
+  BoundaryFeature: { kind: "LocalBoundaryFeature:1.1.0", category: "master_data", prefix: "master-data" },
+  GeneticBoundaryFeature: { kind: "LocalBoundaryFeature:1.1.0", category: "master_data", prefix: "master-data" },
+  TectonicBoundaryFeature: { kind: "LocalBoundaryFeature:1.1.0", category: "master_data", prefix: "master-data" },
   WellboreFeature: { kind: "Wellbore:1.3.0", category: "master_data", prefix: "master-data" },
   RockVolumeFeature: { kind: "LocalRockVolumeFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
   Model: { kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
   OrganizationFeature: { kind: "LocalModelFeature:1.2.0", category: "wpc", prefix: "work-product-component" },
-  SeismicLatticeFeature: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
+  SeismicLatticeFeature: { kind: "SeismicHorizon:2.1.0", category: "wpc", prefix: "work-product-component" },
+  SeismicLatticeSetFeature: { kind: "SeismicHorizon:2.1.0", category: "wpc", prefix: "work-product-component" },
 
   // ─── Interpretations ─────────────────────────────────────────────────────
   HorizonInterpretation: { kind: "HorizonInterpretation:1.2.0", category: "wpc", prefix: "work-product-component" },
@@ -79,6 +84,7 @@ const RESQML_TO_OSDU: Record<string, OsduTypeMapping> = {
     prefix: "work-product-component",
   },
   Grid2dRepresentation: { kind: "StructureMap:1.0.0", category: "wpc", prefix: "work-product-component" },
+  Grid2dSetRepresentation: { kind: "SeismicHorizon:2.1.0", category: "wpc", prefix: "work-product-component" },
   TriangulatedSetRepresentation: {
     kind: "GenericRepresentation:1.2.0",
     category: "wpc",
@@ -116,9 +122,10 @@ const RESQML_TO_OSDU: Record<string, OsduTypeMapping> = {
   PointsProperty: { kind: "GenericProperty:1.2.0", category: "wpc", prefix: "work-product-component" },
 
   // ─── CRS ─────────────────────────────────────────────────────────────────
-  LocalDepth3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
-  LocalTime3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
-  LocalEngineering2dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "reference_data", prefix: "reference-data" },
+  LocalDepth3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "wpc", prefix: "work-product-component" },
+  LocalTime3dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "wpc", prefix: "work-product-component" },
+  LocalEngineering2dCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "wpc", prefix: "work-product-component" },
+  LocalEngineeringCompoundCrs: { kind: "LocalModelCompoundCrs:1.2.0", category: "wpc", prefix: "work-product-component" },
 
   // ─── Activities ──────────────────────────────────────────────────────────
   Activity: { kind: "GenericRepresentation:1.2.0", category: "wpc", prefix: "work-product-component" },
@@ -128,8 +135,6 @@ const RESQML_TO_OSDU: Record<string, OsduTypeMapping> = {
 // ─── RESQML 2.0.1 → 2.2 Normalization ───────────────────────────────────────
 
 const RESQML201_TO_22: Record<string, string> = {
-  GeneticBoundaryFeature: "BoundaryFeature",
-  TectonicBoundaryFeature: "BoundaryFeature",
   GeologicUnitFeature: "RockVolumeFeature",
   BoundaryFeatureInterpretation: "HorizonInterpretation",
   obj_IjkGridRepresentation: "IjkGridRepresentation",
@@ -137,6 +142,8 @@ const RESQML201_TO_22: Record<string, string> = {
   obj_WellboreFeature: "WellboreFeature",
   obj_ContinuousProperty: "ContinuousProperty",
   obj_DiscreteProperty: "DiscreteProperty",
+  obj_GeneticBoundaryFeature: "GeneticBoundaryFeature",
+  obj_TectonicBoundaryFeature: "TectonicBoundaryFeature",
 };
 
 // Types to skip (metadata-only, not mapped to OSDU records)
@@ -174,12 +181,13 @@ export class ManifestBuilder {
    * Build an OSDU manifest from a list of stored objects.
    */
   build(objects: StoredObject[], dataspace: string, opts: ManifestOptions): Manifest {
+    const partition = opts.partition || "opendes";
     const wpcs: ManifestRecord[] = [];
     const masterData: ManifestRecord[] = [];
     const referenceData: ManifestRecord[] = [];
 
     for (const obj of objects) {
-      const record = this.makeRecord(obj, dataspace, opts);
+      const record = this.makeRecord(obj, dataspace, opts, partition);
       if (!record) continue;
 
       switch (record._category) {
@@ -196,7 +204,7 @@ export class ManifestBuilder {
     }
 
     // Single ETPDataspace dataset record
-    const dataset = this.makeEtpDataspaceDataset(dataspace, opts);
+    const dataset = this.makeEtpDataspaceDataset(dataspace, opts, partition);
 
     return {
       kind: "osdu:wks:Manifest:1.0.0",
@@ -213,15 +221,16 @@ export class ManifestBuilder {
     obj: StoredObject,
     dataspace: string,
     opts: ManifestOptions,
+    partition: string,
   ): (ManifestRecord & { _category: string }) | null {
     const { standard, objectType } = this.parseQualifiedType(obj.type);
 
     if (standard === "resqml") {
-      return this.makeResqmlRecord(objectType, obj, dataspace, opts);
+      return this.makeResqmlRecord(objectType, obj, dataspace, opts, partition);
     } else if (standard === "prodml") {
-      return this.makeProdmlRecord(objectType, obj, dataspace, opts);
+      return this.makeProdmlRecord(objectType, obj, dataspace, opts, partition);
     } else if (standard === "witsml") {
-      return this.makeWitsmlRecord(objectType, obj, dataspace, opts);
+      return this.makeWitsmlRecord(objectType, obj, dataspace, opts, partition);
     }
     return null;
   }
@@ -231,6 +240,7 @@ export class ManifestBuilder {
     obj: StoredObject,
     dataspace: string,
     opts: ManifestOptions,
+    partition: string,
   ): (ManifestRecord & { _category: string }) | null {
     // Normalize v2.0.1 types
     const normalized = RESQML201_TO_22[objectType] ?? objectType;
@@ -242,18 +252,19 @@ export class ManifestBuilder {
     const mapping = RESQML_TO_OSDU[normalized];
     if (!mapping) {
       // Unknown type — use GenericRepresentation as fallback
-      return this.makeGenericRecord(normalized, obj, dataspace, opts, "resqml22");
+      return this.makeGenericRecord(normalized, obj, dataspace, opts, "resqml22", partition);
     }
 
     const kind = `osdu:wks:${mapping.prefix}--${mapping.kind}`;
-    const id = `opendes:${mapping.prefix}--${mapping.kind}:${obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name}`;
+    const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
+    const id = `${partition}:${mapping.prefix}--${mapping.kind}:${uuid}`;
     const ddmsUri = this.ddmsUri(dataspace, "resqml22", objectType, obj.uri);
 
     return {
       id,
       kind,
       acl: opts.acl,
-      legal: opts.legal,
+      legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: obj.name,
         DDMSDatasets: [ddmsUri],
@@ -267,20 +278,20 @@ export class ManifestBuilder {
     obj: StoredObject,
     dataspace: string,
     opts: ManifestOptions,
+    partition: string,
   ): (ManifestRecord & { _category: string }) | null {
     const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
     const kind = `osdu:wks:work-product-component--${objectType}:1.0.0`;
-    const id = `opendes:work-product-component--${objectType}:${uuid}`;
+    const id = `${partition}:work-product-component--${objectType}:1.0.0:${uuid}`;
     const ddmsUri = this.ddmsUri(dataspace, "prodml22", objectType, obj.uri);
 
     return {
       id,
       kind,
       acl: opts.acl,
-      legal: opts.legal,
+      legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: obj.name,
-        Description: "PRODML object imported via RDDMS",
         DDMSDatasets: [ddmsUri],
       },
       _category: "wpc",
@@ -292,20 +303,21 @@ export class ManifestBuilder {
     obj: StoredObject,
     dataspace: string,
     opts: ManifestOptions,
+    partition: string,
   ): (ManifestRecord & { _category: string }) | null {
     const osduKind = WITSML_TO_OSDU[objectType];
     if (!osduKind) return null;
 
     const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
     const kind = `osdu:wks:${osduKind}`;
-    const id = `opendes:${osduKind}:${uuid}`;
+    const id = `${partition}:${osduKind}:${uuid}`;
     const category = osduKind.startsWith("master-data") ? "master_data" : "wpc";
 
     return {
       id,
       kind,
       acl: opts.acl,
-      legal: opts.legal,
+      legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: obj.name,
         DDMSDatasets: [`eml:///dataspace('${dataspace}')/witsml21.${objectType}('${uuid}')`],

@@ -171,9 +171,12 @@ describe("Drogon Dataset Round-trip", () => {
     // Should have WPCs for grids, surfaces, properties, interpretations
     expect(manifest.Data.WorkProductComponents.length).toBeGreaterThan(350);
 
-    // Should have MasterData for WellboreFeatures
-    expect(manifest.MasterData).toHaveLength(12);
-    expect(manifest.MasterData[0].kind).toBe("osdu:wks:master-data--Wellbore:1.3.0");
+    // Should have MasterData for WellboreFeatures + BoundaryFeatures (matching ores M27)
+    expect(manifest.MasterData).toHaveLength(24);
+    const wellbores = manifest.MasterData.filter((m) => m.kind === "osdu:wks:master-data--Wellbore:1.3.0");
+    const boundaries = manifest.MasterData.filter((m) => m.kind === "osdu:wks:master-data--LocalBoundaryFeature:1.1.0");
+    expect(wellbores).toHaveLength(12);
+    expect(boundaries).toHaveLength(12);
 
     // Structure maps (Grid2d → StructureMap:1.0.0)
     const structureMaps = manifest.Data.WorkProductComponents.filter(

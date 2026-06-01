@@ -8,6 +8,12 @@
  *   /api/reservoir-ddms/v2/resqml/query
  *   /api/reservoir-ddms/v2/prodml/store
  *   /api/reservoir-ddms/v2/manifests/build
+ *   /api/reservoir-ddms/v2/catalog/ingest
+ *   /api/reservoir-ddms/v2/catalog/push
+ *   /api/reservoir-ddms/v2/catalog/status/:runId
+ *   /api/reservoir-ddms/v2/discovery/search
+ *   /api/reservoir-ddms/v2/discovery/tree
+ *   /api/reservoir-ddms/v2/discovery/types
  */
 
 import express, { Router } from "express";
@@ -17,11 +23,14 @@ import { createWitsmlRoutes } from "./witsml";
 import { createResqmlRoutes } from "./resqml";
 import { createProdmlRoutes } from "./prodml";
 import { createManifestRoutes } from "./manifests";
+import { createCatalogRoutes, OsduConfig } from "./catalog";
+import { createDiscoveryRoutes } from "./discovery";
 
 export interface RestServerOptions {
   port: number;
   host: string;
   etpClient: EtpClient;
+  osduConfig?: OsduConfig;
 }
 
 export function createRestServer(options: RestServerOptions): express.Application {
@@ -42,6 +51,8 @@ export function createRestServer(options: RestServerOptions): express.Applicatio
   router.use("/resqml", createResqmlRoutes(options.etpClient));
   router.use("/prodml", createProdmlRoutes(options.etpClient));
   router.use("/manifests", createManifestRoutes(options.etpClient));
+  router.use("/catalog", createCatalogRoutes(options.etpClient, options.osduConfig));
+  router.use("/discovery", createDiscoveryRoutes(options.etpClient));
 
   app.use(base, router);
 
