@@ -11,7 +11,7 @@
 
 export interface ManifestOptions {
   acl: { owners: string[]; viewers: string[] };
-  legal: { legaltags: string[]; otherRelevantDataCountries: string[] };
+  legal: { legaltags: string[]; otherRelevantDataCountries: string[]; status?: string };
   /** Data partition ID — used in record IDs. Defaults to "opendes". */
   partition?: string;
 }
@@ -20,7 +20,7 @@ export interface ManifestRecord {
   id: string;
   kind: string;
   acl: { owners: string[]; viewers: string[] };
-  legal: { legaltags: string[]; otherRelevantDataCountries: string[] };
+  legal: { legaltags: string[]; otherRelevantDataCountries: string[]; status?: string };
   data: Record<string, any>;
 }
 
@@ -332,17 +332,18 @@ export class ManifestBuilder {
     dataspace: string,
     opts: ManifestOptions,
     prefix: string,
+    partition: string,
   ): ManifestRecord & { _category: string } {
     const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
     const kind = "osdu:wks:work-product-component--GenericRepresentation:1.2.0";
-    const id = `opendes:work-product-component--GenericRepresentation:1.2.0:${uuid}`;
+    const id = `${partition}:work-product-component--GenericRepresentation:1.2.0:${uuid}`;
     const ddmsUri = `eml:///dataspace('${dataspace}')/${prefix}.${objectType}('${uuid}')`;
 
     return {
       id,
       kind,
       acl: opts.acl,
-      legal: opts.legal,
+      legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: obj.name,
         DDMSDatasets: [ddmsUri],
@@ -351,13 +352,13 @@ export class ManifestBuilder {
     };
   }
 
-  private makeEtpDataspaceDataset(dataspace: string, opts: ManifestOptions): ManifestRecord {
+  private makeEtpDataspaceDataset(dataspace: string, opts: ManifestOptions, partition: string): ManifestRecord {
     const safeName = dataspace.replace(/\//g, "-");
     return {
-      id: `opendes:dataset--ETPDataspace:${safeName}`,
+      id: `${partition}:dataset--ETPDataspace:${safeName}`,
       kind: "osdu:wks:dataset--ETPDataspace:1.0.1",
       acl: opts.acl,
-      legal: opts.legal,
+      legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: dataspace,
         Description: "RDDMS dataspace",

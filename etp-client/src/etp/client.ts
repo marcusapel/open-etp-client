@@ -5,9 +5,32 @@
  * - Dataspace management (GetDataspaces, PutDataspaces, DeleteDataspaces)
  * - DataObject CRUD (GetDataObjects, PutDataObjects, DeleteDataObjects)
  * - Discovery (GetResources)
+ *
+ * Uses proper binary Avro encoding (etp-messages.ts) for direct
+ * communication with the C++ open-etp-server. No NestJS proxy needed.
  */
 
 import WebSocket from "ws";
+import { AvroWriter, AvroReader } from "./avro";
+import {
+  MessageHeader,
+  encodeHeader,
+  decodeHeader,
+  encodeRequestSession,
+  encodeCloseSession,
+  decodeOpenSession,
+  encodeGetDataspaces,
+  decodeGetDataspacesResponse,
+  encodePutDataspaces,
+  encodeDeleteDataspaces,
+  encodeGetDataObjects,
+  decodeGetDataObjectsResponse,
+  encodePutDataObjects,
+  encodeDeleteDataObjects,
+  encodeGetResources,
+  decodeGetResourcesResponse,
+  buildMessage,
+} from "./etp-messages";
 
 // ─── ETP 1.2 Protocol Constants ─────────────────────────────────────────────
 
@@ -119,27 +142,19 @@ export class EtpClient {
         headers,
         maxPayload: this.options.maxMessageSize,
       });
+      this.ws.binaryType = "nodebuffer";
 
       this.ws.on("open", () => {
-        this.sendMessage(Protocol.Core, Msg.Core.RequestSession, {
-          applicationName: "open-etp-client",
-          applicationVersion: "0.1.0",
-          requestedProtocols: [
-            { protocol: Protocol.Discovery, protocolVersion: { major: 1, minor: 2 }, role: "store" },
-            { protocol: Protocol.Store, protocolVersion: { major: 1, minor: 2 }, role: "store" },
-            { protocol: Protocol.Dataspace, protocolVersion: { major: 1, minor: 2 }, role: "store" },
-          ],
-          supportedDataObjects: [
-            { qualifiedType: "resqml20.*" },
-            { qualifiedType: "resqml22.*" },
-            { qualifiedType: "witsml21.*" },
-            { qualifiedType: "prodml22.*" },
-          ],
-        });
+        // Send RequestSession using binary Avro
+        const msg = buildMessage(
+          Protocol.Core, Msg.Core.RequestSession, this.nextMessageId(), 0,
+          (w) => encodeRequestSession(w),
+        );
+        this.ws!.send(msg);
       });
 
       this.ws.on("message", (data: Buffer) => {
-        this.handleMessage(data, resolve);
+        this.handleBinaryMessage(data, resolve);
       });
 
       this.ws.on("error", (err) => {
@@ -148,7 +163,6 @@ export class EtpClient {
 
       this.ws.on("close", () => {
         this.sessionOpen = false;
-        // Reject all pending requests
         for (const [, req] of this.pending) {
           clearTimeout(req.timeout);
           req.reject(new Error("Connection closed"));
@@ -160,7 +174,11 @@ export class EtpClient {
 
   async closeSession(): Promise<void> {
     if (this.ws && this.sessionOpen) {
-      this.sendMessage(Protocol.Core, Msg.Core.CloseSession, { reason: "" });
+      const msg = buildMessage(
+        Protocol.Core, Msg.Core.CloseSession, this.nextMessageId(), 0,
+        (w) => encodeCloseSession(w, ""),
+      );
+      this.ws.send(msg);
       this.ws.close();
       this.ws = null;
       this.sessionOpen = false;
@@ -175,8 +193,11 @@ export class EtpClient {
 
   async getDataspaces(): Promise<Dataspace[]> {
     if (this.proxyMode) return this.proxyGet("/dataspaces");
-    const response = await this.request(Protocol.Dataspace, Msg.Dataspace.GetDataspaces, {});
-    return response.dataspaces || [];
+    const response = await this.sendEtpRequest(
+      Protocol.Dataspace, Msg.Dataspace.GetDataspaces,
+      (w) => encodeGetDataspaces(w),
+    );
+    return response;
   }
 
   async putDataspaces(dataspaces: Array<{ path: string; extraMetadata?: Record<string, string> }>): Promise<void> {
@@ -184,16 +205,15 @@ export class EtpClient {
       await this.proxyPost("/dataspaces", dataspaces.map((ds) => ({ DataspaceId: ds.path })));
       return;
     }
-    const dsMap: Record<string, any> = {};
+    const dsMap = new Map<string, { uri: string; path: string }>();
     for (const ds of dataspaces) {
-      dsMap[`eml:///dataspace('${ds.path}')`] = {
-        uri: `eml:///dataspace('${ds.path}')`,
-        path: ds.path,
-        storeLastWrite: new Date().toISOString(),
-        ...(ds.extraMetadata && { customData: ds.extraMetadata }),
-      };
+      const uri = `eml:///dataspace('${ds.path}')`;
+      dsMap.set(uri, { uri, path: ds.path });
     }
-    await this.request(Protocol.Dataspace, Msg.Dataspace.PutDataspaces, { dataspaces: dsMap });
+    await this.sendEtpRequest(
+      Protocol.Dataspace, Msg.Dataspace.PutDataspaces,
+      (w) => encodePutDataspaces(w, dsMap),
+    );
   }
 
   async deleteDataspaces(paths: string[]): Promise<void> {
@@ -201,11 +221,15 @@ export class EtpClient {
       await this.proxyDelete("/dataspaces", { paths });
       return;
     }
-    const uris: Record<string, string> = {};
+    const uris = new Map<string, string>();
     for (const path of paths) {
-      uris[`eml:///dataspace('${path}')`] = `eml:///dataspace('${path}')`;
+      const uri = `eml:///dataspace('${path}')`;
+      uris.set(uri, uri);
     }
-    await this.request(Protocol.Dataspace, Msg.Dataspace.DeleteDataspaces, { uris });
+    await this.sendEtpRequest(
+      Protocol.Dataspace, Msg.Dataspace.DeleteDataspaces,
+      (w) => encodeDeleteDataspaces(w, uris),
+    );
   }
 
   // ─── Data Object Operations ──────────────────────────────────────────────
@@ -219,7 +243,6 @@ export class EtpClient {
           const obj = objects[i];
           const xml = typeof obj === "string" ? obj : JSON.stringify(obj);
           const uri = uris[i] || "";
-          // Match the LAST type(uuid) in URI — skip the dataspace('...') part
           const matches = [...uri.matchAll(/\/([^/'(]+)\(([0-9a-f-]+)\)/gi)];
           const m = matches.length > 0 ? matches[matches.length - 1] : null;
           results.push({
@@ -230,12 +253,15 @@ export class EtpClient {
       }
       return results;
     }
-    const uriMap: Record<string, string> = {};
+    const uriMap = new Map<string, string>();
     for (const uri of uris) {
-      uriMap[uri] = uri;
+      uriMap.set(uri, uri);
     }
-    const response = await this.request(Protocol.Store, Msg.Store.GetDataObjects, { uris: uriMap });
-    return Object.values(response.dataObjects || {});
+    const response = await this.sendEtpRequest(
+      Protocol.Store, Msg.Store.GetDataObjects,
+      (w) => encodeGetDataObjects(w, uriMap),
+    );
+    return response;
   }
 
   async putDataObjects(objects: DataObject[]): Promise<void> {
@@ -243,14 +269,19 @@ export class EtpClient {
       await this.proxyPost("/objects", { dataObjects: objects });
       return;
     }
-    const objMap: Record<string, any> = {};
+    const objMap = new Map<string, { uri: string; name: string; dataObjectType: string; data: string }>();
     for (const obj of objects) {
-      objMap[obj.resource.uri] = {
-        resource: obj.resource,
+      objMap.set(obj.resource.uri, {
+        uri: obj.resource.uri,
+        name: obj.resource.name,
+        dataObjectType: obj.resource.dataObjectType,
         data: obj.data,
-      };
+      });
     }
-    await this.request(Protocol.Store, Msg.Store.PutDataObjects, { dataObjects: objMap });
+    await this.sendEtpRequest(
+      Protocol.Store, Msg.Store.PutDataObjects,
+      (w) => encodePutDataObjects(w, objMap),
+    );
   }
 
   async deleteDataObjects(uris: string[]): Promise<void> {
@@ -258,85 +289,154 @@ export class EtpClient {
       await this.proxyDelete("/objects", { uris });
       return;
     }
-    const uriMap: Record<string, string> = {};
+    const uriMap = new Map<string, string>();
     for (const uri of uris) {
-      uriMap[uri] = uri;
+      uriMap.set(uri, uri);
     }
-    await this.request(Protocol.Store, Msg.Store.DeleteDataObjects, { uris: uriMap });
+    await this.sendEtpRequest(
+      Protocol.Store, Msg.Store.DeleteDataObjects,
+      (w) => encodeDeleteDataObjects(w, uriMap),
+    );
   }
 
   // ─── Discovery ───────────────────────────────────────────────────────────
 
   async getResources(uri: string, depth?: number): Promise<Resource[]> {
     if (this.proxyMode) {
-      // Extract dataspace from URI: eml:///dataspace('x/y') → x/y
       const dsMatch = uri.match(/dataspace\('([^']+)'\)/);
       if (dsMatch) {
         const dsId = encodeURIComponent(dsMatch[1]);
-        return this.proxyGet(`/dataspaces/${dsId}/resources/all`);
+        const resources = await this.proxyGet(`/dataspaces/${dsId}/resources/all`);
+        // Normalize: official REST doesn't include dataObjectType, extract from URI
+        return (resources as any[]).map((r) => {
+          const typeMatch = r.uri?.match(/\/([^/(]+)\(/);
+          return {
+            uri: r.uri,
+            name: r.name,
+            dataObjectType: typeMatch ? typeMatch[1] : "",
+            uuid: r.uri?.match(/\(([^)]+)\)$/)?.[1],
+            lastChanged: r.storeLastWrite || r.lastChanged,
+          };
+        });
       }
       return this.proxyGet(`/dataspaces/${encodeURIComponent(uri)}/resources/all`);
     }
-    const response = await this.request(Protocol.Discovery, Msg.Discovery.GetResources, {
-      context: { uri, depth: depth ?? 1, dataObjectTypes: [] },
-      scope: "targets",
-    });
-    return response.resources || [];
+    const response = await this.sendEtpRequest(
+      Protocol.Discovery, Msg.Discovery.GetResources,
+      (w) => encodeGetResources(w, uri, depth ?? 1),
+    );
+    return response;
   }
 
-  // ─── Internal ────────────────────────────────────────────────────────────
+  // ─── Internal: Binary Avro ETP Transport ─────────────────────────────────
 
   private nextMessageId(): number {
     return ++this.messageId;
   }
 
-  private sendMessage(protocol: number, messageType: number, body: any, correlationId?: number): number {
-    const id = this.nextMessageId();
-    const header = {
-      protocol,
-      messageType,
-      correlationId: correlationId ?? 0,
-      messageId: id,
-      messageFlags: 0x02, // FIN flag
-    };
-    // ETP uses JSON-over-WebSocket (simplified — real impl uses Avro binary via etp-messages.ts)
-    const message = JSON.stringify({ header, body });
-    this.ws?.send(message);
-    return id;
-  }
-
-  private request(protocol: number, messageType: number, body: any): Promise<any> {
+  /**
+   * Send an ETP request encoded as binary Avro and wait for the response.
+   * Returns the decoded response body.
+   */
+  private sendEtpRequest(
+    protocol: number,
+    messageType: number,
+    encodeBody: (w: AvroWriter) => void,
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
-      const id = this.sendMessage(protocol, messageType, body);
+      const id = this.nextMessageId();
+      const msg = buildMessage(protocol, messageType, id, 0, encodeBody);
+      this.ws!.send(msg);
+
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         reject(new Error(`ETP request timeout (protocol=${protocol}, type=${messageType})`));
       }, this.requestTimeout);
+
       this.pending.set(id, { resolve, reject, timeout });
     });
   }
 
-  private handleMessage(data: Buffer, sessionResolve?: (value: void) => void): void {
+  /**
+   * Handle an incoming binary Avro ETP message.
+   * Decodes header, then dispatches to the appropriate response decoder.
+   */
+  private handleBinaryMessage(data: Buffer, sessionResolve?: (value: void) => void): void {
     try {
-      const msg = JSON.parse(data.toString());
-      const { header, body } = msg;
+      const reader = new AvroReader(data);
+      const header = decodeHeader(reader);
 
-      // Handle OpenSession response
+      // Handle OpenSession response (completes handshake)
       if (header.protocol === Protocol.Core && header.messageType === Msg.Core.OpenSession) {
+        decodeOpenSession(reader); // consume the body
         this.sessionOpen = true;
         sessionResolve?.();
         return;
       }
 
-      // Match response to pending request
+      // Match response to pending request by correlationId
       const pending = this.pending.get(header.correlationId);
-      if (pending) {
-        clearTimeout(pending.timeout);
-        this.pending.delete(header.correlationId);
-        pending.resolve(body);
-      }
-    } catch (err) {
-      // Ignore malformed messages
+      if (!pending) return;
+
+      clearTimeout(pending.timeout);
+      this.pending.delete(header.correlationId);
+
+      // Decode response body based on protocol + messageType
+      const decoded = this.decodeResponseBody(header, reader);
+      pending.resolve(decoded);
+    } catch (err: any) {
+      // If we can still identify the correlationId, reject the pending request
+      // Otherwise silently drop (malformed frame)
+    }
+  }
+
+  /**
+   * Decode the response body based on protocol and message type.
+   */
+  private decodeResponseBody(header: MessageHeader, reader: AvroReader): any {
+    switch (header.protocol) {
+      case Protocol.Dataspace:
+        if (header.messageType === Msg.Dataspace.GetDataspacesResponse) {
+          const dataspaces = decodeGetDataspacesResponse(reader);
+          return dataspaces.map((d) => ({
+            uri: d.uri,
+            path: d.path,
+            lastChanged: new Date(d.storeLastWrite / 1000).toISOString(),
+          }));
+        }
+        // PutDataspacesResponse / DeleteDataspacesResponse — success ack
+        return {};
+
+      case Protocol.Store:
+        if (header.messageType === Msg.Store.GetDataObjectsResponse) {
+          const objects = decodeGetDataObjectsResponse(reader);
+          return objects.map((o) => ({
+            resource: {
+              uri: o.uri,
+              name: o.name,
+              dataObjectType: o.dataObjectType,
+              uuid: o.uuid,
+            },
+            data: o.data,
+          }));
+        }
+        // PutDataObjectsResponse / DeleteDataObjectsResponse — success ack
+        return {};
+
+      case Protocol.Discovery:
+        if (header.messageType === Msg.Discovery.GetResourcesResponse) {
+          const resources = decodeGetResourcesResponse(reader);
+          return resources.map((r) => ({
+            uri: r.uri,
+            name: r.name,
+            dataObjectType: r.dataObjectType,
+            uuid: r.uri.match(/\(([^)]+)\)$/)?.[1],
+          }));
+        }
+        return {};
+
+      default:
+        return {};
     }
   }
 

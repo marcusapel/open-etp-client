@@ -97,6 +97,10 @@ Commands:
   objects put <file> [--dataspace ds] Upload XML file(s)
   objects delete <uri>                Delete object
 
+  epc load <file.epc> --dataspace <path> [--batch 50] [--standards resqml,witsml]
+                                      Load EPC file via ETP (direct, no REST)
+  epc list <file.epc>                 List objects in an EPC file
+
   search <uri> [--depth N] [--type T] [--name P] [--limit N]
                                       Deep discovery search
   tree <uri> [--depth N]              Resource hierarchy tree
@@ -112,7 +116,8 @@ Commands:
   status                              Health / connectivity check
 
 Environment:
-  RDDMS_URL  Base URL (default: http://localhost:8080)
+  RDDMS_URL        Base URL for REST API (default: http://localhost:8080)
+  ETP_SERVER_URL   WebSocket URL for direct ETP (default: ws://localhost:9002)
 `);
   process.exit(0);
 }
@@ -326,6 +331,83 @@ async function cmdStatus() {
   console.log(`ETP Connected: ${data.etpConnected}`);
 }
 
+/**
+ * EPC load — bypasses REST, speaks ETP directly.
+ * Loads an EPC ZIP file directly into a dataspace via binary Avro ETP.
+ */
+async function cmdEpc(sub: string, args: string[], flags: Record<string, string>) {
+  switch (sub) {
+    case "load": {
+      if (!args[0]) {
+        console.error("Usage: rddms epc load <file.epc> --dataspace <path> [--batch 50] [--standards resqml,witsml]");
+        process.exit(1);
+      }
+      const filePath = path.resolve(args[0]);
+      if (!fs.existsSync(filePath)) { console.error(`File not found: ${filePath}`); process.exit(1); }
+      const dataspace = flags.dataspace || flags.ds;
+      if (!dataspace) { console.error("--dataspace is required"); process.exit(1); }
+
+      // Direct ETP — no REST server needed
+      const { EtpClient } = await import("./etp");
+      const { loadEpc } = await import("./epc");
+
+      const serverUrl = process.env.ETP_SERVER_URL || "ws://localhost:9002";
+      const etp = new EtpClient({ serverUrl, dataPartitionId: process.env.ETP_DATA_PARTITION_ID || "opendes" });
+
+      console.log(`Connecting to ETP server ${serverUrl}...`);
+      await etp.openSession();
+      console.log(`Loading ${filePath} → dataspace '${dataspace}'...`);
+
+      const result = await loadEpc(etp, filePath, {
+        dataspace,
+        batchSize: parseInt(flags.batch || "50"),
+        verbose: true,
+        standards: flags.standards ? flags.standards.split(",") : undefined,
+        types: flags.types ? flags.types.split(",") : undefined,
+      });
+
+      await etp.closeSession();
+
+      console.log(`\n  Loaded: ${result.loadedObjects}/${result.totalEntries} objects`);
+      console.log(`  Skipped: ${result.skipped}`);
+      console.log(`  By standard: ${JSON.stringify(result.byStandard)}`);
+      if (result.errors.length > 0) {
+        console.error(`  Errors: ${result.errors.length}`);
+        result.errors.forEach((e) => console.error(`    ${e}`));
+      }
+      break;
+    }
+    case "list": {
+      if (!args[0]) { console.error("Usage: rddms epc list <file.epc> [--standards resqml,witsml]"); process.exit(1); }
+      const filePath = path.resolve(args[0]);
+      if (!fs.existsSync(filePath)) { console.error(`File not found: ${filePath}`); process.exit(1); }
+
+      const { extractEpcObjects } = await import("./epc");
+      let objects = extractEpcObjects(filePath);
+
+      if (flags.standards) {
+        const allowed = flags.standards.split(",");
+        objects = objects.filter((o) => allowed.includes(o.standard));
+      }
+
+      const byType: Record<string, number> = {};
+      for (const obj of objects) {
+        byType[obj.qualifiedType] = (byType[obj.qualifiedType] || 0) + 1;
+      }
+
+      console.log(`\nEPC: ${filePath}`);
+      console.log(`Objects: ${objects.length}\n`);
+      for (const [type, count] of Object.entries(byType).sort((a, b) => b[1] - a[1])) {
+        console.log(`  ${String(count).padStart(4)}  ${type}`);
+      }
+      break;
+    }
+    default:
+      console.error(`Unknown epc subcommand: ${sub}. Use: load, list`);
+      process.exit(1);
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -358,6 +440,9 @@ async function main() {
       break;
     case "witsml":
       await cmdWitsml(rest[0], rest.slice(1), flags);
+      break;
+    case "epc":
+      await cmdEpc(rest[0], rest.slice(1), flags);
       break;
     case "status":
       await cmdStatus();
