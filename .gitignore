@@ -4,3 +4,5 @@ rddms_local.db
 compile_commands.json
 *.o
 *.a
+__pycache__/
+*.pyc
