@@ -31,7 +31,7 @@ export interface EpcLoadResult {
 }
 
 export interface EpcLoadOptions {
-  /** Target dataspace path (e.g. "maap/drogon22") */
+  /** Target dataspace path (e.g. "project/scenario1") */
   dataspace: string;
   /** Create the dataspace if it doesn't exist. Default: true */
   createDataspace?: boolean;

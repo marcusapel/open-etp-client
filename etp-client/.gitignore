@@ -3,3 +3,6 @@ dist/
 coverage/
 config.user.env
 *.tgz
+
+# Demo/debug data (local development only)
+demo/

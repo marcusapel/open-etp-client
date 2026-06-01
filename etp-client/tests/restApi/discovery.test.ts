@@ -26,7 +26,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
-        .send({ uri: "eml:///dataspace('test/drogon')" });
+        .send({ uri: "eml:///dataspace('test/scenario-a')" });
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(5);
@@ -43,7 +43,7 @@ describe("Discovery Routes", () => {
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
         .send({
-          uri: "eml:///dataspace('test/drogon')",
+          uri: "eml:///dataspace('test/scenario-a')",
           dataObjectTypes: ["IjkGridRepresentation"],
         });
 
@@ -61,7 +61,7 @@ describe("Discovery Routes", () => {
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
         .send({
-          uri: "eml:///dataspace('test/drogon')",
+          uri: "eml:///dataspace('test/scenario-a')",
           namePattern: "^(Top|PHIT)",
         });
 
@@ -80,7 +80,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
-        .send({ uri: "eml:///dataspace('test/drogon')", limit: 2 });
+        .send({ uri: "eml:///dataspace('test/scenario-a')", limit: 2 });
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(2);
@@ -96,7 +96,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
-        .send({ uri: "eml:///dataspace('test/drogon')", depth: 2 });
+        .send({ uri: "eml:///dataspace('test/scenario-a')", depth: 2 });
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(2);
@@ -106,7 +106,7 @@ describe("Discovery Routes", () => {
     it("avoids revisiting the same URI (cycle protection)", async () => {
       const cycleResource: any = {
         ...FIXTURES.resources[0],
-        uri: "eml:///dataspace('test/drogon')",
+        uri: "eml:///dataspace('test/scenario-a')",
       };
       const getResources = jest.fn().mockResolvedValue([cycleResource]);
       const etp = createMockEtpClient({ getResources });
@@ -114,7 +114,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
-        .send({ uri: "eml:///dataspace('test/drogon')", depth: 5 });
+        .send({ uri: "eml:///dataspace('test/scenario-a')", depth: 5 });
 
       expect(res.status).toBe(200);
       // Should not recurse infinitely
@@ -156,7 +156,7 @@ describe("Discovery Routes", () => {
       const res = await request(app)
         .post(`${BASE}/discovery/search`)
         .send({
-          uri: "eml:///dataspace('test/drogon')",
+          uri: "eml:///dataspace('test/scenario-a')",
           dataObjectTypes: ["resqml22"],
           namePattern: "Grid",
         });
@@ -179,10 +179,10 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .get(`${BASE}/discovery/tree`)
-        .query({ uri: "eml:///dataspace('test/drogon')", depth: "2" });
+        .query({ uri: "eml:///dataspace('test/scenario-a')", depth: "2" });
 
       expect(res.status).toBe(200);
-      expect(res.body.uri).toBe("eml:///dataspace('test/drogon')");
+      expect(res.body.uri).toBe("eml:///dataspace('test/scenario-a')");
       expect(res.body.depth).toBe(2);
       expect(res.body.tree).toHaveLength(2);
       expect(res.body.tree[0].name).toBe("Drogon Grid");
@@ -192,7 +192,7 @@ describe("Discovery Routes", () => {
 
     it("builds nested children at depth > 1", async () => {
       const childResource = {
-        uri: "eml:///dataspace('test/drogon')/resqml22.ContinuousProperty('child-1')",
+        uri: "eml:///dataspace('test/scenario-a')/resqml22.ContinuousProperty('child-1')",
         name: "Porosity",
         dataObjectType: "resqml22.ContinuousProperty",
       };
@@ -204,7 +204,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .get(`${BASE}/discovery/tree`)
-        .query({ uri: "eml:///dataspace('test/drogon')", depth: "2" });
+        .query({ uri: "eml:///dataspace('test/scenario-a')", depth: "2" });
 
       expect(res.status).toBe(200);
       expect(res.body.tree[0].children).toHaveLength(1);
@@ -251,7 +251,7 @@ describe("Discovery Routes", () => {
 
       const res = await request(app)
         .get(`${BASE}/discovery/types`)
-        .query({ uri: "eml:///dataspace('test/drogon')" });
+        .query({ uri: "eml:///dataspace('test/scenario-a')" });
 
       expect(res.status).toBe(200);
       expect(res.body.totalObjects).toBe(5);
@@ -312,7 +312,7 @@ describe("Discovery Routes", () => {
 
       const req = request(app)
         .post(`${BASE}/discovery/subscribe`)
-        .send({ uri: "eml:///dataspace('test/drogon')" })
+        .send({ uri: "eml:///dataspace('test/scenario-a')" })
         .buffer(true)
         .parse((res, callback) => {
           let data = "";
@@ -325,7 +325,7 @@ describe("Discovery Routes", () => {
               const jsonStr = data.split("data: ")[1].split("\n")[0];
               const event = JSON.parse(jsonStr);
               expect(event.type).toBe("subscribed");
-              expect(event.uri).toBe("eml:///dataspace('test/drogon')");
+              expect(event.uri).toBe("eml:///dataspace('test/scenario-a')");
               req.abort();
               done();
             }

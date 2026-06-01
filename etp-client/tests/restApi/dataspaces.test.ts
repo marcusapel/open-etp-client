@@ -34,8 +34,8 @@ describe("Dataspace Routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveLength(2);
-      expect(res.body[0].path).toBe("test/drogon");
-      expect(res.body[1].path).toBe("maap/witsml");
+      expect(res.body[0].path).toBe("test/scenario-a");
+      expect(res.body[1].path).toBe("test/scenario-b");
     });
 
     it("returns empty array when no dataspaces exist", async () => {
@@ -73,12 +73,12 @@ describe("Dataspace Routes", () => {
 
       const res = await request(app)
         .post(`${BASE}/dataspaces`)
-        .send({ path: "maap/new-project" });
+        .send({ path: "test/new-project" });
 
       expect(res.status).toBe(201);
-      expect(res.body.uri).toBe("eml:///dataspace('maap/new-project')");
-      expect(res.body.path).toBe("maap/new-project");
-      expect(putDataspaces).toHaveBeenCalledWith([{ path: "maap/new-project" }]);
+      expect(res.body.uri).toBe("eml:///dataspace('test/new-project')");
+      expect(res.body.path).toBe("test/new-project");
+      expect(putDataspaces).toHaveBeenCalledWith([{ path: "test/new-project" }]);
     });
 
     it("accepts DataspaceId format (official format)", async () => {

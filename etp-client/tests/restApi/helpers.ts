@@ -38,41 +38,41 @@ export function createMockEtpClient(overrides: MockEtpClientOverrides = {}): Etp
 
 export const FIXTURES = {
   dataspaces: [
-    { uri: "eml:///dataspace('test/drogon')", path: "test/drogon", lastChanged: "2025-01-01T00:00:00Z" },
-    { uri: "eml:///dataspace('maap/witsml')", path: "maap/witsml", lastChanged: "2025-06-01T00:00:00Z" },
+    { uri: "eml:///dataspace('test/scenario-a')", path: "test/scenario-a", lastChanged: "2025-01-01T00:00:00Z" },
+    { uri: "eml:///dataspace('test/scenario-b')", path: "test/scenario-b", lastChanged: "2025-06-01T00:00:00Z" },
   ] as Dataspace[],
 
   resources: [
     {
-      uri: "eml:///dataspace('test/drogon')/resqml22.IjkGridRepresentation('grid-001')",
-      name: "Drogon Grid",
+      uri: "eml:///dataspace('test/scenario-a')/resqml22.IjkGridRepresentation('grid-001')",
+      name: "Test Grid",
       dataObjectType: "resqml22.IjkGridRepresentation",
       uuid: "grid-001",
       lastChanged: "2025-01-15T12:00:00Z",
     },
     {
-      uri: "eml:///dataspace('test/drogon')/resqml22.Grid2dRepresentation('surf-001')",
-      name: "Top Valysar",
+      uri: "eml:///dataspace('test/scenario-a')/resqml22.Grid2dRepresentation('surf-001')",
+      name: "Surface A",
       dataObjectType: "resqml22.Grid2dRepresentation",
       uuid: "surf-001",
       lastChanged: "2025-01-15T12:00:00Z",
     },
     {
-      uri: "eml:///dataspace('test/drogon')/resqml22.WellboreFeature('wb-001')",
-      name: "55/33-A-1",
+      uri: "eml:///dataspace('test/scenario-a')/resqml22.WellboreFeature('wb-001')",
+      name: "Well-A1",
       dataObjectType: "resqml22.WellboreFeature",
       uuid: "wb-001",
       lastChanged: "2025-01-15T12:00:00Z",
     },
     {
-      uri: "eml:///dataspace('test/drogon')/resqml22.ContinuousProperty('prop-001')",
+      uri: "eml:///dataspace('test/scenario-a')/resqml22.ContinuousProperty('prop-001')",
       name: "PHIT",
       dataObjectType: "resqml22.ContinuousProperty",
       uuid: "prop-001",
       lastChanged: "2025-01-15T12:00:00Z",
     },
     {
-      uri: "eml:///dataspace('test/drogon')/witsml21.Log('log-001')",
+      uri: "eml:///dataspace('test/scenario-a')/witsml21.Log('log-001')",
       name: "Gamma Ray",
       dataObjectType: "witsml21.Log",
       uuid: "log-001",
@@ -83,22 +83,22 @@ export const FIXTURES = {
   dataObjects: [
     {
       resource: {
-        uri: "eml:///dataspace('test/drogon')/resqml22.IjkGridRepresentation('grid-001')",
-        name: "Drogon Grid",
+        uri: "eml:///dataspace('test/scenario-a')/resqml22.IjkGridRepresentation('grid-001')",
+        name: "Test Grid",
         dataObjectType: "resqml22.IjkGridRepresentation",
         uuid: "grid-001",
       },
       data: `<?xml version="1.0" encoding="utf-8"?>
 <resqml22:IjkGridRepresentation xmlns:resqml22="http://www.energistics.org/energyml/data/resqmlv2"
   uuid="grid-001" schemaVersion="2.2">
-  <Citation><Title>Drogon Grid</Title></Citation>
+  <Citation><Title>Test Grid</Title></Citation>
   <Ni>100</Ni><Nj>100</Nj><Nk>50</Nk>
 </resqml22:IjkGridRepresentation>`,
     },
     {
       resource: {
-        uri: "eml:///dataspace('test/drogon')/resqml22.Grid2dRepresentation('surf-001')",
-        name: "Top Valysar",
+        uri: "eml:///dataspace('test/scenario-a')/resqml22.Grid2dRepresentation('surf-001')",
+        name: "Surface A",
         dataObjectType: "resqml22.Grid2dRepresentation",
         uuid: "surf-001",
       },
@@ -113,7 +113,7 @@ export const FIXTURES = {
   witsmlWellXml: `<?xml version="1.0" encoding="UTF-8"?>
 <logs xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
   <log uid="log-100">
-    <nameWell>Drogon-1</nameWell>
+    <nameWell>TestWell-1</nameWell>
     <name>Gamma Ray Log</name>
     <indexCurve>DEPTH</indexCurve>
     <logCurveInfo><mnemonic>DEPTH</mnemonic><unit>m</unit></logCurveInfo>
