@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<logs xmlns="http://www.witsml.org/schemas/131" version="1.3.1.0">
+  <log uid="legacy-log-001">
+    <nameWell>Old Discovery Well</nameWell>
+    <name>Legacy Sonic</name>
+    <indexType>measured depth</indexType>
+    <indexCurve mnemAlias="DEPTH">DEPTH</indexCurve>
+    <logCurveInfo>
+      <mnemonic>DEPTH</mnemonic>
+      <unit>m</unit>
+    </logCurveInfo>
+    <logCurveInfo>
+      <mnemonic>DT</mnemonic>
+      <unit>us/ft</unit>
+      <curveDescription>Sonic</curveDescription>
+    </logCurveInfo>
+    <logData>
+      <data>500.0,120.5</data>
+      <data>500.5,118.2</data>
+      <data>501.0,115.8</data>
+    </logData>
+  </log>
+</logs>

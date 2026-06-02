@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Well xmlns="http://www.energistics.org/energyml/data/witsmlv2"
+      xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
+      schemaVersion="2.1" uuid="a1b2c3d4-e5f6-5789-abcd-ef0123456789">
+  <eml:Citation>
+    <eml:Title>DROGON C-1</eml:Title>
+    <eml:Originator>Equinor</eml:Originator>
+    <eml:Creation>2019-01-15T00:00:00Z</eml:Creation>
+    <eml:Format>WITSML 2.1</eml:Format>
+  </eml:Citation>
+  <TimeZone>+01:00</TimeZone>
+  <GeographicLocationWGS84>
+    <Latitude uom="dega">58.44</Latitude>
+    <Longitude uom="dega">2.07</Longitude>
+  </GeographicLocationWGS84>
+  <StatusWell>active</StatusWell>
+  <PurposeWell>exploration</PurposeWell>
+  <Country>Norway</Country>
+  <NumGovt>7220/8-C1</NumGovt>
+</Well>

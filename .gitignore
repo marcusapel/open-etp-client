@@ -6,5 +6,24 @@ compile_commands.json
 *.a
 __pycache__/
 *.pyc
-demo/
 config.*
+
+# Local dev artifacts
+*.log
+nohup.out
+*.tmp
+*.bak
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Test outputs
+Testing/
+coverage/
+*.gcda
+*.gcno
+
+# OS junk
+.DS_Store
+Thumbs.db

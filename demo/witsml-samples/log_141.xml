@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<logs xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
+  <log uid="drogon-A1-composite">
+    <nameWell>DROGON A-1</nameWell>
+    <nameWellbore>DROGON A-1 WB1</nameWellbore>
+    <name>Composite GR-DT-NPHI-RHOB</name>
+    <indexType>measured depth</indexType>
+    <indexCurve>DEPTH</indexCurve>
+    <logCurveInfo>
+      <mnemonic>DEPTH</mnemonic>
+      <unit>m</unit>
+      <curveDescription>Measured Depth</curveDescription>
+    </logCurveInfo>
+    <logCurveInfo>
+      <mnemonic>GR</mnemonic>
+      <unit>gAPI</unit>
+      <curveDescription>Gamma Ray</curveDescription>
+    </logCurveInfo>
+    <logCurveInfo>
+      <mnemonic>DT</mnemonic>
+      <unit>us/ft</unit>
+      <curveDescription>Sonic Transit Time</curveDescription>
+    </logCurveInfo>
+    <logCurveInfo>
+      <mnemonic>NPHI</mnemonic>
+      <unit>v/v</unit>
+      <curveDescription>Neutron Porosity</curveDescription>
+    </logCurveInfo>
+    <logCurveInfo>
+      <mnemonic>RHOB</mnemonic>
+      <unit>g/cm3</unit>
+      <curveDescription>Bulk Density</curveDescription>
+    </logCurveInfo>
+    <logData>
+      <data>1000.0, 45.2, 105.3, 0.18, 2.35</data>
+      <data>1000.5, 47.1, 103.8, 0.19, 2.38</data>
+      <data>1001.0, 52.3, 98.2, 0.22, 2.42</data>
+      <data>1001.5, 48.7, 101.5, 0.20, 2.37</data>
+      <data>1002.0, 55.9, 95.4, 0.24, 2.45</data>
+    </logData>
+  </log>
+</logs>
