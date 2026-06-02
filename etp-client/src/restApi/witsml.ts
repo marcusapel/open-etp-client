@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createHash } from "crypto";
 import { EtpClient } from "../etp";
 import { WitsmlParser } from "../witsml/parser";
+import { cacheWitsmlXml } from "../manifest/witsml-cache";
 
 /** Generate a deterministic UUID v5-like from a name string */
 function nameToUuid(name: string): string {
@@ -109,6 +110,12 @@ export function createWitsmlRoutes(etp: EtpClient): Router {
       });
 
       await etp.putDataObjects(dataObjects);
+
+      // Cache XML for manifest enrichment (avoids getDataObjects round-trip)
+      for (const obj of dataObjects) {
+        cacheWitsmlXml(obj.resource.uri, obj.data);
+      }
+
       res.json({ stored: objects.length, objects: objects.map((o) => ({ uid: o.uid, type: o.type, name: o.name })) });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

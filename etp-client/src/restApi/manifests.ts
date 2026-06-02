@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { EtpClient } from "../etp";
 import { ManifestBuilder, ManifestOptions } from "../manifest/builder";
+import { getCachedWitsmlXml } from "../manifest/witsml-cache";
 
 export function createManifestRoutes(etp: EtpClient): Router {
   const router = Router();
@@ -28,24 +29,40 @@ export function createManifestRoutes(etp: EtpClient): Router {
         // If it's a dataspace URI, discover all objects
         if (uri.includes("dataspace(") && !uri.includes(")/")) {
           const resources = await etp.getResources(uri);
+
           for (const r of resources) {
+            // Use cached XML for WITSML objects (populated at ingestion time)
+            const xml = (r.dataObjectType || "").startsWith("witsml")
+              ? getCachedWitsmlXml(r.uri) || ""
+              : "";
             allObjects.push({
               uri: r.uri,
               type: r.dataObjectType || "",
-              xml: "",
+              xml,
               name: r.name || "",
             });
           }
         } else {
-          // Single object URI
-          const dataObjects = await etp.getDataObjects([uri]);
-          for (const obj of dataObjects) {
+          // Single object URI — try cache first, fallback to getDataObjects
+          const cachedXml = getCachedWitsmlXml(uri);
+          if (cachedXml) {
+            const typeMatch = uri.match(/\/([^/(]+)\(/);
             allObjects.push({
-              uri: obj.resource.uri,
-              type: obj.resource.dataObjectType,
-              xml: obj.data,
-              name: obj.resource.name,
+              uri,
+              type: typeMatch ? typeMatch[1] : "",
+              xml: cachedXml,
+              name: "",
             });
+          } else {
+            const dataObjects = await etp.getDataObjects([uri]);
+            for (const obj of dataObjects) {
+              allObjects.push({
+                uri: obj.resource.uri,
+                type: obj.resource.dataObjectType,
+                xml: obj.data,
+                name: obj.resource.name,
+              });
+            }
           }
         }
       }

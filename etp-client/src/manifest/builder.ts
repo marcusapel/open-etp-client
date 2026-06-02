@@ -7,7 +7,10 @@
  * - MasterData / ReferenceData / Data sections
  * - Proper RESQML→OSDU type mapping (M27 kinds)
  * - RESQML 2.0.1→2.2 type normalization
+ * - WITSML XML enrichment (curves, depths, well references)
  */
+
+import { XMLParser } from "fast-xml-parser";
 
 export interface ManifestOptions {
   acl: { owners: string[]; viewers: string[] };
@@ -358,17 +361,250 @@ export class ManifestBuilder {
     const id = `${partition}:${osduKind}:${uuid}`;
     const category = osduKind.startsWith("master-data") ? "master_data" : "wpc";
 
+    // Base data with DDMS link
+    const data: Record<string, any> = {
+      Name: obj.name,
+      DDMSDatasets: [obj.uri || `eml:///dataspace('${dataspace}')/witsml21.${objectType}(${uuid})`],
+    };
+
+    // Enrich with type-specific fields from XML
+    if (obj.xml) {
+      this.enrichWitsmlData(objectType, obj.xml, data, dataspace, partition);
+    }
+
     return {
       id,
       kind,
       acl: opts.acl,
       legal: { ...opts.legal, status: "compliant" },
-      data: {
-        Name: obj.name,
-        DDMSDatasets: [obj.uri || `eml:///dataspace('${dataspace}')/witsml21.${objectType}(${uuid})`],
-      },
+      data,
       _category: category,
     };
+  }
+
+  /**
+   * Parse WITSML XML and enrich the manifest data record with type-specific fields.
+   * Handles both native 2.1 XML and 1.x converted envelopes (with CustomData/OriginalWitsml).
+   */
+  private enrichWitsmlData(
+    objectType: string,
+    xml: string,
+    data: Record<string, any>,
+    dataspace: string,
+    partition: string,
+  ): void {
+    try {
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+        removeNSPrefix: true,
+      });
+      const parsed = parser.parse(xml);
+      const root = parsed[objectType] || parsed[Object.keys(parsed).find((k) => !k.startsWith("?")) || ""] || {};
+
+      // Check if this is a 1.x envelope with CustomData/OriginalWitsml
+      const customData = root.CustomData;
+      if (customData?.OriginalWitsml) {
+        const originalXml = String(customData.OriginalWitsml)
+          .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+        this.enrichFrom1xXml(objectType, originalXml, data, parser, dataspace, partition);
+        return;
+      }
+
+      // Native 2.1 XML enrichment
+      switch (objectType) {
+        case "Well":
+          this.enrichWell(root, data);
+          break;
+        case "Wellbore":
+          this.enrichWellbore(root, data, dataspace, partition);
+          break;
+        case "Log":
+          this.enrichLog(root, data, dataspace, partition);
+          break;
+        case "ChannelSet":
+          this.enrichChannelSet(root, data, dataspace, partition);
+          break;
+        case "Trajectory":
+          this.enrichTrajectory(root, data, dataspace, partition);
+          break;
+      }
+    } catch {
+      // If XML parsing fails, keep the base data as-is
+    }
+  }
+
+  private enrichFrom1xXml(
+    objectType: string,
+    originalXml: string,
+    data: Record<string, any>,
+    parser: XMLParser,
+    dataspace: string,
+    partition: string,
+  ): void {
+    try {
+      const parsed = parser.parse(originalXml);
+      // 1.x XML: plural root (logs, wells, etc.) → singular child
+      const rootKeys = Object.keys(parsed).filter((k) => !k.startsWith("?"));
+      if (rootKeys.length === 0) return;
+      const container = parsed[rootKeys[0]];
+      const singularKey = objectType.charAt(0).toLowerCase() + objectType.slice(1);
+      const item = container?.[singularKey];
+      if (!item) return;
+      const obj = Array.isArray(item) ? item[0] : item;
+
+      switch (objectType) {
+        case "Well":
+          if (obj.country || obj.Country) data.CountryID = obj.country || obj.Country;
+          if (obj.field || obj.Field) data.FieldName = obj.field || obj.Field;
+          if (obj.statusWell) data.WellStatus = obj.statusWell;
+          if (obj.purposeWell) data.WellType = obj.purposeWell;
+          if (obj.numGovt) data.NameAliases = [{ AliasName: obj.numGovt, AliasNameTypeID: "GovernmentNumber" }];
+          data.FacilityName = data.Name;
+          break;
+        case "Wellbore":
+          if (obj.nameWell) {
+            data.WellID = `${partition}:master-data--Well:1.2.0:${this.nameHash(dataspace, "Well", obj.nameWell)}`;
+          }
+          data.FacilityName = data.Name;
+          break;
+        case "Log": {
+          if (obj.nameWellbore) {
+            data.WellboreID = `${partition}:master-data--Wellbore:1.3.0:${this.nameHash(dataspace, "Wellbore", obj.nameWellbore)}`;
+          }
+          const curves = Array.isArray(obj.logCurveInfo) ? obj.logCurveInfo : [];
+          if (curves.length > 0) {
+            data.Curves = curves.map((c: any) => ({
+              Mnemonic: typeof c.mnemonic === "object" ? c.mnemonic?.["#text"] || "" : String(c.mnemonic || ""),
+              CurveUnit: typeof c.unit === "object" ? c.unit?.["#text"] || "" : String(c.unit || ""),
+              CurveDescription: c.curveDescription ? String(c.curveDescription) : undefined,
+            }));
+          }
+          if (obj.indexType) data.LogServiceType = obj.indexType;
+          // Extract depth range from logData
+          const logData = obj.logData;
+          if (logData) {
+            const rows = Array.isArray(logData.data) ? logData.data : (logData.data ? [logData.data] : []);
+            if (rows.length > 0) {
+              const firstVal = parseFloat(String(rows[0]).split(",")[0]);
+              const lastVal = parseFloat(String(rows[rows.length - 1]).split(",")[0]);
+              if (!isNaN(firstVal)) data.TopMeasuredDepth = { Depth: firstVal, UnitOfMeasure: "m" };
+              if (!isNaN(lastVal)) data.BottomMeasuredDepth = { Depth: lastVal, UnitOfMeasure: "m" };
+            }
+          }
+          break;
+        }
+        case "Trajectory": {
+          if (obj.nameWellbore) {
+            data.WellboreID = `${partition}:master-data--Wellbore:1.3.0:${this.nameHash(dataspace, "Wellbore", obj.nameWellbore)}`;
+          }
+          const stations = Array.isArray(obj.trajectoryStation) ? obj.trajectoryStation : [];
+          if (stations.length > 0) {
+            const first = stations[0];
+            const last = stations[stations.length - 1];
+            const topMd = parseFloat(first?.md?.["#text"] || first?.md || "");
+            const botMd = parseFloat(last?.md?.["#text"] || last?.md || "");
+            if (!isNaN(topMd)) data.TopMeasuredDepth = { Depth: topMd, UnitOfMeasure: "m" };
+            if (!isNaN(botMd)) data.BottomMeasuredDepth = { Depth: botMd, UnitOfMeasure: "m" };
+          }
+          break;
+        }
+      }
+    } catch {
+      // parsing failure — keep base data
+    }
+  }
+
+  private enrichWell(root: any, data: Record<string, any>): void {
+    data.FacilityName = data.Name;
+    if (root.Country) data.CountryID = root.Country;
+    if (root.Field) data.FieldName = root.Field;
+    if (root.StatusWell) data.WellStatus = root.StatusWell;
+    if (root.PurposeWell) data.WellType = root.PurposeWell;
+    if (root.NumGovt) {
+      data.NameAliases = [{ AliasName: root.NumGovt, AliasNameTypeID: "GovernmentNumber" }];
+    }
+    const geo = root.GeographicLocationWGS84;
+    if (geo) {
+      const lat = parseFloat(geo.Latitude?.["#text"] || geo.Latitude || "");
+      const lon = parseFloat(geo.Longitude?.["#text"] || geo.Longitude || "");
+      if (!isNaN(lat) && !isNaN(lon)) {
+        data.GeographicCoordinates = { type: "Point", coordinates: [lon, lat] };
+      }
+    }
+  }
+
+  private enrichWellbore(root: any, data: Record<string, any>, dataspace: string, partition: string): void {
+    data.FacilityName = data.Name;
+    // Reference parent well by looking at Wellbore element (2.1 has a Well reference)
+    const wellRef = root.Well || root.Wellbore?.Well;
+    if (wellRef) {
+      const wellUuid = wellRef?.["@_uuid"] || wellRef?.["@_uid"] || "";
+      if (wellUuid) {
+        data.WellID = `${partition}:master-data--Well:1.2.0:${wellUuid}`;
+      }
+    }
+  }
+
+  private enrichLog(root: any, data: Record<string, any>, dataspace: string, partition: string): void {
+    // Wellbore reference
+    const wbRef = root.Wellbore;
+    if (wbRef) {
+      const wbUuid = wbRef?.["@_uuid"] || wbRef?.["@_uid"] || "";
+      if (wbUuid) {
+        data.WellboreID = `${partition}:master-data--Wellbore:1.3.0:${wbUuid}`;
+      }
+    }
+    // Curves from ChannelSet
+    const channelSets = Array.isArray(root.ChannelSet) ? root.ChannelSet : (root.ChannelSet ? [root.ChannelSet] : []);
+    const curves: any[] = [];
+    for (const cs of channelSets) {
+      const channels = Array.isArray(cs.Channel) ? cs.Channel : (cs.Channel ? [cs.Channel] : []);
+      for (const ch of channels) {
+        const citation = ch.Citation || {};
+        curves.push({
+          Mnemonic: ch.Mnemonic || citation.Title || "",
+          CurveUnit: ch.Uom || ch.UnitOfMeasure || "",
+          CurveDescription: citation.Description || ch.Description || undefined,
+        });
+      }
+    }
+    if (curves.length > 0) data.Curves = curves;
+  }
+
+  private enrichChannelSet(root: any, data: Record<string, any>, dataspace: string, partition: string): void {
+    // Same logic as Log enrichment for channels
+    const channels = Array.isArray(root.Channel) ? root.Channel : (root.Channel ? [root.Channel] : []);
+    const curves: any[] = [];
+    for (const ch of channels) {
+      const citation = ch.Citation || {};
+      curves.push({
+        Mnemonic: ch.Mnemonic || citation.Title || "",
+        CurveUnit: ch.Uom || ch.UnitOfMeasure || "",
+        CurveDescription: citation.Description || ch.Description || undefined,
+      });
+    }
+    if (curves.length > 0) data.Curves = curves;
+  }
+
+  private enrichTrajectory(root: any, data: Record<string, any>, dataspace: string, partition: string): void {
+    const wbRef = root.Wellbore;
+    if (wbRef) {
+      const wbUuid = wbRef?.["@_uuid"] || wbRef?.["@_uid"] || "";
+      if (wbUuid) {
+        data.WellboreID = `${partition}:master-data--Wellbore:1.3.0:${wbUuid}`;
+      }
+    }
+  }
+
+  /** Generate a deterministic UUID from dataspace + type + name (matches witsml.ts nameToUuid) */
+  private nameHash(dataspace: string, type: string, name: string): string {
+    // This must match the hashing in witsml.ts for cross-referencing
+    const { createHash } = require("crypto");
+    const hash = createHash("sha256").update(`${dataspace}/${type}/${name}`).digest("hex");
+    const v = "5";
+    const variant = ((parseInt(hash[16], 16) & 0x3) | 0x8).toString(16);
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${v}${hash.slice(13, 16)}-${variant}${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
   }
 
   private makeGenericRecord(
