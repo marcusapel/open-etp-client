@@ -46,7 +46,8 @@ cimpl-containerize-bootstrap-gitlab:
         | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
       if [ -z "${ACCESS_TOKEN}" ]; then echo "Failed to fetch access token"; exit 1; fi
       LEGAL_TAG_NAME="${DATA_PARTITION_ID}-RDDMS-Legal-Tag"
-      EXPIRY=$(date -u -d "+30 days" +%Y-%m-%d)
+      # Use python3 for portability (BusyBox date lacks -d "+30 days").
+      EXPIRY=$(python3 -c "from datetime import datetime, timedelta; print((datetime.utcnow()+timedelta(days=30)).strftime('%Y-%m-%d'))")
       LEGAL_TAG_BODY="{\"name\":\"${LEGAL_TAG_NAME}\",\"description\":\"RDDMS CI legal tag\",\"properties\":{\"contractId\":\"123456\",\"countryOfOrigin\":[\"US\",\"CA\"],\"dataType\":\"Third Party Data\",\"exportClassification\":\"EAR99\",\"originator\":\"Schlumberger\",\"personalData\":\"No Personal Data\",\"securityClassification\":\"Private\",\"expirationDate\":\"${EXPIRY}\"}}"
       LEGAL_TAG_STATUS=$(curl -s -o /tmp/legaltag.out -w "%{http_code}" -X POST "https://${CIMPL_DNS_NAME}/api/legal/v1/legaltags" \
         -H "Content-Type: application/json" \
