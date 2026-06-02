@@ -96,7 +96,7 @@ azure_test:
         -d "client_id=${AZURE_CLIENT_ID}" \
         -d "client_secret=${AZURE_CLIENT_SECRET}" \
         -d "scope=${AZURE_CLIENT_ID}/.default" \
-        | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).access_token||'')}catch(e){}}")
+        | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).access_token||'')}catch(e){}})")
       if [ -z "${ACCESS_TOKEN}" ]; then echo "Failed to fetch AAD access token"; exit 1; fi
       LEGAL_TAG_NAME="${DATA_PARTITION_ID}-RDDMS-Legal-Tag"
       EXPIRY=$(node -e "const d=new Date();d.setUTCDate(d.getUTCDate()+30);console.log(d.toISOString().slice(0,10))")
