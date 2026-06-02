@@ -1,6 +1,8 @@
 variables:
   CIMPL_SERVICE: "oetp-client"
-  COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.0.postman_collection_NotRun.json"
+  COLLECTION_PATH: "Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.1.postman_collection.json"
+  # Pin to qa MR branch until osdu/qa!175 merges, then revert to default (main).
+  CIMPL_COLLECTION_BRANCH: "risbansal/reservoir-ddms-ci-cd-v3.1"
   CIMPL_SUPPORTED_PLATFORM: "linux/amd64"
   DATA_PARTITION_ID: "osdu"
   CIMPL_DNS_NAME: "osdu.$CIMPL_DOMAIN"
@@ -16,7 +18,6 @@ cimpl-containerize-gitlab:
 
 cimpl-containerize-bootstrap-gitlab:
   needs: []
-
 
 .cimpl_postman_tests:
   script:
@@ -34,7 +35,7 @@ cimpl-containerize-bootstrap-gitlab:
     - |
       curl --header "data-partition-id: ${DATA_PARTITION_ID}" "${CIMPL_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
     - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d  test_config_file.json --delay-request 3000 --env-var TENANT_ID=${CIMPL_TENANT} --env-var HOSTNAME=${CIMPL_DNS_NAME} --env-var RESERVOIR_DDMS_HOST=${CIMPL_DNS_NAME}/api/reservoir-ddms/v2 --env-var Token_Fetch_URL=https://keycloak.${CIMPL_DOMAIN}/realms/osdu/protocol/openid-connect/token || exit $?
-    
+
 cimpl-test:
   tags: ["osdu-small"]
   stage: integration
