@@ -70,13 +70,33 @@ done
 # ─── Drogon Well Logs ─────────────────────────────────────────────────────── #
 
 echo ""
-echo "=== Ingesting Drogon Well Logs (GR, RHOB, NPHI, DT) ==="
+echo "=== Ingesting Drogon Well Logs (GR, RHOB, NPHI, DT) with channel data ==="
 
+# Generate realistic log data: 50 samples per well, MD from 1000-1024.5m
+generate_logdata() {
+  local seed=$1
+  local rows=""
+  for i in $(seq 0 49); do
+    local md=$(echo "1000.0 + $i * 0.5" | bc)
+    # Pseudo-random variations using seed
+    local gr=$(echo "45 + ($seed + $i * 7) % 40" | bc)
+    local rhob=$(echo "scale=2; 2.20 + ($seed + $i * 3) % 30 / 100" | bc)
+    local nphi=$(echo "scale=3; 0.150 + ($seed + $i * 11) % 100 / 1000" | bc)
+    local dt=$(echo "scale=1; 85.0 + ($seed + $i * 5) % 35" | bc)
+    rows="$rows    <data>$md, $gr, $rhob, $nphi, $dt</data>\n"
+  done
+  echo "$rows"
+}
+
+WELL_SEED=0
 for uid in "${!WELLS[@]}"; do
   name="${WELLS[$uid]}"
   wb_uid="${uid}-wb1"
   log_uid="${uid}-log-composite"
   log_name="${name} Composite Log"
+  WELL_SEED=$((WELL_SEED + 13))
+
+  logdata=$(generate_logdata $WELL_SEED)
 
   xml="<Log xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$log_uid\">
   <Citation><Title>$log_name</Title></Citation>
@@ -117,9 +137,11 @@ for uid in "${!WELLS[@]}"; do
     <CurveDescription>Sonic Transit Time</CurveDescription>
     <TypeLogData>double</TypeLogData>
   </LogCurveInfo>
+  <logData>
+$(echo -e "$logdata")  </logData>
 </Log>"
 
-  echo -n "  PUT $log_name..."
+  echo -n "  PUT $log_name (50 samples × 5 channels)..."
   resp=$(curl -s -X PUT "$API" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg ds "$DS" --arg xml "$xml" '{dataspace: $ds, xml: $xml}')")
@@ -129,3 +151,5 @@ done
 echo ""
 echo "=== Done! Verify with: ==="
 echo "  curl -s http://localhost:8080/api/reservoir-ddms/v2/witsml/query -H 'Content-Type: application/json' -d '{\"dataspace\":\"maap/witsml\"}' | jq ."
+echo "  # Check arrays stored:"
+echo "  curl -s http://localhost:8080/api/reservoir-ddms/v2/dataspaces/maap%2Fwitsml/resources/witsml21.Log/{uuid}/arrays"
