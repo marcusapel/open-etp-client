@@ -31,6 +31,33 @@ cimpl-containerize-bootstrap-gitlab:
     - curl "${GET_COLLECTION_URL}" > collection.json && COLLECTION=collection.json
     - |
       curl --header "data-partition-id: ${DATA_PARTITION_ID}" "${CIMPL_POSTMAN_ENV_URL}" > environment.json && ENVIRONMENT=environment.json
+    # Create the RDDMS legal tag before running the collection (mirrors ADO RDDMS.Server.Test
+    # which calls IntegrationTests/CreateLegalTag.yml). The v3.1 collection self-seeds its own
+    # dataspace, but dataspace creation requires a pre-existing legal tag in the partition.
+    # Token is acquired via the same refresh_token grant the postman "Refresh Tokens" request uses.
+    - |
+      TOKEN_FETCH_URL="https://keycloak.${CIMPL_DOMAIN}/realms/osdu/protocol/openid-connect/token"
+      ACCESS_TOKEN=$(curl -s -X POST "${TOKEN_FETCH_URL}" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=${CIMPL_GRANT_TYPE}" \
+        -d "client_id=${CIMPL_CLIENT_ID}" \
+        -d "client_secret=${CIMPL_CLIENT_SECRET}" \
+        -d "refresh_token=${CIMPL_REFRESH_TOKEN}" \
+        | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+      if [ -z "${ACCESS_TOKEN}" ]; then echo "Failed to fetch access token"; exit 1; fi
+      LEGAL_TAG_NAME="${DATA_PARTITION_ID}-RDDMS-Legal-Tag"
+      EXPIRY=$(date -u -d "+30 days" +%Y-%m-%d)
+      LEGAL_TAG_BODY="{\"name\":\"${LEGAL_TAG_NAME}\",\"description\":\"RDDMS CI legal tag\",\"properties\":{\"contractId\":\"123456\",\"countryOfOrigin\":[\"US\",\"CA\"],\"dataType\":\"Third Party Data\",\"exportClassification\":\"EAR99\",\"originator\":\"Schlumberger\",\"personalData\":\"No Personal Data\",\"securityClassification\":\"Private\",\"expirationDate\":\"${EXPIRY}\"}}"
+      LEGAL_TAG_STATUS=$(curl -s -o /tmp/legaltag.out -w "%{http_code}" -X POST "https://${CIMPL_DNS_NAME}/api/legal/v1/legaltags" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+        -H "data-partition-id: ${DATA_PARTITION_ID}" \
+        -d "${LEGAL_TAG_BODY}")
+      echo "Legal tag '${LEGAL_TAG_NAME}' create status: ${LEGAL_TAG_STATUS}"
+      cat /tmp/legaltag.out || true; echo
+      if [ "${LEGAL_TAG_STATUS}" != "201" ] && [ "${LEGAL_TAG_STATUS}" != "409" ]; then
+        echo "Legal tag creation failed (expected 201 or 409)"; exit 1;
+      fi
     - newman run "$COLLECTION" --working-dir . -e "${ENVIRONMENT}" -d  test_config_file.json --delay-request 3000 --env-var TENANT_ID=${CIMPL_TENANT} --env-var HOSTNAME=${CIMPL_DNS_NAME} --env-var RESERVOIR_DDMS_HOST=${CIMPL_DNS_NAME}/api/reservoir-ddms/v2 --env-var Token_Fetch_URL=https://keycloak.${CIMPL_DOMAIN}/realms/osdu/protocol/openid-connect/token || exit $?
 
 cimpl-test:
