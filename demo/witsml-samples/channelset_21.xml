@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ChannelSet xmlns="http://www.energistics.org/energyml/data/witsmlv2"
             xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
-            schemaVersion="2.1" uuid="cs-drogon-A1-gr-dt">
+            schemaVersion="2.1" uuid="863f3f89-05f6-5337-84c1-e22bf4340f20">
   <eml:Citation>
     <eml:Title>DROGON A-1 GR+DT ChannelSet</eml:Title>
     <eml:Originator>Equinor</eml:Originator>
