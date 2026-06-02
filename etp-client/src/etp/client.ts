@@ -105,6 +105,7 @@ interface PendingRequest {
   resolve: (value: any) => void;
   reject: (reason: any) => void;
   timeout: NodeJS.Timeout;
+  partial: any[];  // accumulated results from multi-part messages
 }
 
 // ─── Client ──────────────────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ export class EtpClient {
       });
 
       this.ws.on("message", (data: Buffer) => {
-        this.handleBinaryMessage(data, resolve);
+        this.handleBinaryMessage(data, resolve, reject);
       });
 
       this.ws.on("error", (err) => {
@@ -336,7 +337,8 @@ export class EtpClient {
   // ─── Internal: Binary Avro ETP Transport ─────────────────────────────────
 
   private nextMessageId(): number {
-    return ++this.messageId;
+    this.messageId += 2;
+    return this.messageId;
   }
 
   /**
@@ -358,7 +360,7 @@ export class EtpClient {
         reject(new Error(`ETP request timeout (protocol=${protocol}, type=${messageType})`));
       }, this.requestTimeout);
 
-      this.pending.set(id, { resolve, reject, timeout });
+      this.pending.set(id, { resolve, reject, timeout, partial: [] });
     });
   }
 
@@ -366,10 +368,30 @@ export class EtpClient {
    * Handle an incoming binary Avro ETP message.
    * Decodes header, then dispatches to the appropriate response decoder.
    */
-  private handleBinaryMessage(data: Buffer, sessionResolve?: (value: void) => void): void {
+  private handleBinaryMessage(data: Buffer, sessionResolve?: (value: void) => void, sessionReject?: (err: Error) => void): void {
     try {
       const reader = new AvroReader(data);
       const header = decodeHeader(reader);
+
+      // Handle ProtocolException (messageType 1000)
+      if (header.messageType === 1000) {
+        const errorCode = reader.readInt();
+        const errorMsg = reader.readString();
+        const err = new Error(`ETP ProtocolException ${errorCode}: ${errorMsg}`);
+        // If this is during session handshake, reject
+        if (sessionReject) {
+          sessionReject(err);
+          return;
+        }
+        // Otherwise reject the pending request
+        const pending = this.pending.get(header.correlationId);
+        if (pending) {
+          clearTimeout(pending.timeout);
+          this.pending.delete(header.correlationId);
+          pending.reject(err);
+        }
+        return;
+      }
 
       // Handle OpenSession response (completes handshake)
       if (header.protocol === Protocol.Core && header.messageType === Msg.Core.OpenSession) {
@@ -383,12 +405,22 @@ export class EtpClient {
       const pending = this.pending.get(header.correlationId);
       if (!pending) return;
 
-      clearTimeout(pending.timeout);
-      this.pending.delete(header.correlationId);
-
       // Decode response body based on protocol + messageType
       const decoded = this.decodeResponseBody(header, reader);
-      pending.resolve(decoded);
+
+      // Multi-part: accumulate if not final, resolve when final flag (0x02) is set
+      const isFinal = (header.messageFlags & 0x02) !== 0;
+      if (Array.isArray(decoded)) {
+        pending.partial.push(...decoded);
+      } else {
+        pending.partial.push(decoded);
+      }
+
+      if (isFinal) {
+        clearTimeout(pending.timeout);
+        this.pending.delete(header.correlationId);
+        pending.resolve(pending.partial);
+      }
     } catch (err: any) {
       // If we can still identify the correlationId, reject the pending request
       // Otherwise silently drop (malformed frame)

@@ -49,7 +49,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(1);
-      expect(res.body.results[0].name).toBe("Drogon Grid");
+      expect(res.body.results[0].name).toBe("Test Grid");
     });
 
     it("filters by namePattern regex", async () => {
@@ -62,13 +62,13 @@ describe("Discovery Routes", () => {
         .post(`${BASE}/discovery/search`)
         .send({
           uri: "eml:///dataspace('test/scenario-a')",
-          namePattern: "^(Top|PHIT)",
+          namePattern: "^(Surface|PHIT)",
         });
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(2);
       const names = res.body.results.map((r: any) => r.name);
-      expect(names).toContain("Top Valysar");
+      expect(names).toContain("Surface A");
       expect(names).toContain("PHIT");
     });
 
@@ -163,7 +163,7 @@ describe("Discovery Routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.count).toBe(1);
-      expect(res.body.results[0].name).toBe("Drogon Grid");
+      expect(res.body.results[0].name).toBe("Test Grid");
     });
   });
 
@@ -185,7 +185,7 @@ describe("Discovery Routes", () => {
       expect(res.body.uri).toBe("eml:///dataspace('test/scenario-a')");
       expect(res.body.depth).toBe(2);
       expect(res.body.tree).toHaveLength(2);
-      expect(res.body.tree[0].name).toBe("Drogon Grid");
+      expect(res.body.tree[0].name).toBe("Test Grid");
       expect(res.body.tree[0].type).toBe("resqml22.IjkGridRepresentation");
       expect(res.body.tree[0].uri).toContain("grid-001");
     });
@@ -310,28 +310,34 @@ describe("Discovery Routes", () => {
       });
       const app = createRestServer({ port: 0, host: "0.0.0.0", etpClient: etp });
 
-      const req = request(app)
-        .post(`${BASE}/discovery/subscribe`)
-        .send({ uri: "eml:///dataspace('test/scenario-a')" })
-        .buffer(true)
-        .parse((res, callback) => {
+      const server = app.listen(0, () => {
+        const addr = server.address() as any;
+        const http = require("http");
+        const postData = JSON.stringify({ uri: "eml:///dataspace('test/scenario-a')" });
+        const req = http.request({
+          hostname: "127.0.0.1",
+          port: addr.port,
+          path: `${BASE}/discovery/subscribe`,
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(postData) },
+        }, (res: any) => {
           let data = "";
           res.on("data", (chunk: Buffer) => {
             data += chunk.toString();
-            // After initial event, abort the connection
             if (data.includes('"subscribed"')) {
-              // Verify SSE format
               expect(data).toContain("data:");
               const jsonStr = data.split("data: ")[1].split("\n")[0];
               const event = JSON.parse(jsonStr);
               expect(event.type).toBe("subscribed");
               expect(event.uri).toBe("eml:///dataspace('test/scenario-a')");
-              req.abort();
-              done();
+              req.destroy();
+              server.close(done);
             }
           });
-          res.on("end", () => callback(null, data));
         });
-    });
+        req.write(postData);
+        req.end();
+      });
+    }, 10000);
   });
 });

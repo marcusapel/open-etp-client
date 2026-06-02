@@ -384,7 +384,10 @@ export function decodeGetResourcesResponse(r: AvroReader): ResourceInfo[] {
       const storeCreatedMicros = r.readLongAsNumber();
       const activeStatusIdx = r.readInt(); // enum: 0=Inactive, 1=Active
       const customData = readMap(r);
-      const dataObjectType = r.readString();
+      // dataObjectType extracted from URI (not in schema)
+      // URI: eml:///dataspace('x')/resqml22.IjkGridRepresentation(uuid)
+      const typeMatch = uri.match(/\/([^/'(]+)\([^)]+\)$/);
+      const dataObjectType = typeMatch ? typeMatch[1] : "";
 
       const activeStatus = activeStatusIdx === 1 ? "Active" : "Inactive";
       resources.push({

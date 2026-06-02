@@ -37,6 +37,13 @@ export function createRestServer(options: RestServerOptions): express.Applicatio
   const app = express();
   app.use(express.json({ limit: "50mb" }));
 
+  // Probes (used by ores2 script and k8s)
+  app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+  app.get("/readyz", (_req, res) => {
+    const ready = options.etpClient.isConnected;
+    res.status(ready ? 200 : 503).json({ status: ready ? "ready" : "not_ready" });
+  });
+
   const base = "/api/reservoir-ddms/v2";
   const router = Router();
 
