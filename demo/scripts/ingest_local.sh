@@ -200,8 +200,8 @@ ingest_drogon_witsml() {
     local name="${WELL_NAMES[$i]}"
     local suffix="${WELL_SUFFIXES[$i]}"
     local uid; uid=$(name_to_uuid "drogon-well-$suffix")
-    local xml="<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$uid\">
-  <Citation><Title>$name</Title></Citation>
+    local xml="<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$uid\">
+  <eml:Citation><eml:Title>$name</eml:Title><eml:Originator>Equinor</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <TimeZone>+01:00</TimeZone>
   <GeographicLocationWGS84>
     <Latitude uom=\"dega\">58.44</Latitude>
@@ -221,12 +221,12 @@ ingest_drogon_witsml() {
     local suffix="${WELL_SUFFIXES[$i]}"
     local well_uid; well_uid=$(name_to_uuid "drogon-well-$suffix")
     local wb_uid; wb_uid=$(name_to_uuid "drogon-well-$suffix-wb1")
-    local xml="<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$wb_uid\">
-  <Citation><Title>${name} WB1</Title></Citation>
+    local xml="<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$wb_uid\">
+  <eml:Citation><eml:Title>${name} WB1</eml:Title><eml:Originator>Equinor</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <Well>
-    <ContentType>application/x-witsml+xml;version=2.1;type=Well</ContentType>
-    <Title>$name</Title>
-    <UUID>$well_uid</UUID>
+    <eml:ContentType>application/x-witsml+xml;version=2.1;type=Well</eml:ContentType>
+    <eml:Title>$name</eml:Title>
+    <eml:UUID>$well_uid</eml:UUID>
   </Well>
   <StatusWellbore>active</StatusWellbore>
   <IsActive>true</IsActive>
@@ -241,12 +241,12 @@ ingest_drogon_witsml() {
     local suffix="${WELL_SUFFIXES[$i]}"
     local wb_uid; wb_uid=$(name_to_uuid "drogon-well-$suffix-wb1")
     local log_uid; log_uid=$(name_to_uuid "drogon-well-$suffix-log-composite")
-    local xml="<Log xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$log_uid\">
-  <Citation><Title>${name} Composite Log</Title></Citation>
+    local xml="<Log xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$log_uid\">
+  <eml:Citation><eml:Title>${name} Composite Log</eml:Title><eml:Originator>Equinor</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <Wellbore>
-    <ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType>
-    <Title>${name} WB1</Title>
-    <UUID>$wb_uid</UUID>
+    <eml:ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</eml:ContentType>
+    <eml:Title>${name} WB1</eml:Title>
+    <eml:UUID>$wb_uid</eml:UUID>
   </Wellbore>
   <Direction>increasing</Direction>
   <IndexType>measured depth</IndexType>
@@ -266,12 +266,12 @@ ingest_drogon_witsml() {
     local suffix="${WELL_SUFFIXES[$i]}"
     local wb_uid; wb_uid=$(name_to_uuid "drogon-well-$suffix-wb1")
     local traj_uid; traj_uid=$(name_to_uuid "drogon-well-$suffix-traj")
-    local xml="<Trajectory xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$traj_uid\">
-  <Citation><Title>${name} Drilled Trajectory</Title></Citation>
+    local xml="<Trajectory xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$traj_uid\">
+  <eml:Citation><eml:Title>${name} Drilled Trajectory</eml:Title><eml:Originator>Equinor</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <Wellbore>
-    <ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType>
-    <Title>${name} WB1</Title>
-    <UUID>$wb_uid</UUID>
+    <eml:ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</eml:ContentType>
+    <eml:Title>${name} WB1</eml:Title>
+    <eml:UUID>$wb_uid</eml:UUID>
   </Wellbore>
   <GrowingStatus>inactive</GrowingStatus>
   <ServiceCompany>Equinor</ServiceCompany>
@@ -293,25 +293,25 @@ ingest_witsml_samples() {
   local kks1_uid; kks1_uid=$(name_to_uuid "chevron-kks1")
   local kks1_wb1_uid; kks1_wb1_uid=$(name_to_uuid "chevron-kks1-wb1")
 
-  witsml_put "$DS_WITSML" "<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$kks1_uid\">
-  <Citation><Title>Chevron KKS-1</Title><Originator>Chevron</Originator><Creation>2018-03-01T00:00:00Z</Creation><Format>WITSML 2.1</Format></Citation>
+  witsml_put "$DS_WITSML" "<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$kks1_uid\">
+  <eml:Citation><eml:Title>Chevron KKS-1</eml:Title><eml:Originator>Chevron</eml:Originator><eml:Creation>2018-03-01T00:00:00Z</eml:Creation><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <TimeZone>+08:00</TimeZone>
   <StatusWell>active</StatusWell>
   <Country>Australia</Country>
   <PurposeWell>development</PurposeWell>
 </Well>" "Well: Chevron KKS-1"
 
-  witsml_put "$DS_WITSML" "<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$kks1_wb1_uid\">
-  <Citation><Title>KKS-1 WB1</Title></Citation>
-  <Well><ContentType>application/x-witsml+xml;version=2.1;type=Well</ContentType><Title>Chevron KKS-1</Title><UUID>$kks1_uid</UUID></Well>
+  witsml_put "$DS_WITSML" "<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$kks1_wb1_uid\">
+  <eml:Citation><eml:Title>KKS-1 WB1</eml:Title><eml:Originator>Chevron</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
+  <Well><eml:ContentType>application/x-witsml+xml;version=2.1;type=Well</eml:ContentType><eml:Title>Chevron KKS-1</eml:Title><eml:UUID>$kks1_uid</eml:UUID></Well>
   <StatusWellbore>active</StatusWellbore>
   <IsActive>true</IsActive>
 </Wellbore>" "Wellbore: KKS-1 WB1"
 
   local kks1_cmr_uid; kks1_cmr_uid=$(name_to_uuid "chevron-kks1-cmr")
-  witsml_put "$DS_WITSML" "<Log xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$kks1_cmr_uid\">
-  <Citation><Title>KKS-1 CMR Main Pass</Title><Originator>Chevron</Originator><Format>WITSML 2.1</Format></Citation>
-  <Wellbore><ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType><Title>KKS-1 WB1</Title><UUID>$kks1_wb1_uid</UUID></Wellbore>
+  witsml_put "$DS_WITSML" "<Log xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$kks1_cmr_uid\">
+  <eml:Citation><eml:Title>KKS-1 CMR Main Pass</eml:Title><eml:Originator>Chevron</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
+  <Wellbore><eml:ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</eml:ContentType><eml:Title>KKS-1 WB1</eml:Title><eml:UUID>$kks1_wb1_uid</eml:UUID></Wellbore>
   <Direction>increasing</Direction>
   <IndexType>measured depth</IndexType>
   <LogCurveInfo uid=\"MD\"><Mnemonic>MD</Mnemonic><Unit>m</Unit><TypeLogData>double</TypeLogData></LogCurveInfo>
@@ -326,17 +326,17 @@ ingest_witsml_samples() {
   local expl_uid; expl_uid=$(name_to_uuid "expl-discovery-1")
   local expl_wb1_uid; expl_wb1_uid=$(name_to_uuid "expl-discovery-1-wb1")
 
-  witsml_put "$DS_WITSML" "<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$expl_uid\">
-  <Citation><Title>Old Discovery Well</Title><Originator>Demo</Originator><Format>WITSML 2.1</Format></Citation>
+  witsml_put "$DS_WITSML" "<Well xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$expl_uid\">
+  <eml:Citation><eml:Title>Old Discovery Well</eml:Title><eml:Originator>Demo</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
   <TimeZone>+00:00</TimeZone>
   <StatusWell>plugged and abandoned</StatusWell>
   <Country>United Kingdom</Country>
   <PurposeWell>exploration</PurposeWell>
 </Well>" "Well: Old Discovery Well"
 
-  witsml_put "$DS_WITSML" "<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$expl_wb1_uid\">
-  <Citation><Title>Discovery-1 WB1</Title></Citation>
-  <Well><ContentType>application/x-witsml+xml;version=2.1;type=Well</ContentType><Title>Old Discovery Well</Title><UUID>$expl_uid</UUID></Well>
+  witsml_put "$DS_WITSML" "<Wellbore xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$expl_wb1_uid\">
+  <eml:Citation><eml:Title>Discovery-1 WB1</eml:Title><eml:Originator>Demo</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
+  <Well><eml:ContentType>application/x-witsml+xml;version=2.1;type=Well</eml:ContentType><eml:Title>Old Discovery Well</eml:Title><eml:UUID>$expl_uid</eml:UUID></Well>
   <StatusWellbore>plugged and abandoned</StatusWellbore>
   <IsActive>false</IsActive>
 </Wellbore>" "Wellbore: Discovery-1 WB1"
@@ -345,9 +345,9 @@ ingest_witsml_samples() {
   echo "  MudLog / Drilling objects:"
 
   local mudlog_surface_uid; mudlog_surface_uid=$(name_to_uuid "mudlog-kks1-surface")
-  witsml_put "$DS_WITSML" "<MudLog xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$mudlog_surface_uid\">
-  <Citation><Title>KKS-1 Surface Hole MudLog</Title><Originator>MudLogger</Originator><Format>WITSML 2.1</Format></Citation>
-  <Wellbore><ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType><Title>KKS-1 WB1</Title><UUID>$kks1_wb1_uid</UUID></Wellbore>
+  witsml_put "$DS_WITSML" "<MudLog xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$mudlog_surface_uid\">
+  <eml:Citation><eml:Title>KKS-1 Surface Hole MudLog</eml:Title><eml:Originator>MudLogger</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
+  <Wellbore><eml:ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</eml:ContentType><eml:Title>KKS-1 WB1</eml:Title><eml:UUID>$kks1_wb1_uid</eml:UUID></Wellbore>
   <MudLogCompany>Baker Hughes</MudLogCompany>
   <MudLogEngineers>J. Smith, K. Lee</MudLogEngineers>
   <StartMd uom=\"m\">0</StartMd>
@@ -355,9 +355,9 @@ ingest_witsml_samples() {
 </MudLog>" "MudLog: KKS-1 Surface Hole"
 
   local mudlog_prod_uid; mudlog_prod_uid=$(name_to_uuid "mudlog-kks1-production")
-  witsml_put "$DS_WITSML" "<MudLog xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" schemaVersion=\"2.1\" uuid=\"$mudlog_prod_uid\">
-  <Citation><Title>KKS-1 Production Hole MudLog</Title><Originator>MudLogger</Originator><Format>WITSML 2.1</Format></Citation>
-  <Wellbore><ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType><Title>KKS-1 WB1</Title><UUID>$kks1_wb1_uid</UUID></Wellbore>
+  witsml_put "$DS_WITSML" "<MudLog xmlns=\"http://www.energistics.org/energyml/data/witsmlv2\" xmlns:eml=\"http://www.energistics.org/energyml/data/commonv2\" schemaVersion=\"2.1\" uuid=\"$mudlog_prod_uid\">
+  <eml:Citation><eml:Title>KKS-1 Production Hole MudLog</eml:Title><eml:Originator>MudLogger</eml:Originator><eml:Format>WITSML 2.1</eml:Format></eml:Citation>
+  <Wellbore><eml:ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</eml:ContentType><eml:Title>KKS-1 WB1</eml:Title><eml:UUID>$kks1_wb1_uid</eml:UUID></Wellbore>
   <MudLogCompany>Halliburton</MudLogCompany>
   <StartMd uom=\"m\">500</StartMd>
   <EndMd uom=\"m\">3200</EndMd>
