@@ -3,7 +3,7 @@
   "ReferenceData": [],
   "MasterData": [
     {
-      "id": "opendes:master-data--Well:1.2.0:e57cb17d-429d-51f2-bec0-e2ec8f323d2a",
+      "id": "opendes:master-data--Well:74eff4a0-b740-5baa-a3a5-6a52e9162b3b",
       "kind": "osdu:wks:master-data--Well:1.2.0",
       "acl": {
         "owners": [
@@ -22,231 +22,18 @@
         ],
         "status": "compliant"
       },
+      "version": 1,
       "data": {
-        "Name": "EML NS Test Well",
+        "Name": "Chevron KKS-1",
         "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(e57cb17d-429d-51f2-bec0-e2ec8f323d2a)"
-        ]
+          "eml:///dataspace('maap/witsml')/witsml21.Well(74eff4a0-b740-5baa-a3a5-6a52e9162b3b)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Chevron KKS-1"
       }
     },
     {
-      "id": "opendes:master-data--Well:1.2.0:ee5e3b91-7fba-52db-a361-61bf88e66af0",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON B-2",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(ee5e3b91-7fba-52db-a361-61bf88e66af0)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:fed9ef87-5fac-5b2e-983c-85546367e9dd",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON B-1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(fed9ef87-5fac-5b2e-983c-85546367e9dd)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:5f19f519-43e6-5bbf-ae6e-1e8569254bb6",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON C-1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(5f19f519-43e6-5bbf-ae6e-1e8569254bb6)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:4731138c-b82e-5ff6-bbb8-93f3c28248e0",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON C-2",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(4731138c-b82e-5ff6-bbb8-93f3c28248e0)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:82d7f3df-d69c-5664-a6c0-076adf023223",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-4",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(82d7f3df-d69c-5664-a6c0-076adf023223)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:075e7102-081d-5c71-a22d-c1c09bc67eaf",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-3",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(075e7102-081d-5c71-a22d-c1c09bc67eaf)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:af148a34-432c-5cf5-95a9-9c3152f6a481",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-2",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(af148a34-432c-5cf5-95a9-9c3152f6a481)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:82de5836-4c49-574b-82c7-0d95492159a5",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(82de5836-4c49-574b-82c7-0d95492159a5)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:57cdc847-bc80-5879-9251-263f1378ab60",
+      "id": "opendes:master-data--Wellbore:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a",
       "kind": "osdu:wks:master-data--Wellbore:1.3.0",
       "acl": {
         "owners": [
@@ -265,204 +52,19 @@
         ],
         "status": "compliant"
       },
+      "version": 1,
       "data": {
-        "Name": "DROGON B-2 WB1",
+        "Name": "KKS-1 WB1",
         "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(57cdc847-bc80-5879-9251-263f1378ab60)"
-        ]
+          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "KKS-1 WB1",
+        "WellID": "opendes:master-data--Well:1.2.0:74eff4a0-b740-5baa-a3a5-6a52e9162b3b"
       }
     },
     {
-      "id": "opendes:master-data--Wellbore:1.3.0:d67c093a-3a2b-56e0-9028-32820386572e",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON B-1 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(d67c093a-3a2b-56e0-9028-32820386572e)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:097179ff-6392-58a5-a0ee-e0746f33edb5",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON C-1 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(097179ff-6392-58a5-a0ee-e0746f33edb5)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:a8c10ba2-04e2-5a3f-95b8-63e5b8f5294b",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON C-2 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(a8c10ba2-04e2-5a3f-95b8-63e5b8f5294b)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:bae74d05-eb2b-545e-beb9-aea5790069a8",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-4 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(bae74d05-eb2b-545e-beb9-aea5790069a8)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:8f230e9b-81c5-5ff6-ba5e-6b7fdc39566b",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-3 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(8f230e9b-81c5-5ff6-ba5e-6b7fdc39566b)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:60aef13b-9f31-5241-9b8d-a716b9e41c2c",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-2 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(60aef13b-9f31-5241-9b8d-a716b9e41c2c)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Wellbore:1.3.0:3504cc7f-9db0-5dbe-9c20-783aec82e562",
-      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
-      "data": {
-        "Name": "DROGON A-1 WB1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(3504cc7f-9db0-5dbe-9c20-783aec82e562)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:926084b5-35d4-5ece-bd4b-04a0a6637987",
+      "id": "opendes:master-data--Well:56dd6cd4-227a-59c5-93f9-3c0e2669f982",
       "kind": "osdu:wks:master-data--Well:1.2.0",
       "acl": {
         "owners": [
@@ -481,15 +83,49 @@
         ],
         "status": "compliant"
       },
+      "version": 1,
       "data": {
-        "Name": "DROGON A-2",
+        "Name": "Old Discovery Well",
         "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(926084b5-35d4-5ece-bd4b-04a0a6637987)"
-        ]
+          "eml:///dataspace('maap/witsml')/witsml21.Well(56dd6cd4-227a-59c5-93f9-3c0e2669f982)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Old Discovery Well"
       }
     },
     {
-      "id": "opendes:master-data--Well:1.2.0:97c1471c-9747-529f-80a4-a9a33c699686",
+      "id": "opendes:master-data--Wellbore:bae01221-594b-5279-8df4-87615e448355",
+      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "Discovery-1 WB1",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(bae01221-594b-5279-8df4-87615e448355)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Discovery-1 WB1",
+        "WellID": "opendes:master-data--Well:1.2.0:56dd6cd4-227a-59c5-93f9-3c0e2669f982"
+      }
+    },
+    {
+      "id": "opendes:master-data--Well:a1b2c3d4-e5f6-5789-abcd-ef0123456789",
       "kind": "osdu:wks:master-data--Well:1.2.0",
       "acl": {
         "owners": [
@@ -508,45 +144,21 @@
         ],
         "status": "compliant"
       },
-      "data": {
-        "Name": "DROGON A-1",
-        "DDMSDatasets": [
-          "eml:///dataspace('maap/witsml')/witsml21.Well(97c1471c-9747-529f-80a4-a9a33c699686)"
-        ]
-      }
-    },
-    {
-      "id": "opendes:master-data--Well:1.2.0:a1b2c3d4-e5f6-5789-abcd-ef0123456789",
-      "kind": "osdu:wks:master-data--Well:1.2.0",
-      "acl": {
-        "owners": [
-          "data.default.owners@opendes.dataservices.energy"
-        ],
-        "viewers": [
-          "data.default.viewers@opendes.dataservices.energy"
-        ]
-      },
-      "legal": {
-        "legaltags": [
-          "opendes-ReservoirDDMS-Legal-Tag"
-        ],
-        "otherRelevantDataCountries": [
-          "US"
-        ],
-        "status": "compliant"
-      },
+      "version": 1,
       "data": {
         "Name": "DROGON C-1",
         "DDMSDatasets": [
           "eml:///dataspace('maap/witsml')/witsml21.Well(a1b2c3d4-e5f6-5789-abcd-ef0123456789)"
-        ]
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "DROGON C-1"
       }
     }
   ],
   "Data": {
     "Datasets": [
       {
-        "id": "opendes:dataset--ETPDataspace:maap-witsml",
+        "id": "opendes:dataset--ETPDataspace:1.0.1:maap_witsml",
         "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
         "acl": {
           "owners": [
@@ -565,504 +177,18 @@
           ],
           "status": "compliant"
         },
+        "version": 1,
         "data": {
           "Name": "maap/witsml",
-          "Description": "RDDMS dataspace",
-          "DatasetProperties": {
-            "URI": "eml:///dataspace('maap/witsml')"
-          }
+          "DataspacePath": "maap/witsml",
+          "ETPServerURL": "ws://localhost:9002",
+          "Description": "WITSML 2.1 objects in maap/witsml"
         }
       }
     ],
     "WorkProductComponents": [
       {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Import",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Import",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_ActivityTemplate('Import')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T05:36:43.806Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T05:36:43.806Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T05:36:43.806Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.322Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.322Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.322Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.375Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.375Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.375Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.442Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.442Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.442Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.494Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.494Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.494Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.543Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.543Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.543Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.585Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.585Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.585Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.626Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.626Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.626Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.666Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.666Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.666Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.717Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.717Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.717Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.760Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.760Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.760Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.802Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.802Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.802Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.841Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.841Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.841Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.889Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.889Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.889Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.932Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.932Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.932Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:26.977Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:26.977Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:26.977Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.031Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.031Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.031Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:55f44906-a38a-5b30-9988-d3e7fd9f3441",
+        "id": "opendes:work-product-component--WellLog:57612a31-dded-5594-bffe-536655f066b2",
         "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
         "acl": {
           "owners": [
@@ -1081,16 +207,19 @@
           ],
           "status": "compliant"
         },
+        "version": 1,
         "data": {
-          "Name": "DROGON B-2 Composite Log",
+          "Name": "KKS-1 CMR Main Pass",
           "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(55f44906-a38a-5b30-9988-d3e7fd9f3441)"
-          ]
+            "eml:///dataspace('maap/witsml')/witsml21.Log(57612a31-dded-5594-bffe-536655f066b2)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
         }
       },
       {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.099Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "id": "opendes:work-product-component--MudLogReport:a0872a41-44cd-5589-a9bf-eadb32b87724",
+        "kind": "osdu:wks:work-product-component--MudLogReport:1.1.0",
         "acl": {
           "owners": [
             "data.default.owners@opendes.dataservices.energy"
@@ -1108,15 +237,48 @@
           ],
           "status": "compliant"
         },
+        "version": 1,
         "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.099Z",
+          "Name": "KKS-1 Surface Hole MudLog",
           "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.099Z')"
-          ]
+            "eml:///dataspace('maap/witsml')/witsml21.MudLog(a0872a41-44cd-5589-a9bf-eadb32b87724)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
         }
       },
       {
-        "id": "opendes:work-product-component--WellLog:1.2.0:33908570-7d73-5d74-ab09-6cf248856366",
+        "id": "opendes:work-product-component--MudLogReport:c831592f-41b6-57f1-80fb-bd27a79f2158",
+        "kind": "osdu:wks:work-product-component--MudLogReport:1.1.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "KKS-1 Production Hole MudLog",
+          "DDMSDatasets": [
+            "eml:///dataspace('maap/witsml')/witsml21.MudLog(c831592f-41b6-57f1-80fb-bd27a79f2158)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
+        }
+      },
+      {
+        "id": "opendes:work-product-component--WellLog:863f3f89-05f6-5337-84c1-e22bf4340f20",
         "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
         "acl": {
           "owners": [
@@ -1135,740 +297,13 @@
           ],
           "status": "compliant"
         },
-        "data": {
-          "Name": "DROGON B-1 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(33908570-7d73-5d74-ab09-6cf248856366)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.160Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.160Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.160Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:016877de-cd80-59a6-8d59-7684b2686bb4",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON C-1 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(016877de-cd80-59a6-8d59-7684b2686bb4)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.225Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.225Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.225Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:3b443be9-fefb-5a51-920c-d781dbfaff00",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON C-2 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(3b443be9-fefb-5a51-920c-d781dbfaff00)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.285Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.285Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.285Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:1a93a23e-0927-5416-9321-c84c30ccaa4c",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON A-4 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(1a93a23e-0927-5416-9321-c84c30ccaa4c)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.336Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.336Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.336Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:a273bda4-02d8-5eec-96ff-1e8ed2d5768c",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON A-3 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(a273bda4-02d8-5eec-96ff-1e8ed2d5768c)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.384Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.384Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.384Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:07db616b-7df2-59e1-adf8-883c31798fa6",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON A-2 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(07db616b-7df2-59e1-adf8-883c31798fa6)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.428Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.428Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.428Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:b0f0b61f-ea22-5618-ab56-0e278a34cdf8",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "DROGON A-1 Composite Log",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(b0f0b61f-ea22-5618-ab56-0e278a34cdf8)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T06:15:27.469Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T06:15:27.469Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T06:15:27.469Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:e70057eb-4bac-40d2-a22b-0ddaeb398361",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "B65886",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(e70057eb-4bac-40d2-a22b-0ddaeb398361)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:06:34.612Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:06:34.612Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:06:34.612Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:f541d3d7-c30f-43dc-8ee6-e0a733696706",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "50",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(f541d3d7-c30f-43dc-8ee6-e0a733696706)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:12:31.125Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:12:31.125Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:12:31.125Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:17:29.730Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:17:29.730Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:17:29.730Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:73dd51d2-90ea-5092-ad05-a39d9d59350b",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Composite GR-DT-NPHI-RHOB",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(73dd51d2-90ea-5092-ad05-a39d9d59350b)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:17:36.922Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:17:36.922Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:17:36.922Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellboreTrajectory:1.3.0:5fdaa46c-43ca-5068-837f-346dac45b611",
-        "kind": "osdu:wks:work-product-component--WellboreTrajectory:1.3.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Drilled Trajectory",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Trajectory(5fdaa46c-43ca-5068-837f-346dac45b611)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:17:43.949Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:17:43.949Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:17:43.949Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:17:51.126Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:17:51.126Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:17:51.126Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:33160e78-9b9f-5db3-92e0-6823143441ac",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
+        "version": 1,
         "data": {
           "Name": "DROGON A-1 GR+DT ChannelSet",
           "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.ChannelSet(33160e78-9b9f-5db3-92e0-6823143441ac)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:17:58.294Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
+            "eml:///dataspace('maap/witsml')/witsml21.ChannelSet(863f3f89-05f6-5337-84c1-e22bf4340f20)"
           ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:17:58.294Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:17:58.294Z')"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--WellLog:1.2.0:845748c6-7a48-5586-a5d0-f34836e50be2",
-        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Legacy Sonic",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/witsml21.Log(845748c6-7a48-5586-a5d0-f34836e50be2)"
-          ]
-        }
-      },
-      {
-        "id": "opendes:work-product-component--GenericRepresentation:1.2.0:Scenario_automated_import_2026-06-02T13:18:05.526Z",
-        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-        "acl": {
-          "owners": [
-            "data.default.owners@opendes.dataservices.energy"
-          ],
-          "viewers": [
-            "data.default.viewers@opendes.dataservices.energy"
-          ]
-        },
-        "legal": {
-          "legaltags": [
-            "opendes-ReservoirDDMS-Legal-Tag"
-          ],
-          "otherRelevantDataCountries": [
-            "US"
-          ],
-          "status": "compliant"
-        },
-        "data": {
-          "Name": "Scenario_automated_import_2026-06-02T13:18:05.526Z",
-          "DDMSDatasets": [
-            "eml:///dataspace('maap/witsml')/resqml22.obj_Activity('Scenario_automated_import_2026-06-02T13:18:05.526Z')"
-          ]
+          "DataspacePath": "maap/witsml"
         }
       }
     ]

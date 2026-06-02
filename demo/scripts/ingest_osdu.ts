@@ -301,16 +301,15 @@ async function buildManifestFromRddms(dataspace: string, inst: OsduInstance): Pr
   const url = `${RDDMS_API}/manifests/build`;
   const body = {
     uris: [`eml:///dataspace('${dataspace}')`],
-    acl: { owners: inst.owners, viewers: inst.viewers },
-    legal: {
-      legaltags: [inst.legalTag],
-      otherRelevantDataCountries: inst.countries,
-    },
   };
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "data-partition-id": inst.partition,
+      "Authorization": "Bearer local-dev",
+    },
     body: JSON.stringify(body),
   });
 
@@ -413,14 +412,31 @@ async function runInstance(instanceName: string, dataspace: string, dryRun: bool
     return false;
   }
 
-  // 2. Build manifest from local RDDMS
-  console.log("\n── Building manifest from RDDMS ──");
+  // 2. Build manifest from local RDDMS or load from file
+  console.log("\n── Building manifest ──");
   let manifest: Manifest;
-  try {
-    manifest = await buildManifestFromRddms(dataspace, inst);
-  } catch (e: any) {
-    console.log(`  ✗ ${e.message}`);
-    return false;
+
+  const manifestFile = args.includes("--manifest-file") ? args[args.indexOf("--manifest-file") + 1] : "";
+  if (manifestFile && fs.existsSync(manifestFile)) {
+    console.log(`  Loading from file: ${manifestFile}`);
+    manifest = JSON.parse(fs.readFileSync(manifestFile, "utf-8"));
+    // Ensure Data structure exists
+    if (!manifest.Data) {
+      manifest.Data = { Datasets: manifest["Data"]?.Datasets || [], WorkProductComponents: manifest["Data"]?.WorkProductComponents || [] };
+    }
+    // Patch ACL/legal from instance config
+    const allRecords = [...(manifest.MasterData || []), ...(manifest.Data.Datasets || []), ...(manifest.Data.WorkProductComponents || []), ...(manifest.ReferenceData || [])];
+    for (const rec of allRecords) {
+      rec.acl = { owners: inst.owners, viewers: inst.viewers };
+      rec.legal = { legaltags: [inst.legalTag], otherRelevantDataCountries: inst.countries, status: "compliant" };
+    }
+  } else {
+    try {
+      manifest = await buildManifestFromRddms(dataspace, inst);
+    } catch (e: any) {
+      console.log(`  ✗ ${e.message}`);
+      return false;
+    }
   }
 
   const totalRecords =
@@ -495,8 +511,9 @@ async function runInstance(instanceName: string, dataspace: string, dryRun: bool
   return result.failed === 0;
 }
 
+const args = process.argv.slice(2);
+
 async function main() {
-  const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const skipSchemas = args.includes("--skip-schemas");
   const runAll = args.includes("--all");
