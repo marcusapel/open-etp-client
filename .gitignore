@@ -6,3 +6,4 @@ compile_commands.json
 *.a
 __pycache__/
 *.pyc
+demo/

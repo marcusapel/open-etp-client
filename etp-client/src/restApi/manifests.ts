@@ -28,17 +28,13 @@ export function createManifestRoutes(etp: EtpClient): Router {
         // If it's a dataspace URI, discover all objects
         if (uri.includes("dataspace(") && !uri.includes(")/")) {
           const resources = await etp.getResources(uri);
-          if (resources.length > 0) {
-            const objectUris = resources.map((r) => r.uri);
-            const dataObjects = await etp.getDataObjects(objectUris);
-            for (const obj of dataObjects) {
-              allObjects.push({
-                uri: obj.resource.uri,
-                type: obj.resource.dataObjectType,
-                xml: obj.data,
-                name: obj.resource.name,
-              });
-            }
+          for (const r of resources) {
+            allObjects.push({
+              uri: r.uri,
+              type: r.dataObjectType || "",
+              xml: "",
+              name: r.name || "",
+            });
           }
         } else {
           // Single object URI

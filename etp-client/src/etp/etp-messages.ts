@@ -298,7 +298,8 @@ export function encodePutDataObjects(
     w.writeLong(BigInt(Date.now()) * 1000n); // storeCreated
     w.writeInt(0); // activeStatus: Active (enum index 0)
     w.writeMapStart(0); w.writeMapEnd(); // customData
-    w.writeString(obj.dataObjectType); // dataObjectType
+    // dataObjectType: string (qualified type e.g. "witsml21.Well")
+    w.writeString(obj.dataObjectType);
     // format: string
     w.writeString("xml");
     // blobId: union[null, Uuid] — null

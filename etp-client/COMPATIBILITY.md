@@ -37,7 +37,7 @@ and do not conflict with any official endpoints.
 | `GET /dataspaces/:id/resources/:type` | `GET /:id/resources/:type` | ✅ Match | Returns ResourceDto[] |
 | `GET /dataspaces/:id/resources/:type/:guid/targets` | `GET /:id/resources/:type/:uuid/targets` | ✅ Match | Returns ResourceDto[] |
 | `GET /dataspaces/:id/resources/:type/:guid/sources` | `GET /:id/resources/:type/:uuid/sources` | ✅ Match | Returns ResourceDto[] |
-| `GET /dataspaces/:id/graph/all` | ❌ Missing | **GAP** | Resource graph with links. Not used by ORES. |
+| `GET /dataspaces/:id/graph/all` | ❌ Missing | **GAP** | Resource graph with links. Low priority. |
 | `GET /dataspaces/:id/graph/:type/:guid/targets` | ❌ Missing | **GAP** | Target graph with links. |
 | `GET /dataspaces/:id/graph/:type/:guid/sources` | ❌ Missing | **GAP** | Source graph with links. |
 

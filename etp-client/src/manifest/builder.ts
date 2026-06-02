@@ -156,15 +156,57 @@ const SKIP_TYPES = new Set([
   "LocalPropertyKind",
 ]);
 
-// ─── WITSML → OSDU Mapping ──────────────────────────────────────────────────
+// ─── WITSML → OSDU Mapping (M27 schema versions) ────────────────────────────
 
 const WITSML_TO_OSDU: Record<string, string> = {
-  Log: "work-product-component--WellLog:1.2.0",
-  Trajectory: "work-product-component--WellboreTrajectory:1.3.0",
+  // Master Data
   Well: "master-data--Well:1.2.0",
   Wellbore: "master-data--Wellbore:1.3.0",
+
+  // Well Logs & Channels
+  Log: "work-product-component--WellLog:1.2.0",
+  ChannelSet: "work-product-component--WellLog:1.2.0",
+  Channel: "work-product-component--WellLog:1.2.0",
+
+  // Trajectories & Surveys
+  Trajectory: "work-product-component--WellboreTrajectory:1.3.0",
+  DeviationSurvey: "work-product-component--WellboreTrajectory:1.3.0",
+
+  // Markers
+  WellboreMarkerSet: "work-product-component--WellboreMarkerSet:1.2.0",
+  WellboreMarker: "work-product-component--WellboreMarkerSet:1.2.0",
+  FormationMarker: "work-product-component--WellboreMarkerSet:1.2.0",
+
+  // Completions
+  WellCompletion: "work-product-component--WellCompletionReport:1.0.0",
+  WellboreCompletion: "work-product-component--WellCompletionReport:1.0.0",
+  CompletionDesign: "work-product-component--WellCompletionReport:1.0.0",
+  PerforationSet: "work-product-component--WellCompletionReport:1.0.0",
+
+  // Fluids & Mud
   FluidsReport: "work-product-component--FluidReport:1.0.0",
   MudLog: "work-product-component--MudLogReport:1.1.0",
+  MudLogReport: "work-product-component--MudLogReport:1.1.0",
+
+  // Drilling operations
+  BhaRun: "work-product-component--DrillingSummaryReport:1.0.0",
+  CementJob: "work-product-component--DrillingSummaryReport:1.0.0",
+  DrillReport: "work-product-component--DrillingSummaryReport:1.0.0",
+  OpsReport: "work-product-component--DrillingSummaryReport:1.0.0",
+  Rig: "work-product-component--DrillingSummaryReport:1.0.0",
+  Tubular: "work-product-component--DrillingSummaryReport:1.0.0",
+  WbGeometry: "work-product-component--DrillingSummaryReport:1.0.0",
+
+  // Stimulation
+  StimJob: "work-product-component--StimulationReport:1.0.0",
+  StimJobStage: "work-product-component--StimulationReport:1.0.0",
+
+  // Risk
+  Risk: "work-product-component--DrillingSummaryReport:1.0.0",
+
+  // Survey Programs
+  SurveyProgram: "work-product-component--WellboreTrajectory:1.3.0",
+  Target: "work-product-component--WellboreTrajectory:1.3.0",
 };
 
 // ─── Builder ─────────────────────────────────────────────────────────────────
@@ -308,7 +350,10 @@ export class ManifestBuilder {
     const osduKind = WITSML_TO_OSDU[objectType];
     if (!osduKind) return null;
 
-    const uuid = obj.uri.match(/\('([^']+)'\)$/)?.[1] ?? obj.name;
+    // Extract UUID from URI — handles both formats: Type(uuid) and Type('uuid')
+    const uuid = obj.uri.match(/\(([^)']+)\)$/)?.[1]
+      ?? obj.uri.match(/\('([^']+)'\)$/)?.[1]
+      ?? obj.name;
     const kind = `osdu:wks:${osduKind}`;
     const id = `${partition}:${osduKind}:${uuid}`;
     const category = osduKind.startsWith("master-data") ? "master_data" : "wpc";
@@ -320,7 +365,7 @@ export class ManifestBuilder {
       legal: { ...opts.legal, status: "compliant" },
       data: {
         Name: obj.name,
-        DDMSDatasets: [`eml:///dataspace('${dataspace}')/witsml21.${objectType}('${uuid}')`],
+        DDMSDatasets: [obj.uri || `eml:///dataspace('${dataspace}')/witsml21.${objectType}(${uuid})`],
       },
       _category: category,
     };
