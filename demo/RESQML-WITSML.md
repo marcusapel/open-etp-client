@@ -297,12 +297,35 @@ The system implements a **three-layer architecture**:
 | Real-time drilling data from rig | WITSML (streaming via ETP Protocol 21) |
 | Well log from wireline service | WITSML `Log` (operational, has acquisition metadata) |
 | Directional survey for drilling ops | WITSML `Trajectory` (has tool type, azimuth ref) |
+| **Petrophysical raw curves (DLIS/LAS3)** | **WITSML** — 1:1 mapping (channels = curves), single object per log, units/mnemonics native |
+| **Computed petrophysics (Vshale, Sw, φ)** | **WITSML** for storage/exchange; RESQML if you need to link results to source interpretation |
+| **Interpretation lineage (curve → model)** | **RESQML** — PropertyKind taxonomy + FIRP links curve to the interpretation that produced it |
 | Earth model with well paths and properties | RESQML (geometry + property graph) |
 | Reservoir simulation with wellbore completions | RESQML + PRODML (connected model) |
 | Multi-well comparison / QC | WITSML (flat, queryable, has units) |
 | Publishing to OSDU catalog | WITSML (has converters) → OSDU records |
 | Subsurface interpretation workflow | RESQML (feature/interp/rep pattern) |
 | Both operational + model context needed | Store both; link via DOR cross-references |
+
+### Petrophysical Data: DLIS / LAS3 → Which Standard?
+
+DLIS and LAS files are **indexed channel data** — depth (or time) vs. N measurement curves. This maps directly to:
+
+| Standard | Representation | Objects per 46-channel log | Inline data? |
+|----------|---------------|---------------------------|-------------|
+| WITSML 2.1 | `ChannelSet` + `Channel[]` | **1** (channels nested) | Yes (XML or ETP DataArray) |
+| WITSML 1.4.1 | `Log` + `LogCurveInfo[]` + `<logData>` | **1** | Yes (inline CSV) |
+| RESQML 2.2 | `WellboreFrameRepresentation` + N × `ContinuousProperty` | **48** (1 frame + 1 index + 46 props) | No (HDF5 or DataArray only) |
+
+**Verdict:** For bulk petrophysical data (raw or computed), WITSML is the practical choice:
+- Every tool (Techlog, IP, GeolOG, Petrel) exports LAS/DLIS/WITSML natively — none export RESQML logs
+- `dlis_to_witsml.py` converts frames directly: DLIS channel → WITSML LogCurveInfo, same units/mnemonics
+- Single-object storage means one ETP `PutDataObjects` call per log run
+
+RESQML adds value **only** when you need to:
+- Link a computed curve (e.g., Vshale) back to the interpretation that produced it (via FIRP)
+- Attach a `PropertyKind` from the Energistics property taxonomy (e.g., `porosity`, `water saturation`)
+- Include curves in a geological model alongside grids, horizons, and faults
 
 ---
 
