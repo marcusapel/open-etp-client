@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trajectorys xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
+  <trajectory uid="drogon-A1-traj">
+    <nameWell>DROGON A-1</nameWell>
+    <nameWellbore>DROGON A-1 WB1</nameWellbore>
+    <name>Drilled Trajectory</name>
+    <dTimTrajStart>2019-03-15T08:00:00Z</dTimTrajStart>
+    <dTimTrajEnd>2019-04-20T16:00:00Z</dTimTrajEnd>
+    <trajectoryStation uid="ts-001">
+      <md uom="m">0</md>
+      <incl uom="deg">0</incl>
+      <azi uom="deg">0</azi>
+    </trajectoryStation>
+    <trajectoryStation uid="ts-002">
+      <md uom="m">500</md>
+      <incl uom="deg">2.1</incl>
+      <azi uom="deg">135</azi>
+    </trajectoryStation>
+    <trajectoryStation uid="ts-003">
+      <md uom="m">1000</md>
+      <incl uom="deg">15.4</incl>
+      <azi uom="deg">142</azi>
+    </trajectoryStation>
+    <trajectoryStation uid="ts-004">
+      <md uom="m">1500</md>
+      <incl uom="deg">45.2</incl>
+      <azi uom="deg">138</azi>
+    </trajectoryStation>
+    <trajectoryStation uid="ts-005">
+      <md uom="m">2000</md>
+      <incl uom="deg">78.3</incl>
+      <azi uom="deg">140</azi>
+    </trajectoryStation>
+  </trajectory>
+</trajectorys>

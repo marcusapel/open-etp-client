@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowJs": true,
@@ -27,6 +28,7 @@
     "node_modules",
     "dist",
     "docs",
+    "demo",
     "coverage",
     "commitlint.config.js",
     "devops",

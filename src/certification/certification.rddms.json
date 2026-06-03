@@ -1,0 +1,44 @@
+{
+  "etpServerUrl": "ws://localhost:9002",
+  "jwtToken": "dummy",
+  "dataPartition": "opendes",
+  "dataPartitionMode": "single",
+  "supportTransportAuthorization": false,
+  "supportApplicationAuthorization": false,
+  "serverRequiresAuthorization": false,
+  "runExperimental": true,
+
+  "protocols": {
+    "discovery": {
+      "supported": true
+    },
+    "store": {
+      "supported": true,
+      "supportsWrite": true,
+      "wellUriForGet": "eml:///dataspace('maap/drogon')/resqml22.WellboreFeature"
+    },
+    "discoveryQuery": {
+      "supported": true,
+      "testDataspace": "maap/drogon"
+    },
+    "storeQuery": {
+      "supported": true,
+      "testDataspace": "maap/drogon"
+    },
+    "growingObject": {
+      "supported": true,
+      "testDataspace": "maap/drogon"
+    },
+    "channelSubscribe": {
+      "supported": true,
+      "testDataspace": "maap/drogon"
+    },
+    "transaction": {
+      "supported": true
+    },
+    "dataspace": {
+      "supported": true,
+      "testDataspace": "test/certification"
+    }
+  }
+}

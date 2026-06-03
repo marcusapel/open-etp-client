@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ChannelSet xmlns="http://www.energistics.org/energyml/data/witsmlv2"
+            xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
+            schemaVersion="2.1" uuid="863f3f89-05f6-5337-84c1-e22bf4340f20">
+  <eml:Citation>
+    <eml:Title>DROGON A-1 GR+DT ChannelSet</eml:Title>
+    <eml:Originator>Equinor</eml:Originator>
+    <eml:Creation>2019-06-01T00:00:00Z</eml:Creation>
+    <eml:Format>WITSML 2.1</eml:Format>
+  </eml:Citation>
+  <Index>
+    <IndexType>measured depth</IndexType>
+    <Direction>increasing</Direction>
+    <Mnemonic>MD</Mnemonic>
+    <Uom>m</Uom>
+  </Index>
+  <Channel>
+    <Mnemonic>GR</Mnemonic>
+    <Uom>gAPI</Uom>
+    <DataType>double</DataType>
+    <eml:Citation><eml:Title>Gamma Ray</eml:Title></eml:Citation>
+  </Channel>
+  <Channel>
+    <Mnemonic>DT</Mnemonic>
+    <Uom>us/ft</Uom>
+    <DataType>double</DataType>
+    <eml:Citation><eml:Title>Sonic Transit Time</eml:Title></eml:Citation>
+  </Channel>
+  <Channel>
+    <Mnemonic>RHOB</Mnemonic>
+    <Uom>g/cm3</Uom>
+    <DataType>double</DataType>
+    <eml:Citation><eml:Title>Bulk Density</eml:Title></eml:Citation>
+  </Channel>
+</ChannelSet>

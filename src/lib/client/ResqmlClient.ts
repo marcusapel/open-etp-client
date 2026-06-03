@@ -61,6 +61,11 @@ import { StoreCustomer } from "../protocols/StoreCustomer";
 import { StoreNotificationCustomer } from "../protocols/StoreNotificationCustomer";
 import { SupportedTypesCustomer } from "../protocols/SupportedTypesCustomer";
 import { TransactionCustomer } from "../protocols/TransactionCustomer";
+import { DiscoveryQueryCustomer } from "../protocols/DiscoveryQueryCustomer";
+import { StoreQueryCustomer } from "../protocols/StoreQueryCustomer";
+import { GrowingObjectCustomer } from "../protocols/GrowingObjectCustomer";
+import { GrowingObjectNotificationCustomer } from "../protocols/GrowingObjectNotificationCustomer";
+import { ChannelSubscribeCustomer } from "../protocols/ChannelSubscribeCustomer";
 
 import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
@@ -212,6 +217,17 @@ export class ResqmlClient {
   private readonly transaction: TransactionCustomer = new TransactionCustomer(
     this.client
   );
+  readonly discoveryQuery: DiscoveryQueryCustomer = new DiscoveryQueryCustomer(
+    this.client
+  );
+  readonly storeQuery: StoreQueryCustomer = new StoreQueryCustomer(this.client);
+  readonly growingObject: GrowingObjectCustomer = new GrowingObjectCustomer(
+    this.client
+  );
+  readonly growingObjectNotification: GrowingObjectNotificationCustomer =
+    new GrowingObjectNotificationCustomer(this.client);
+  readonly channelSubscribe: ChannelSubscribeCustomer =
+    new ChannelSubscribeCustomer(this.client);
   private connected = false;
 
   private readonly overhead = 1024; // Represents the overhead to add on top of array size
@@ -257,6 +273,26 @@ export class ResqmlClient {
     this.client.registerHandler(
       Energistics.Etp.v12.Datatypes.Protocol.DataspaceOSDU,
       this.dataspaceOSDU
+    );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.DiscoveryQuery,
+      this.discoveryQuery
+    );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.StoreQuery,
+      this.storeQuery
+    );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.GrowingObject,
+      this.growingObject
+    );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.GrowingObjectNotification,
+      this.growingObjectNotification
+    );
+    this.client.registerHandler(
+      Energistics.Etp.v12.Datatypes.Protocol.ChannelSubscribe,
+      this.channelSubscribe
     );
     if (opt) {
       this.options = opt;
@@ -2819,6 +2855,71 @@ export class ResqmlClient {
         }
       });
     } else {
+      // ─── WITSML channel array discovery ──────────────────────────────
+      // For WITSML objects (ChannelSet, Log), detect Channel/LogCurveInfo
+      // and synthesize array IDs using path /WITSML/{uuid}/{mnemonic}
+      const uuid = etpUri.uuid;
+      if (uuid) {
+        // WITSML 2.1: <Index><Mnemonic>MD</Mnemonic>...</Index>
+        if (obj.Index) {
+          const indices = Array.isArray(obj.Index) ? obj.Index : [obj.Index];
+          for (const idx of indices) {
+            if (idx?.Mnemonic) {
+              const path = `/WITSML/${uuid}/${idx.Mnemonic}`;
+              dataArrays.set(uri + path, {
+                uid: { pathInResource: path, uri: etpUri.uriPath }
+              });
+            }
+          }
+        }
+        // WITSML 2.1: <Channel><Mnemonic>GR</Mnemonic>...</Channel>
+        if (obj.Channel) {
+          const channels = Array.isArray(obj.Channel)
+            ? obj.Channel
+            : [obj.Channel];
+          for (const ch of channels) {
+            if (ch?.Mnemonic) {
+              const path = `/WITSML/${uuid}/${ch.Mnemonic}`;
+              dataArrays.set(uri + path, {
+                uid: { pathInResource: path, uri: etpUri.uriPath }
+              });
+            }
+          }
+        }
+        // WITSML 1.4.1: <logCurveInfo><mnemonic>GR</mnemonic>...</logCurveInfo>
+        if (obj.LogCurveInfo || obj.logCurveInfo) {
+          const curves = Array.isArray(obj.LogCurveInfo ?? obj.logCurveInfo)
+            ? (obj.LogCurveInfo ?? obj.logCurveInfo)
+            : [obj.LogCurveInfo ?? obj.logCurveInfo];
+          for (const curve of curves) {
+            const mnem = curve?.Mnemonic ?? curve?.mnemonic;
+            if (mnem) {
+              const path = `/WITSML/${uuid}/${mnem}`;
+              dataArrays.set(uri + path, {
+                uid: { pathInResource: path, uri: etpUri.uriPath }
+              });
+            }
+          }
+        }
+        // WITSML 1.4.1 Trajectory: <trajectoryStation><md>/<incl>/<azi>
+        if (obj.trajectoryStation || obj.TrajectoryStation) {
+          const stations = Array.isArray(
+            obj.trajectoryStation ?? obj.TrajectoryStation
+          )
+            ? (obj.trajectoryStation ?? obj.TrajectoryStation)
+            : [obj.trajectoryStation ?? obj.TrajectoryStation];
+          if (stations.length > 0) {
+            for (const mnem of ["MD", "Inclination", "Azimuth"]) {
+              const path = `/WITSML/${uuid}/${mnem}`;
+              dataArrays.set(uri + path, {
+                uid: { pathInResource: path, uri: etpUri.uriPath }
+              });
+            }
+          }
+        }
+      }
+      // ─── End WITSML channel discovery ────────────────────────────────
+
       for (const key of Object.keys(obj)) {
         if (Array.isArray(obj[key])) {
           for (const e of obj[key]) {

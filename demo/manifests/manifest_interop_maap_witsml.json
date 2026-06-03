@@ -1,0 +1,311 @@
+{
+  "kind": "osdu:wks:Manifest:1.0.0",
+  "ReferenceData": [],
+  "MasterData": [
+    {
+      "id": "opendes:master-data--Well:74eff4a0-b740-5baa-a3a5-6a52e9162b3b",
+      "kind": "osdu:wks:master-data--Well:1.2.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "Chevron KKS-1",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Well(74eff4a0-b740-5baa-a3a5-6a52e9162b3b)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Chevron KKS-1"
+      }
+    },
+    {
+      "id": "opendes:master-data--Wellbore:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a",
+      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "KKS-1 WB1",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "KKS-1 WB1",
+        "WellID": "opendes:master-data--Well:1.2.0:74eff4a0-b740-5baa-a3a5-6a52e9162b3b"
+      }
+    },
+    {
+      "id": "opendes:master-data--Well:56dd6cd4-227a-59c5-93f9-3c0e2669f982",
+      "kind": "osdu:wks:master-data--Well:1.2.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "Old Discovery Well",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Well(56dd6cd4-227a-59c5-93f9-3c0e2669f982)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Old Discovery Well"
+      }
+    },
+    {
+      "id": "opendes:master-data--Wellbore:bae01221-594b-5279-8df4-87615e448355",
+      "kind": "osdu:wks:master-data--Wellbore:1.3.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "Discovery-1 WB1",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Wellbore(bae01221-594b-5279-8df4-87615e448355)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "Discovery-1 WB1",
+        "WellID": "opendes:master-data--Well:1.2.0:56dd6cd4-227a-59c5-93f9-3c0e2669f982"
+      }
+    },
+    {
+      "id": "opendes:master-data--Well:a1b2c3d4-e5f6-5789-abcd-ef0123456789",
+      "kind": "osdu:wks:master-data--Well:1.2.0",
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "Name": "DROGON C-1",
+        "DDMSDatasets": [
+          "eml:///dataspace('maap/witsml')/witsml21.Well(a1b2c3d4-e5f6-5789-abcd-ef0123456789)"
+        ],
+        "DataspacePath": "maap/witsml",
+        "FacilityName": "DROGON C-1"
+      }
+    }
+  ],
+  "Data": {
+    "Datasets": [
+      {
+        "id": "opendes:dataset--ETPDataspace:1.0.1:maap_witsml",
+        "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "maap/witsml",
+          "DataspacePath": "maap/witsml",
+          "ETPServerURL": "ws://localhost:9002",
+          "Description": "WITSML 2.1 objects in maap/witsml"
+        }
+      }
+    ],
+    "WorkProductComponents": [
+      {
+        "id": "opendes:work-product-component--WellLog:57612a31-dded-5594-bffe-536655f066b2",
+        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "KKS-1 CMR Main Pass",
+          "DDMSDatasets": [
+            "eml:///dataspace('maap/witsml')/witsml21.Log(57612a31-dded-5594-bffe-536655f066b2)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
+        }
+      },
+      {
+        "id": "opendes:work-product-component--MudLogReport:a0872a41-44cd-5589-a9bf-eadb32b87724",
+        "kind": "osdu:wks:work-product-component--MudLogReport:1.1.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "KKS-1 Surface Hole MudLog",
+          "DDMSDatasets": [
+            "eml:///dataspace('maap/witsml')/witsml21.MudLog(a0872a41-44cd-5589-a9bf-eadb32b87724)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
+        }
+      },
+      {
+        "id": "opendes:work-product-component--MudLogReport:c831592f-41b6-57f1-80fb-bd27a79f2158",
+        "kind": "osdu:wks:work-product-component--MudLogReport:1.1.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "KKS-1 Production Hole MudLog",
+          "DDMSDatasets": [
+            "eml:///dataspace('maap/witsml')/witsml21.MudLog(c831592f-41b6-57f1-80fb-bd27a79f2158)"
+          ],
+          "DataspacePath": "maap/witsml",
+          "WellboreID": "opendes:master-data--Wellbore:1.3.0:0cb9173a-3f0e-5abb-8d6d-b1c092ecfd9a"
+        }
+      },
+      {
+        "id": "opendes:work-product-component--WellLog:863f3f89-05f6-5337-84c1-e22bf4340f20",
+        "kind": "osdu:wks:work-product-component--WellLog:1.2.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "version": 1,
+        "data": {
+          "Name": "DROGON A-1 GR+DT ChannelSet",
+          "DDMSDatasets": [
+            "eml:///dataspace('maap/witsml')/witsml21.ChannelSet(863f3f89-05f6-5337-84c1-e22bf4340f20)"
+          ],
+          "DataspacePath": "maap/witsml"
+        }
+      }
+    ]
+  }
+}
