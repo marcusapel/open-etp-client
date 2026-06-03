@@ -347,7 +347,7 @@ The system implements a **three-layer architecture**:
 
 | Mapping | Gap | Severity |
 |---------|-----|----------|
-| RESQML WellboreFeature → OSDU Well | No coordinates, no status — record would be empty | High (not implemented) |
+| RESQML WellboreFeature → OSDU Well | WellboreFeature alone has no coordinates/status, but FIRP traversal (Feature→Interpretation→TrajectoryRepresentation) can yield XYZ. Requires multi-object graph walk. | Medium (implementable via FIRP traversal) |
 | RESQML Properties → OSDU WellLog Curves[] | One-to-many mismatch (N properties → 1 WellLog) | Medium (implementable but complex) |
 | WITSML multilateral → RESQML | No junction geometry in WITSML | Medium (requires external data) |
 | WITSML uncertainty → anywhere | No uncertainty model in any of the three schemas | High (industry gap) |
