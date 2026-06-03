@@ -68,7 +68,9 @@ azure_epc_import:
   services: ["docker:24-dind"]
   stage: integration
   tags: ["osdu-medium"]
-  needs: ["azure_deploy"]
+  needs:
+    - job: azure_deploy
+      optional: true
   extends: .azure_variables
   variables:
     DOCKER_TLS_CERTDIR: ""
