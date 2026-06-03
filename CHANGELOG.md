@@ -8,6 +8,63 @@ infrastructure.
 
 ---
 
+## WITSML → OSDU Manifest Generation (2026-06-03)
+
+### New Converter Files
+
+| File | OSDU Kind | Source Type |
+|------|-----------|-------------|
+| `src/lib/jsonTypes/WitsmlWell.ts` | `master-data--Well:1.3.0` | `witsml21.Well` |
+| `src/lib/jsonTypes/WitsmlWellbore.ts` | `master-data--Wellbore:1.3.0` | `witsml21.Wellbore` |
+| `src/lib/jsonTypes/WitsmlWellLog.ts` | `work-product-component--WellLog:1.3.0` | `witsml21.Log` |
+| `src/lib/jsonTypes/WitsmlTrajectory.ts` | `work-product-component--WellboreTrajectory:1.3.0` | `witsml21.Trajectory` |
+
+Registered in `src/lib/jsonTypes/ResqmlOsdu.ts` via `ResqmlOSDU.add(...)`.
+
+### Bug Fixes to Manifest Builder (`src/lib/jsonTypes/Manifest.ts`)
+
+- **`registerDMS` no longer aborts manifest** — `catch` was incorrectly returning
+  `Promise.reject("Fail to register DMS")`. Now continues without DMS registration
+  (enables local/offline manifest generation).
+- **`getResolvedObjects` failures caught per batch** — unhandled promise rejection
+  from the ETP server ("Expected eOBJ_INSTANCE URI") crashed the process. Now
+  wrapped in try/catch per 5-object batch.
+- **Converter errors skip individual objects** — was `return Promise.reject("Manifest
+  creation failed")` which aborted the entire manifest on any single converter error.
+  Now `continue`s to next object.
+
+### Critical Fix: `$type` on WITSML objects (`src/lib/mlTypes/XmlJsonUtil.ts`)
+
+`xml2typescript()` now sets `$type = dataObjectType` on the root object if the
+parsed XML didn't produce one. WITSML/PRODML objects lack `xsi:type` at root
+(unlike RESQML), so `Manifest.ts` was silently skipping all WITSML objects.
+
+### Multi-Dimensional Array Support (`src/lib/restApi/witsml.module/Witsml.controller.ts`)
+
+- `parseDataRow()` tokenizer handles bracketed array values: `8496.0,[7.48 40.85 ...],[1023 78.6 ...]`
+- `ChannelArray` interface has `dimensions: number[]` field
+- `extractChannelArrays()` detects scalar vs array channels, stores multi-dim as
+  flattened Float64Array with dims `[rows, dim]`
+- `injectExternalArrayRefs()` ensures `xmlns:eml` namespace is declared on root
+- Separate strip regexes for WITSML 1.4.1 `<logData>` and WITSML 2.1 `<Data><Data>` containers
+
+### Demo Restructure
+
+```
+demo/
+├── drogon-witsml/          # Drogon synthetic field dataset
+│   ├── data/               # WITSML XML samples (wells, logs, channelsets)
+│   └── scripts/            # Ingestion & roundtrip test scripts
+├── cvx-witsml/             # Chevron KKS-1 real-field dataset
+│   ├── data/               # WITSML XML + DLIS source files (CMR, MUD_LOG)
+│   │   └── src/            # Raw DLIS + converted XML (large files)
+│   └── scripts/            # dlis_to_witsml.py, ingest scripts
+├── manifests/              # Saved OSDU manifest JSONs (interop, preship, eqndev)
+└── streaming/              # Channel streaming producer/consumer demo
+```
+
+---
+
 ## Modified Files
 
 ### `src/lib/client/ResqmlClient.ts`
