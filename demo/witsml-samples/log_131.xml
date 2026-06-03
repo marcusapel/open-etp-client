@@ -1,23 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<logs xmlns="http://www.witsml.org/schemas/131" version="1.3.1.0">
-  <log uid="legacy-log-001">
-    <nameWell>Old Discovery Well</nameWell>
-    <name>Legacy Sonic</name>
+<logs xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
+  <log uid="kks1-log-141" uidWell="kks1" uidWellbore="kks1-wb1">
+    <nameWell>Kentish Knock South-1</nameWell>
+    <nameWellbore>Kentish Knock South-1 WB1</nameWellbore>
+    <name>KKS-1 Composite (1.4.1)</name>
     <indexType>measured depth</indexType>
-    <indexCurve mnemAlias="DEPTH">DEPTH</indexCurve>
-    <logCurveInfo>
-      <mnemonic>DEPTH</mnemonic>
-      <unit>m</unit>
-    </logCurveInfo>
-    <logCurveInfo>
-      <mnemonic>DT</mnemonic>
-      <unit>us/ft</unit>
-      <curveDescription>Sonic</curveDescription>
-    </logCurveInfo>
+    <startIndex uom="m">1000.0</startIndex>
+    <endIndex uom="m">1009.5</endIndex>
+    <logCurveInfo uid="MD"><mnemonic>MD</mnemonic><unit>m</unit><typeLogData>double</typeLogData></logCurveInfo>
+    <logCurveInfo uid="GR"><mnemonic>GR</mnemonic><unit>gAPI</unit><typeLogData>double</typeLogData></logCurveInfo>
+    <logCurveInfo uid="DT"><mnemonic>DT</mnemonic><unit>us/ft</unit><typeLogData>double</typeLogData></logCurveInfo>
+    <logCurveInfo uid="NPHI"><mnemonic>NPHI</mnemonic><unit>v/v</unit><typeLogData>double</typeLogData></logCurveInfo>
+    <logCurveInfo uid="RHOB"><mnemonic>RHOB</mnemonic><unit>g/cm3</unit><typeLogData>double</typeLogData></logCurveInfo>
     <logData>
-      <data>500.0,120.5</data>
-      <data>500.5,118.2</data>
-      <data>501.0,115.8</data>
+      <data>1000.0, 42.4, 88.1, 0.1907, 2.232</data>
+      <data>1000.5, 80.6, 86.3, 0.2036, 2.300</data>
+      <data>1001.0, 78.3, 90.6, 0.1837, 2.300</data>
+      <data>1001.5, 51.0, 85.1, 0.1936, 2.226</data>
+      <data>1002.0, 66.9, 87.4, 0.1815, 2.334</data>
+      <data>1002.5, 80.7, 88.2, 0.1642, 2.437</data>
+      <data>1003.0, 41.0, 116.9, 0.2073, 2.280</data>
+      <data>1003.5, 77.7, 111.9, 0.1843, 2.440</data>
+      <data>1004.0, 49.3, 106.3, 0.2027, 2.443</data>
+      <data>1004.5, 54.2, 98.9, 0.2269, 2.354</data>
+      <data>1005.0, 70.8, 107.3, 0.2167, 2.467</data>
+      <data>1005.5, 61.9, 108.4, 0.1875, 2.210</data>
+      <data>1006.0, 73.9, 91.4, 0.2320, 2.474</data>
+      <data>1006.5, 69.6, 91.0, 0.1837, 2.317</data>
+      <data>1007.0, 43.3, 101.0, 0.2073, 2.301</data>
+      <data>1007.5, 48.5, 88.1, 0.2128, 2.204</data>
+      <data>1008.0, 55.8, 93.0, 0.2032, 2.417</data>
+      <data>1008.5, 80.9, 107.4, 0.2492, 2.489</data>
+      <data>1009.0, 68.3, 93.2, 0.1984, 2.253</data>
+      <data>1009.5, 84.6, 100.6, 0.2252, 2.213</data>
     </logData>
   </log>
 </logs>

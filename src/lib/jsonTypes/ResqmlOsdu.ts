@@ -62,6 +62,10 @@ import { StratigraphicUnitInterpretation22Manifest } from "./StratigraphicUnitIn
 import { SubRepresentation22Manifest } from "./SubRepresentation22";
 import { TimeSeries23Manifest } from "./TimeSeries23";
 import { UnstructuredGridRepresentation22Manifest } from "./UnstructuredGridRepresentation22";
+import { WitsmlWellManifest } from "./WitsmlWell";
+import { WitsmlWellboreManifest } from "./WitsmlWellbore";
+import { WitsmlWellLogManifest } from "./WitsmlWellLog";
+import { WitsmlTrajectoryManifest } from "./WitsmlTrajectory";
 
 export { EtpDataspaceManifest } from "./ETPDataspace";
 export { WorkProductManifest } from "./WorkProduct";
@@ -398,6 +402,29 @@ ResqmlOSDU.add(
   "resqml22.UnstructuredGridRepresentation",
   () => "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.2.0",
   UnstructuredGridRepresentation22Manifest
+);
+
+// ─── WITSML Types ────────────────────────────────────────────────────────────
+
+ResqmlOSDU.add(
+  "witsml21.Well",
+  () => "osdu:wks:master-data--Well:1.3.0",
+  WitsmlWellManifest
+);
+ResqmlOSDU.add(
+  "witsml21.Wellbore",
+  () => "osdu:wks:master-data--Wellbore:1.3.0",
+  WitsmlWellboreManifest
+);
+ResqmlOSDU.add(
+  "witsml21.Log",
+  () => "osdu:wks:work-product-component--WellLog:1.3.0",
+  WitsmlWellLogManifest
+);
+ResqmlOSDU.add(
+  "witsml21.Trajectory",
+  () => "osdu:wks:work-product-component--WellboreTrajectory:1.3.0",
+  WitsmlTrajectoryManifest
 );
 
 export default ResqmlOSDU;

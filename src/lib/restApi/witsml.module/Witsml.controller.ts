@@ -366,12 +366,57 @@ function detectDomainInfo(xml: string): {
 interface ChannelArray {
   mnemonic: string;
   values: Float64Array;
+  /** Dimensions for putDataArray: [length] for scalar, [rows, dim] for array channels. */
+  dimensions: number[];
+}
+
+/**
+ * Parse a single data row that may contain bracket-encoded multi-dim arrays.
+ * Format: "8496.0,[7.48 40.85 21.6],[1023.09 78.6],42.5"
+ * Returns an array of tokens, each being either a scalar number or a number[].
+ */
+function parseDataRow(row: string): (number | number[])[] {
+  const tokens: (number | number[])[] = [];
+  let i = 0;
+  const len = row.length;
+
+  while (i < len) {
+    // Skip whitespace/commas
+    while (i < len && (row[i] === "," || row[i] === " " || row[i] === "\t")) i++;
+    if (i >= len) break;
+
+    if (row[i] === "[") {
+      // Bracket-encoded array: [v1 v2 v3 ...]
+      const end = row.indexOf("]", i);
+      if (end < 0) break;
+      const inner = row.slice(i + 1, end).trim();
+      const arr = inner
+        .split(/\s+/)
+        .map(v => { const n = parseFloat(v); return isNaN(n) ? NaN : n; });
+      tokens.push(arr);
+      i = end + 1;
+    } else {
+      // Scalar value: read until next comma or bracket
+      let j = i;
+      while (j < len && row[j] !== "," && row[j] !== "[") j++;
+      const val = row.slice(i, j).trim();
+      if (val.length > 0) {
+        const n = parseFloat(val);
+        tokens.push(isNaN(n) ? NaN : n);
+      }
+      i = j;
+    }
+  }
+  return tokens;
 }
 
 /**
  * Extract channel data arrays from WITSML XML containing <logData><data> rows.
  * Supports WITSML 1.4.1 (<logData><data>v1,v2,v3</data>...) and
- * WITSML 2.1 ChannelSet data formats.
+ * WITSML 2.1 ChannelSet data formats, including bracket-encoded multi-dim arrays.
+ *
+ * Multi-dimensional channels (e.g. T2_DIST[30]) are stored as flattened
+ * Float64Array with dimensions [rows, dim].
  *
  * Returns per-channel Float64Array for each mnemonic (including the index curve).
  */
@@ -404,29 +449,59 @@ function extractChannelArrays(xml: string): ChannelArray[] {
 
   if (mnemonics.length === 0) return [];
 
-  // Extract <data> rows from <logData> or <ChannelData> section
-  const dataRowRegex = /<(?:[\w]+:)?data>([^<]+)<\/(?:[\w]+:)?data>/gi;
-  const rows: number[][] = [];
+  // Extract <data> rows (nested <Data><Data>... or <logData><data>...)
+  const dataRowRegex = /<(?:[\w]+:)?[Dd]ata>([^<]+)<\/(?:[\w]+:)?[Dd]ata>/gi;
+  const rawRows: string[] = [];
   while ((m = dataRowRegex.exec(xml)) !== null) {
-    const values = m[1].split(",").map(v => {
-      const n = parseFloat(v.trim());
-      return isNaN(n) ? NaN : n;
-    });
-    if (values.length > 0) rows.push(values);
+    const content = m[1].trim();
+    // Skip MnemonicList-like rows (all text, no numbers)
+    if (content.length > 0 && /[\d.\-]/.test(content)) {
+      rawRows.push(content);
+    }
   }
 
-  if (rows.length === 0) return [];
+  if (rawRows.length === 0) return [];
 
-  // Transpose: rows × columns → per-column arrays
-  const numChannels = Math.min(mnemonics.length, rows[0].length);
+  // Parse all rows to detect scalars vs arrays per channel
+  const parsedRows = rawRows.map(parseDataRow);
+  if (parsedRows.length === 0 || parsedRows[0].length === 0) return [];
+
+  const numChannels = Math.min(mnemonics.length, parsedRows[0].length);
+  const numRows = parsedRows.length;
   const arrays: ChannelArray[] = [];
 
   for (let col = 0; col < numChannels; col++) {
-    const values = new Float64Array(rows.length);
-    for (let row = 0; row < rows.length; row++) {
-      values[row] = col < rows[row].length ? rows[row][col] : NaN;
+    // Determine if this channel is scalar or array from first non-NaN row
+    const sample = parsedRows.find(r => col < r.length && r[col] !== undefined)?.[col];
+    const isArray = Array.isArray(sample);
+
+    if (isArray) {
+      // Multi-dimensional channel: flatten into [rows * dim]
+      const dim = (sample as number[]).length;
+      const values = new Float64Array(numRows * dim);
+      for (let row = 0; row < numRows; row++) {
+        const cell = col < parsedRows[row].length ? parsedRows[row][col] : undefined;
+        if (Array.isArray(cell)) {
+          for (let d = 0; d < dim; d++) {
+            values[row * dim + d] = d < cell.length ? cell[d] : NaN;
+          }
+        } else {
+          // Missing row — fill with NaN
+          for (let d = 0; d < dim; d++) {
+            values[row * dim + d] = NaN;
+          }
+        }
+      }
+      arrays.push({ mnemonic: mnemonics[col], values, dimensions: [numRows, dim] });
+    } else {
+      // Scalar channel
+      const values = new Float64Array(numRows);
+      for (let row = 0; row < numRows; row++) {
+        const cell = col < parsedRows[row].length ? parsedRows[row][col] : NaN;
+        values[row] = typeof cell === "number" ? cell : NaN;
+      }
+      arrays.push({ mnemonic: mnemonics[col], values, dimensions: [numRows] });
     }
-    arrays.push({ mnemonic: mnemonics[col], values });
   }
 
   return arrays;
@@ -461,16 +536,17 @@ function extractTrajectoryArrays(xml: string): ChannelArray[] {
 
   const arrays: ChannelArray[] = [];
   if (mdValues.length > 0) {
-    arrays.push({ mnemonic: "MD", values: Float64Array.from(mdValues) });
+    arrays.push({ mnemonic: "MD", values: Float64Array.from(mdValues), dimensions: [mdValues.length] });
   }
   if (inclValues.length > 0) {
     arrays.push({
       mnemonic: "Inclination",
-      values: Float64Array.from(inclValues)
+      values: Float64Array.from(inclValues),
+      dimensions: [inclValues.length]
     });
   }
   if (aziValues.length > 0) {
-    arrays.push({ mnemonic: "Azimuth", values: Float64Array.from(aziValues) });
+    arrays.push({ mnemonic: "Azimuth", values: Float64Array.from(aziValues), dimensions: [aziValues.length] });
   }
   return arrays;
 }
@@ -484,6 +560,14 @@ function injectExternalArrayRefs(
   uuid: string,
   arrays: ChannelArray[]
 ): string {
+  // Ensure xmlns:eml is declared on root element
+  if (!xml.includes('xmlns:eml=') && !xml.includes('xmlns:eml =')) {
+    xml = xml.replace(
+      /(<[\w:]+)/,
+      `$1 xmlns:eml="http://www.energistics.org/energyml/data/commonv2"`
+    );
+  }
+
   const refs = arrays
     .map(
       ch =>
@@ -596,9 +680,21 @@ export default class WitsmlController {
 
       // Inject ExternalDataArrayPart references into XML for objects that have arrays
       // This prevents the "Orphan arrays" commit error from the ETP server.
+      // Also strip inline <data> rows since the data is stored as external arrays.
       for (const obj of parsedObjects) {
         const entry = objectArrayMap.get(obj.uuid);
         if (entry && entry.arrays.length > 0) {
+          // Strip WITSML 1.4.1 <logData>...</logData> blocks
+          obj.xml = obj.xml.replace(
+            /<(?:[\w]+:)?logData\b[^>]*>[\s\S]*?<\/(?:[\w]+:)?logData>/gi,
+            ""
+          );
+          // Strip WITSML 2.1 ChannelSet <Data><Data>rows</Data>...</Data> container
+          // Match the outer <Data> that wraps multiple <Data> row elements
+          obj.xml = obj.xml.replace(
+            /<(?:[\w]+:)?Data>\s*(?:<(?:[\w]+:)?(?:MnemonicList|Data)>[\s\S]*?<\/(?:[\w]+:)?Data>\s*)+<\/(?:[\w]+:)?Data>/gi,
+            ""
+          );
           obj.xml = injectExternalArrayRefs(obj.xml, obj.uuid, entry.arrays);
         }
       }
@@ -664,10 +760,10 @@ export default class WitsmlController {
             pathInResource: `/WITSML/${obj.uuid}/${ch.mnemonic}`
           };
           try {
-            await c.putDataArray(arrayId, [ch.values.length], ch.values);
+            await c.putDataArray(arrayId, ch.dimensions, ch.values);
             arraysStored++;
             logger.info(
-              `  Stored array ${ch.mnemonic} (${ch.values.length} samples) for ${obj.objectType} ${obj.uuid}`
+              `  Stored array ${ch.mnemonic} (${ch.dimensions.join("×")}) for ${obj.objectType} ${obj.uuid}`
             );
           } catch (arrErr: any) {
             logger.warn(

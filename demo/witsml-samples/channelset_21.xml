@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ChannelSet xmlns="http://www.energistics.org/energyml/data/witsmlv2"
             xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
-            schemaVersion="2.1" uuid="863f3f89-05f6-5337-84c1-e22bf4340f20">
+            schemaVersion="2.1" uuid="d1a1b1c1-0004-4004-a004-000000000004">
   <eml:Citation>
-    <eml:Title>DROGON A-1 GR+DT ChannelSet</eml:Title>
+    <eml:Title>DROGON A-1 GR+DT+RHOB ChannelSet</eml:Title>
     <eml:Originator>Equinor</eml:Originator>
     <eml:Creation>2019-06-01T00:00:00Z</eml:Creation>
     <eml:Format>WITSML 2.1</eml:Format>
@@ -32,4 +32,37 @@
     <DataType>double</DataType>
     <eml:Citation><eml:Title>Bulk Density</eml:Title></eml:Citation>
   </Channel>
+  <Data>
+    <MnemonicList>MD,GR,DT,RHOB</MnemonicList>
+      <Data>1000.0,58.2,92.0,2.254</Data>
+      <Data>1000.5,51.2,111.6,2.275</Data>
+      <Data>1001.0,57.2,109.0,2.362</Data>
+      <Data>1001.5,82.2,102.1,2.326</Data>
+      <Data>1002.0,67.6,92.6,2.471</Data>
+      <Data>1002.5,56.8,98.6,2.405</Data>
+      <Data>1003.0,46.9,108.1,2.455</Data>
+      <Data>1003.5,55.2,118.1,2.359</Data>
+      <Data>1004.0,74.9,101.4,2.321</Data>
+      <Data>1004.5,52.1,85.3,2.261</Data>
+      <Data>1005.0,84.5,103.7,2.339</Data>
+      <Data>1005.5,80.5,106.2,2.493</Data>
+      <Data>1006.0,56.1,92.6,2.476</Data>
+      <Data>1006.5,47.2,112.7,2.379</Data>
+      <Data>1007.0,84.2,118.0,2.398</Data>
+      <Data>1007.5,41.7,85.8,2.342</Data>
+      <Data>1008.0,76.9,87.8,2.328</Data>
+      <Data>1008.5,43.9,95.8,2.202</Data>
+      <Data>1009.0,54.8,103.3,2.260</Data>
+      <Data>1009.5,75.4,86.9,2.263</Data>
+      <Data>1010.0,51.6,99.1,2.429</Data>
+      <Data>1010.5,55.9,109.3,2.477</Data>
+      <Data>1011.0,45.9,115.2,2.380</Data>
+      <Data>1011.5,73.6,106.3,2.322</Data>
+      <Data>1012.0,44.3,90.0,2.252</Data>
+      <Data>1012.5,48.0,90.1,2.262</Data>
+      <Data>1013.0,65.2,112.0,2.439</Data>
+      <Data>1013.5,78.1,89.1,2.447</Data>
+      <Data>1014.0,48.4,87.5,2.286</Data>
+      <Data>1014.5,66.4,86.7,2.265</Data>
+  </Data>
 </ChannelSet>

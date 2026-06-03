@@ -112,8 +112,7 @@ export const createManifest = async (
     try {
       await registerDMS(context);
     } catch {
-      // Ignore registration errors
-      return Promise.reject("Fail to register DMS");
+      // Ignore registration errors — continue without DMS registration
     }
     const manifests: Manifest = {
       // $schema:
@@ -225,12 +224,20 @@ export const createManifest = async (
 
       // slice objectUris to avoid "too many arguments" error
       while (tmpUris.length > 0) {
-        const arr = await client.getResolvedObjects(
-          tmpUris.splice(0, 5),
-          objects,
-          false
-        );
-        resolvedObjects = resolvedObjects.concat(arr);
+        const batch = tmpUris.splice(0, 5);
+        console.error(`[MANIFEST] Resolving batch: ${JSON.stringify(batch)}`);
+        try {
+          const arr = await client.getResolvedObjects(
+            batch,
+            objects,
+            false
+          );
+          console.error(`[MANIFEST] Resolved ${arr.length} objects, types: ${arr.map(o => o?.$type).join(', ')}`);
+          resolvedObjects = resolvedObjects.concat(arr);
+        } catch (e) {
+          console.error(`[MANIFEST] Failed to resolve batch: ${e}`);
+          // Some objects failed to resolve - skip them
+        }
       }
 
       for (let i = 0; i < resolvedObjects.length; i++) {
@@ -238,6 +245,9 @@ export const createManifest = async (
         if (resObj?.$type === undefined) {
           continue;
         }
+
+        // DEBUG: log type matching
+        console.log(`[MANIFEST] $type="${resObj.$type}" Uuid="${resObj.Uuid}"`);
 
         const m = resObj.$type.match(
           /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
@@ -251,6 +261,7 @@ export const createManifest = async (
           resObj.ObjectVersion
         );
 
+        console.log(`[MANIFEST] dataObjectType="${etpUri.dataObjectType}" converter=${ResqmlOSDU.get(etpUri.dataObjectType) !== undefined}`);
         const c = ResqmlOSDU.get(etpUri.dataObjectType);
         if (c === undefined) {
           continue;
@@ -313,7 +324,8 @@ export const createManifest = async (
             }
           }
         } catch (e) {
-          return Promise.reject("Manifest creation failed");
+          console.error(`[MANIFEST] Converter failed for ${etpUri.dataObjectType} ${resObj.Uuid}: ${e}`);
+          continue;
         }
       }
     }

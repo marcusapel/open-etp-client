@@ -1,20 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Well xmlns="http://www.energistics.org/energyml/data/witsmlv2"
       xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
-      schemaVersion="2.1" uuid="a1b2c3d4-e5f6-5789-abcd-ef0123456789">
+      schemaVersion="2.1" uuid="d1a1b1c1-0001-4001-a001-000000000001">
   <eml:Citation>
-    <eml:Title>DROGON C-1</eml:Title>
-    <eml:Originator>Equinor</eml:Originator>
-    <eml:Creation>2019-01-15T00:00:00Z</eml:Creation>
-    <eml:Format>WITSML 2.1</eml:Format>
+    <eml:Title>Kentish Knock South-1</eml:Title>
+    <eml:Originator>Chevron</eml:Originator>
+    <eml:Creation>2019-06-01T00:00:00Z</eml:Creation>
+    <eml:Format>RDDMS WITSML Demo</eml:Format>
   </eml:Citation>
-  <TimeZone>+01:00</TimeZone>
+  <TimeZone>+00:00</TimeZone>
   <GeographicLocationWGS84>
-    <Latitude uom="dega">58.44</Latitude>
-    <Longitude uom="dega">2.07</Longitude>
+    <Latitude uom="dega">51.42</Latitude>
+    <Longitude uom="dega">1.83</Longitude>
   </GeographicLocationWGS84>
   <StatusWell>active</StatusWell>
-  <PurposeWell>exploration</PurposeWell>
-  <Country>Norway</Country>
-  <NumGovt>7220/8-C1</NumGovt>
 </Well>

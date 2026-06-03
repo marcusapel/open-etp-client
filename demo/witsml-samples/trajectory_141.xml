@@ -1,35 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <trajectorys xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
-  <trajectory uid="drogon-A1-traj">
-    <nameWell>DROGON A-1</nameWell>
-    <nameWellbore>DROGON A-1 WB1</nameWellbore>
-    <name>Drilled Trajectory</name>
-    <dTimTrajStart>2019-03-15T08:00:00Z</dTimTrajStart>
-    <dTimTrajEnd>2019-04-20T16:00:00Z</dTimTrajEnd>
-    <trajectoryStation uid="ts-001">
-      <md uom="m">0</md>
-      <incl uom="deg">0</incl>
-      <azi uom="deg">0</azi>
-    </trajectoryStation>
-    <trajectoryStation uid="ts-002">
-      <md uom="m">500</md>
-      <incl uom="deg">2.1</incl>
-      <azi uom="deg">135</azi>
-    </trajectoryStation>
-    <trajectoryStation uid="ts-003">
-      <md uom="m">1000</md>
-      <incl uom="deg">15.4</incl>
-      <azi uom="deg">142</azi>
-    </trajectoryStation>
-    <trajectoryStation uid="ts-004">
-      <md uom="m">1500</md>
-      <incl uom="deg">45.2</incl>
-      <azi uom="deg">138</azi>
-    </trajectoryStation>
-    <trajectoryStation uid="ts-005">
-      <md uom="m">2000</md>
-      <incl uom="deg">78.3</incl>
-      <azi uom="deg">140</azi>
-    </trajectoryStation>
+  <trajectory uid="kks1-traj-141" uidWell="kks1" uidWellbore="kks1-wb1">
+    <nameWell>Kentish Knock South-1</nameWell>
+    <nameWellbore>Kentish Knock South-1 WB1</nameWellbore>
+    <name>KKS-1 Directional Survey</name>
+    <aziRef>grid north</aziRef>
+      <trajectoryStation uid="ts1">
+        <md uom="m">0.0</md>
+        <incl uom="dega">0.30</incl>
+        <azi uom="dega">176.52</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts2">
+        <md uom="m">100.0</md>
+        <incl uom="dega">2.74</incl>
+        <azi uom="dega">186.45</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts3">
+        <md uom="m">200.0</md>
+        <incl uom="dega">5.62</incl>
+        <azi uom="dega">179.52</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts4">
+        <md uom="m">300.0</md>
+        <incl uom="dega">9.06</incl>
+        <azi uom="dega">182.23</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts5">
+        <md uom="m">400.0</md>
+        <incl uom="dega">11.65</incl>
+        <azi uom="dega">182.61</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts6">
+        <md uom="m">500.0</md>
+        <incl uom="dega">15.00</incl>
+        <azi uom="dega">187.02</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts7">
+        <md uom="m">600.0</md>
+        <incl uom="dega">17.53</incl>
+        <azi uom="dega">189.14</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts8">
+        <md uom="m">700.0</md>
+        <incl uom="dega">20.67</incl>
+        <azi uom="dega">186.27</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts9">
+        <md uom="m">800.0</md>
+        <incl uom="dega">24.01</incl>
+        <azi uom="dega">186.71</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts10">
+        <md uom="m">900.0</md>
+        <incl uom="dega">26.68</incl>
+        <azi uom="dega">176.43</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts11">
+        <md uom="m">1000.0</md>
+        <incl uom="dega">29.59</incl>
+        <azi uom="dega">185.57</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts12">
+        <md uom="m">1100.0</md>
+        <incl uom="dega">33.03</incl>
+        <azi uom="dega">174.10</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts13">
+        <md uom="m">1200.0</md>
+        <incl uom="dega">35.69</incl>
+        <azi uom="dega">171.62</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts14">
+        <md uom="m">1300.0</md>
+        <incl uom="dega">38.70</incl>
+        <azi uom="dega">181.20</azi>
+      </trajectoryStation>
+      <trajectoryStation uid="ts15">
+        <md uom="m">1400.0</md>
+        <incl uom="dega">41.94</incl>
+        <azi uom="dega">184.09</azi>
+      </trajectoryStation>
   </trajectory>
 </trajectorys>

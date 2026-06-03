@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Trajectory xmlns="http://www.energistics.org/energyml/data/witsmlv2"
+            xmlns:eml="http://www.energistics.org/energyml/data/commonv2"
+            schemaVersion="2.1" uuid="d1a1b1c1-0005-4005-a005-000000000005">
+  <eml:Citation>
+    <eml:Title>KKS-1 Survey</eml:Title>
+    <eml:Originator>Chevron</eml:Originator>
+    <eml:Creation>2019-06-01T00:00:00Z</eml:Creation>
+    <eml:Format>RDDMS</eml:Format>
+  </eml:Citation>
+  <Wellbore>
+    <ContentType>application/x-witsml+xml;version=2.1;type=Wellbore</ContentType>
+    <Title>Kentish Knock South-1 WB1</Title>
+    <UUID>d1a1b1c1-0002-4002-a002-000000000002</UUID>
+  </Wellbore>
+  <AziRef>grid north</AziRef>
+    <TrajectoryStation uid="sta1">
+      <Md uom="m">500.0</Md>
+      <Incl uom="dega">-0.35</Incl>
+      <Azi uom="dega">131.51</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta2">
+      <Md uom="m">550.0</Md>
+      <Incl uom="dega">4.80</Incl>
+      <Azi uom="dega">130.72</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta3">
+      <Md uom="m">600.0</Md>
+      <Incl uom="dega">9.07</Incl>
+      <Azi uom="dega">133.66</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta4">
+      <Md uom="m">650.0</Md>
+      <Incl uom="dega">12.62</Incl>
+      <Azi uom="dega">135.07</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta5">
+      <Md uom="m">700.0</Md>
+      <Incl uom="dega">17.07</Incl>
+      <Azi uom="dega">134.34</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta6">
+      <Md uom="m">750.0</Md>
+      <Incl uom="dega">21.64</Incl>
+      <Azi uom="dega">130.91</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta7">
+      <Md uom="m">800.0</Md>
+      <Incl uom="dega">26.85</Incl>
+      <Azi uom="dega">138.27</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta8">
+      <Md uom="m">850.0</Md>
+      <Incl uom="dega">30.75</Incl>
+      <Azi uom="dega">132.23</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta9">
+      <Md uom="m">900.0</Md>
+      <Incl uom="dega">36.25</Incl>
+      <Azi uom="dega">139.48</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta10">
+      <Md uom="m">950.0</Md>
+      <Incl uom="dega">40.65</Incl>
+      <Azi uom="dega">133.97</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta11">
+      <Md uom="m">1000.0</Md>
+      <Incl uom="dega">45.95</Incl>
+      <Azi uom="dega">130.47</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta12">
+      <Md uom="m">1050.0</Md>
+      <Incl uom="dega">50.22</Incl>
+      <Azi uom="dega">132.90</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta13">
+      <Md uom="m">1100.0</Md>
+      <Incl uom="dega">53.29</Incl>
+      <Azi uom="dega">131.18</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta14">
+      <Md uom="m">1150.0</Md>
+      <Incl uom="dega">58.12</Incl>
+      <Azi uom="dega">138.16</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta15">
+      <Md uom="m">1200.0</Md>
+      <Incl uom="dega">62.36</Incl>
+      <Azi uom="dega">135.82</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta16">
+      <Md uom="m">1250.0</Md>
+      <Incl uom="dega">67.78</Incl>
+      <Azi uom="dega">133.72</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta17">
+      <Md uom="m">1300.0</Md>
+      <Incl uom="dega">72.10</Incl>
+      <Azi uom="dega">130.63</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta18">
+      <Md uom="m">1350.0</Md>
+      <Incl uom="dega">75.62</Incl>
+      <Azi uom="dega">132.06</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta19">
+      <Md uom="m">1400.0</Md>
+      <Incl uom="dega">81.36</Incl>
+      <Azi uom="dega">134.28</Azi>
+    </TrajectoryStation>
+    <TrajectoryStation uid="sta20">
+      <Md uom="m">1450.0</Md>
+      <Incl uom="dega">85.13</Incl>
+      <Azi uom="dega">135.86</Azi>
+    </TrajectoryStation>
+</Trajectory>
