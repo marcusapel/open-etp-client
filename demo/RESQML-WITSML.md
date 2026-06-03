@@ -109,20 +109,19 @@ flowchart TD
 ### WITSML Hierarchy → OSDU Records
 
 ```mermaid
-%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
-    subgraph ETP["ETP Dataspace (e.g. maap/witsml)"]
+    subgraph ETP[ETP Dataspace]
         W2[Well] --> WB2[Wellbore]
-        WB2 --> L2[Log<br/>46 channels × 655 pts]
-        WB2 --> T2[Trajectory<br/>MD + Incl + Azi]
+        WB2 --> L2[Log\n46 channels x 655 pts]
+        WB2 --> T2[Trajectory\nMD + Incl + Azi]
     end
 
-    subgraph OSDU["OSDU Catalog (interop)"]
-        MW[master-data--Well<br/>FacilityName, Location]
-        MWB[master-data--Wellbore<br/>WellID, Depths]
-        WL[WPC--WellLog<br/>Curves, DDMSDatasets]
-        WT[WPC--WellboreTrajectory<br/>AzimuthRef, DDMSDatasets]
-        DS[dataset--ETPDataspace<br/>maap/witsml]
+    subgraph OSDU[OSDU Catalog]
+        MW[master-data--Well\nFacilityName, Location]
+        MWB[master-data--Wellbore\nWellID, Depths]
+        WL[WPC--WellLog\nCurves, DDMSDatasets]
+        WT[WPC--WellboreTrajectory\nAzimuthRef, DDMSDatasets]
+        DS[dataset--ETPDataspace\nmaap/witsml]
     end
 
     W2 ==> MW
@@ -135,11 +134,10 @@ flowchart LR
 ### RESQML Interpretation Graph (no OSDU projection)
 
 ```mermaid
-%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     WF[WellboreFeature] --> WI[WellboreInterpretation]
-    WI --> WTR[WellboreTrajectoryRep<br/>parametric line geometry]
-    WTR --> WFR[WellboreFrameRep<br/>MD node array]
+    WI --> WTR[WellboreTrajectoryRep\nparametric line geometry]
+    WTR --> WFR[WellboreFrameRep\nMD node array]
     WFR --> P1[Property: GR]
     WFR --> P2[Property: RHOB]
     WFR --> P3[Property: DT]
@@ -228,39 +226,39 @@ These converters are not implemented because RESQML well data typically coexists
 
 ```mermaid
 flowchart TB
-    subgraph Sources["Data Sources"]
+    subgraph Sources[Data Sources]
         DLIS[DLIS files]
         LAS[LAS files]
         EPC[EPC/HDF5 packages]
         RT[Real-time rig sensors]
     end
 
-    subgraph RDDMS["Reservoir DDMS (ETP Server + PostgreSQL)"]
+    subgraph RDDMS[Reservoir DDMS]
         direction TB
-        WITSML_STORE["WITSML Store<br/>(witsml21.Well, Log, Trajectory)"]
-        RESQML_STORE["RESQML Store<br/>(IjkGrid, Surfaces, WellboreFeature)"]
-        ARRAYS["DataArray Store<br/>(Float64Arrays per channel)"]
+        WITSML_STORE[WITSML Store\nWell, Log, Trajectory]
+        RESQML_STORE[RESQML Store\nIjkGrid, Surfaces, WellboreFeature]
+        ARRAYS[DataArray Store\nFloat64Arrays per channel]
     end
 
-    subgraph OSDU["OSDU Data Platform"]
-        MANIFEST["Manifest Builder<br/>(WitsmlWell.ts, WitsmlWellLog.ts…)"]
-        CATALOG["Storage / Search API<br/>(interop, eqndev, preship)"]
-        SEARCH["OSDU Search<br/>(kind-based queries)"]
+    subgraph OSDU[OSDU Data Platform]
+        MANIFEST[Manifest Builder\nWitsmlWell.ts, WitsmlWellLog.ts]
+        CATALOG[Storage / Search API\ninterop, eqndev, preship]
+        SEARCH[OSDU Search\nkind-based queries]
     end
 
-    DLIS -->|"dlis_to_witsml.py"| WITSML_STORE
-    LAS -->|"las_to_witsml"| WITSML_STORE
-    EPC -->|"docker cp + import"| RESQML_STORE
-    RT -->|"ETP Protocol 21"| WITSML_STORE
+    DLIS -->|dlis_to_witsml.py| WITSML_STORE
+    LAS -->|las_to_witsml| WITSML_STORE
+    EPC -->|docker cp + import| RESQML_STORE
+    RT -->|ETP Protocol 21| WITSML_STORE
 
     WITSML_STORE --> ARRAYS
     RESQML_STORE --> ARRAYS
 
-    WITSML_STORE ==>|"converters"| MANIFEST
-    MANIFEST ==>|"POST /api/manifest/ingest"| CATALOG
+    WITSML_STORE ==>|converters| MANIFEST
+    MANIFEST ==>|POST /api/manifest/ingest| CATALOG
     CATALOG --> SEARCH
 
-    RESQML_STORE -.->|"no converter (raw ETP only)"| CATALOG
+    RESQML_STORE -.->|no converter - raw ETP only| CATALOG
 ```
 
 The system implements a **three-layer architecture**:
