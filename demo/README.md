@@ -3,6 +3,23 @@
 ETP 1.2 protocol extensions built on **@osdu/open-etp-client** (Emerson NestJS),
 adding WITSML well data management, query protocols, and real-time streaming.
 
+## Folder Structure
+
+```
+demo/
+├── drogon-witsml/      # Synthetic Drogon field (8 wells, logs, channelsets)
+│   ├── data/           # WITSML 1.4.1 + 2.1 XML samples
+│   └── scripts/        # Ingestion and roundtrip test scripts
+├── cvx-witsml/         # Real-field Chevron KKS-1 (DLIS → WITSML)
+│   ├── data/           # WITSML XML + src/ DLIS originals
+│   └── scripts/        # dlis_to_witsml.py, ingest pipelines
+├── manifests/          # Saved OSDU manifest JSONs (interop, preship, eqndev)
+├── streaming/          # Channel streaming producer/consumer demo
+├── demo_witsml.sh      # Quick WITSML demo (ingest + query)
+├── demo_protocols.sh   # ETP protocol showcase
+└── demo_compare_wells.sh
+```
+
 ---
 
 ## 1. WITSML Data Model

@@ -224,19 +224,15 @@ export const createManifest = async (
 
       // slice objectUris to avoid "too many arguments" error
       while (tmpUris.length > 0) {
-        const batch = tmpUris.splice(0, 5);
-        console.error(`[MANIFEST] Resolving batch: ${JSON.stringify(batch)}`);
         try {
           const arr = await client.getResolvedObjects(
-            batch,
+            tmpUris.splice(0, 5),
             objects,
             false
           );
-          console.error(`[MANIFEST] Resolved ${arr.length} objects, types: ${arr.map(o => o?.$type).join(', ')}`);
           resolvedObjects = resolvedObjects.concat(arr);
-        } catch (e) {
-          console.error(`[MANIFEST] Failed to resolve batch: ${e}`);
-          // Some objects failed to resolve - skip them
+        } catch {
+          // Some objects failed to resolve (e.g. malformed URIs) - skip batch
         }
       }
 
@@ -245,9 +241,6 @@ export const createManifest = async (
         if (resObj?.$type === undefined) {
           continue;
         }
-
-        // DEBUG: log type matching
-        console.log(`[MANIFEST] $type="${resObj.$type}" Uuid="${resObj.Uuid}"`);
 
         const m = resObj.$type.match(
           /^(?<domainFamily>resqml|eml|witsml|prodml)(?<domainVersion>[\d]+).(?<dataType>[\w]+)$/i
@@ -261,7 +254,6 @@ export const createManifest = async (
           resObj.ObjectVersion
         );
 
-        console.log(`[MANIFEST] dataObjectType="${etpUri.dataObjectType}" converter=${ResqmlOSDU.get(etpUri.dataObjectType) !== undefined}`);
         const c = ResqmlOSDU.get(etpUri.dataObjectType);
         if (c === undefined) {
           continue;
@@ -323,8 +315,8 @@ export const createManifest = async (
               context.created.set(res.id, res);
             }
           }
-        } catch (e) {
-          console.error(`[MANIFEST] Converter failed for ${etpUri.dataObjectType} ${resObj.Uuid}: ${e}`);
+        } catch {
+          // Converter failed for this object - skip it
           continue;
         }
       }
