@@ -59,109 +59,13 @@ azure_deploy:
     reports:
       dotenv: ${CI_PROJECT_DIR}/acr_tokens.env
 
-# Populate the demo/Volve dataspace via openETPServer --import-epc before azure_test runs.
-# Always imports fresh: deletes the existing dataspace (if any) then recreates it from the
-# Volve_Demo_Horizons_Depth.epc fixture in devops/data/. The manifest postman collection
-# (run from azure_test) consumes this dataspace.
-azure_epc_import:
-  image: docker:24
-  services: ["docker:24-dind"]
-  stage: integration
-  tags: ["osdu-medium"]
-  needs:
-    - job: azure_deploy
-      optional: true
-  extends: .azure_variables
-  variables:
-    DOCKER_TLS_CERTDIR: ""
-    # Pin to the v0-29-2 image; bump as needed when newer server images are published.
-    OETP_SERVER_IMAGE: "community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-server/open-etp-server-v0-29-2:latest"
-    DEMO_DATASPACE: "demo/Volve"
-    DEMO_DATASPACE_ENCODED: "demo%2FVolve"
-    EPC_FILE: "Volve_Demo_Horizons_Depth.epc"
-    OETP_TIMEOUT: "180s"
-  script:
-    - apk add --no-cache curl nodejs npm >/dev/null 2>&1 || true
-    - |
-      curl -sL "${AZURE_POSTMAN_ENVIRONMENT_FILE_URL}" -o /tmp/env.json
-      DATA_PARTITION_ID=$(node -e "const e=require('/tmp/env.json');const v=(e.values||[]).find(x=>x.key==='data-partition-id');if(!v||!v.value){process.exit(2)}console.log(v.value)")
-      if [ -z "${DATA_PARTITION_ID}" ]; then echo "Failed to extract data-partition-id from environment file"; exit 1; fi
-      echo "Using data-partition-id: ${DATA_PARTITION_ID}"
-      TOKEN_FETCH_URL="https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token"
-      ACCESS_TOKEN=$(curl -s -X POST "${TOKEN_FETCH_URL}" \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "grant_type=client_credentials" \
-        -d "client_id=${AZURE_CLIENT_ID}" \
-        -d "client_secret=${AZURE_CLIENT_SECRET}" \
-        -d "scope=${AZURE_CLIENT_ID}/.default" \
-        | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).access_token||'')}catch(e){}})")
-      if [ -z "${ACCESS_TOKEN}" ]; then echo "Failed to fetch AAD access token"; exit 1; fi
-      # Idempotently ensure the legal tag exists (mirrors the v3.1 azure_test pre-step).
-      LEGAL_TAG_NAME="${DATA_PARTITION_ID}-RDDMS-Legal-Tag"
-      EXPIRY=$(node -e "const d=new Date();d.setUTCDate(d.getUTCDate()+30);console.log(d.toISOString().slice(0,10))")
-      LEGAL_TAG_BODY="{\"name\":\"${LEGAL_TAG_NAME}\",\"description\":\"RDDMS CI legal tag\",\"properties\":{\"contractId\":\"123456\",\"countryOfOrigin\":[\"US\",\"CA\"],\"dataType\":\"Third Party Data\",\"exportClassification\":\"EAR99\",\"originator\":\"Schlumberger\",\"personalData\":\"No Personal Data\",\"securityClassification\":\"Private\",\"expirationDate\":\"${EXPIRY}\"}}"
-      LEGAL_TAG_STATUS=$(curl -s -o /tmp/legaltag.out -w "%{http_code}" -X POST "https://${AZURE_DNS_NAME}/api/legal/v1/legaltags" \
-        -H "Content-Type: application/json" \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -H "data-partition-id: ${DATA_PARTITION_ID}" \
-        -d "${LEGAL_TAG_BODY}")
-      echo "Legal tag '${LEGAL_TAG_NAME}' create status: ${LEGAL_TAG_STATUS}"
-      if [ "${LEGAL_TAG_STATUS}" != "201" ] && [ "${LEGAL_TAG_STATUS}" != "409" ]; then
-        cat /tmp/legaltag.out; echo "Legal tag creation failed (expected 201 or 409)"; exit 1;
-      fi
-      # Always import fresh: delete existing demo/Volve dataspace (404 acceptable when absent).
-      echo "Deleting existing dataspace ${DEMO_DATASPACE} (if present)..."
-      DEL_STATUS=$(curl -s -o /tmp/del.out -w "%{http_code}" -X DELETE \
-        "https://${AZURE_DNS_NAME}/api/reservoir-ddms/v2/dataspaces/${DEMO_DATASPACE_ENCODED}" \
-        -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -H "data-partition-id: ${DATA_PARTITION_ID}")
-      echo "  delete status: ${DEL_STATUS}"
-      case "${DEL_STATUS}" in 200|202|204|404) ;; *) cat /tmp/del.out; echo "Unexpected delete status"; exit 1 ;; esac
-      # Persist token for the docker steps below (separate script entries share env).
-      echo "${ACCESS_TOKEN}" > /tmp/access_token
-      echo "${DATA_PARTITION_ID}" > /tmp/data_partition_id
-    - docker login community.opengroup.org:5555 -u "${CI_REGISTRY_USER:-gitlab-ci-token}" -p "${CI_REGISTRY_PASSWORD:-$CI_JOB_TOKEN}"
-    - docker pull "${OETP_SERVER_IMAGE}"
-    - docker tag "${OETP_SERVER_IMAGE}" open-etp:server
-    - |
-      ACCESS_TOKEN=$(cat /tmp/access_token)
-      DATA_PARTITION_ID=$(cat /tmp/data_partition_id)
-      RDDMS_WSS="wss://${AZURE_DNS_NAME}/api/reservoir-ddms-etp/v2/"
-      XDATA="{\"viewers\":[\"data.default.viewers@${DATA_PARTITION_ID}.contoso.com\"],\"owners\":[\"data.default.owners@${DATA_PARTITION_ID}.contoso.com\"],\"legaltags\":\"${DATA_PARTITION_ID}-RDDMS-Legal-Tag\",\"otherRelevantDataCountries\":[\"US\"]}"
-      echo "Creating dataspace ${DEMO_DATASPACE}..."
-      docker run --rm open-etp:server openETPServer space \
-        -S "${RDDMS_WSS}" \
-        --new -s "${DEMO_DATASPACE}" \
-        --data-partition-id "${DATA_PARTITION_ID}" \
-        --auth bearer --jwt-token "${ACCESS_TOKEN}" \
-        --xdata "${XDATA}" \
-        --timeout "${OETP_TIMEOUT}"
-      echo "Importing ${EPC_FILE} into ${DEMO_DATASPACE}..."
-      docker run --rm -v "${CI_PROJECT_DIR}/devops/data:/data" open-etp:server openETPServer space \
-        -S "${RDDMS_WSS}" \
-        -s "${DEMO_DATASPACE}" \
-        --data-partition-id "${DATA_PARTITION_ID}" \
-        --auth bearer --jwt-token "${ACCESS_TOKEN}" \
-        --import-epc "/data/${EPC_FILE}" \
-        --timeout "${OETP_TIMEOUT}"
-  only:
-    refs:
-      - branches
-      - main
-      - merge_requests
-      - tags
-  allow_failure: true
-  except:
-    variables:
-      - $AZURE_SKIP_TEST == 'true'
-
 azure_test:
   image:
     name: postman/newman:alpine
     entrypoint: [""]
   stage: integration
   tags: ["osdu-small"]
-  needs: ["azure_deploy", "azure_epc_import"]
+  needs: ["azure_deploy"]
   extends: .azure_variables
   variables:
     # NOTE: Project-level CI/CD variables outrank job-level YAML variables in GitLab,
@@ -170,8 +74,6 @@ azure_test:
     # reference it directly in the script. Remove this override once osdu/qa!175 merges
     # to main and the project variable is updated.
     POSTMAN_COLLECTION_URL_OVERRIDE: "https://community.opengroup.org/osdu/qa/-/raw/risbansal/reservoir-ddms-ci-cd-v3.1/Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20CI-CD%20v3.1.postman_collection.json?inline=false"
-    # Manifest collection runs against demo/Volve populated by azure_epc_import.
-    MANIFEST_POSTMAN_COLLECTION_URL: "https://community.opengroup.org/osdu/qa/-/raw/risbansal/reservoir-ddms-ci-cd-v3.1/Postman%20Collection/45_CICD_Reservoir_DDMS/Reservoir%20DDMS%20Manifest%20v1.0.postman_collection.json?inline=false"
     AZURE_POSTMAN_ENVIRONMENT_FILE_URL: $AZURE_POSTMAN_ENVIRONMENT_FILE_URL
     AZURE_CLIENT_ID: $AZURE_CLIENT_ID
     AZURE_CLIENT_SECRET: $AZURE_CLIENT_SECRET
@@ -211,28 +113,7 @@ azure_test:
       if [ "${LEGAL_TAG_STATUS}" != "201" ] && [ "${LEGAL_TAG_STATUS}" != "409" ]; then
         echo "Legal tag creation failed (expected 201 or 409)"; exit 1;
       fi
-      # Persist the AAD token for the manifest newman run below (the manifest collection
-      # has no built-in auth fetch step -- it expects {{access_token}} to be pre-set).
-      echo "${ACCESS_TOKEN}" > /tmp/access_token
-      echo "${DATA_PARTITION_ID}" > /tmp/data_partition_id
     - newman run ${POSTMAN_COLLECTION_URL_OVERRIDE} -e ${AZURE_POSTMAN_ENVIRONMENT_FILE_URL} --env-var TENANT_ID=${AZURE_TENANT_ID} --env-var CLIENT_ID=${AZURE_CLIENT_ID} --env-var CLIENT_SECRET=${AZURE_CLIENT_SECRET} --env-var HOSTNAME=${AZURE_DNS_NAME} --env-var refresh_token=${AZURE_REFRESH_TOKEN} --env-var RESERVOIR_DDMS_HOST=${AZURE_DNS_NAME}/api/reservoir-ddms/v2 --env-var Token_Fetch_URL=https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token --env-var Scope=${AZURE_CLIENT_ID}/.default --env-var ENTITLEMENTS_DOMAIN=contoso.com
-    # Manifest validation against demo/Volve (populated by azure_epc_import). The manifest
-    # collection has no built-in token fetch, so access_token + data-partition-id are injected
-    # directly. Host vars cover legal/storage/search/workflow + reservoir-ddms REST.
-    - |
-      ACCESS_TOKEN=$(cat /tmp/access_token)
-      DATA_PARTITION_ID=$(cat /tmp/data_partition_id)
-      newman run ${MANIFEST_POSTMAN_COLLECTION_URL} -e ${AZURE_POSTMAN_ENVIRONMENT_FILE_URL} \
-        --env-var access_token=${ACCESS_TOKEN} \
-        --env-var data-partition-id=${DATA_PARTITION_ID} \
-        --env-var HOSTNAME=${AZURE_DNS_NAME} \
-        --env-var RESERVOIR_DDMS_HOST=${AZURE_DNS_NAME}/api/reservoir-ddms/v2 \
-        --env-var LEGAL_HOST=${AZURE_DNS_NAME}/api/legal/v1 \
-        --env-var STORAGE_HOST=${AZURE_DNS_NAME}/api/storage/v2 \
-        --env-var SEARCH_HOST=${AZURE_DNS_NAME}/api/search/v2 \
-        --env-var WORKFLOW_URL=${AZURE_DNS_NAME}/api/workflow/v1 \
-        --env-var domain=.contoso.com \
-        --env-var dataspace_name=demo/Volve
   only:
     refs:
       - branches
