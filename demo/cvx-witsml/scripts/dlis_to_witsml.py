@@ -164,7 +164,7 @@ def export_witsml_21(frame, origin, curves, output_path: str, max_rows=None):
     obj_uuid = str(uuid.uuid4())
     root = ET.Element(wns("Log"), attrib={
         "schemaVersion": "2.1",
-        f"{{{NS_EML}}}uuid": obj_uuid
+        "uuid": obj_uuid
     })
 
     # Citation
@@ -180,6 +180,7 @@ def export_witsml_21(frame, origin, curves, output_path: str, max_rows=None):
 
     # ChannelSet
     channel_set = ET.SubElement(root, wns("ChannelSet"))
+    channel_set.set("uuid", str(uuid.uuid4()))
     cs_citation = ET.SubElement(channel_set, ens("Citation"))
     ET.SubElement(cs_citation, ens("Title")).text = frame.name or "Main Frame"
 
@@ -267,7 +268,7 @@ def export_witsml_21_metadata(frame, origin, curves, output_path: str, max_rows=
     obj_uuid = str(uuid.uuid4())
     root = ET.Element(wns("Log"), attrib={
         "schemaVersion": "2.1",
-        f"{{{NS_EML}}}uuid": obj_uuid
+        "uuid": obj_uuid
     })
 
     # Citation
@@ -283,6 +284,7 @@ def export_witsml_21_metadata(frame, origin, curves, output_path: str, max_rows=
 
     # ChannelSet
     channel_set = ET.SubElement(root, wns("ChannelSet"))
+    channel_set.set("uuid", str(uuid.uuid4()))
     cs_citation = ET.SubElement(channel_set, ens("Citation"))
     ET.SubElement(cs_citation, ens("Title")).text = frame.name or "Main Frame"
 
@@ -436,7 +438,7 @@ def ingest_arrays_direct(api_base: str, dataspace: str, obj_uuid: str,
                 }
 
             req = urllib.request.Request(
-                url, data=json.dumps(payload).encode('utf-8'),
+                url, data=json.dumps([payload]).encode('utf-8'),
                 method='PUT', headers=headers
             )
             try:
@@ -471,8 +473,12 @@ def ingest_to_rddms(api_base: str, dataspace: str, xml_path: str, version: str):
     url = f"{api_base}/witsml/store"
     payload = json.dumps({"dataspace": dataspace, "xml": xml_content}).encode('utf-8')
 
-    req = urllib.request.Request(url, data=payload, method='PUT',
-                                headers={'Content-Type': 'application/json'})
+    headers = {
+        'Content-Type': 'application/json',
+        'data-partition-id': 'opendes',
+        'Authorization': 'Bearer x',
+    }
+    req = urllib.request.Request(url, data=payload, method='PUT', headers=headers)
     try:
         with urllib.request.urlopen(req) as resp:
             result = json.loads(resp.read().decode())
@@ -492,18 +498,15 @@ def build_manifest(api_base: str, dataspace: str):
     url = f"{api_base}/manifests/build"
     payload = json.dumps({
         "uris": [f"eml:///dataspace('{dataspace}')"],
-        "acl": {
-            "owners": ["data.default.owners@equinor.com"],
-            "viewers": ["data.default.viewers@equinor.com"]
-        },
-        "legal": {
-            "legaltags": ["equinor-private-no-restrictions"],
-            "otherRelevantDataCountries": ["NO"]
-        }
+        "createMissingReferences": True
     }).encode('utf-8')
 
-    req = urllib.request.Request(url, data=payload, method='POST',
-                                headers={'Content-Type': 'application/json'})
+    headers = {
+        'Content-Type': 'application/json',
+        'data-partition-id': 'opendes',
+        'Authorization': 'Bearer x',
+    }
+    req = urllib.request.Request(url, data=payload, method='POST', headers=headers)
     try:
         with urllib.request.urlopen(req) as resp:
             manifest = json.loads(resp.read().decode())
@@ -568,18 +571,18 @@ def main():
             print("\n[--no-ingest] Skipping RDDMS ingestion.")
             return
 
-        # 4. Ingest metadata XML to RDDMS (creates the Log object with ExternalDataArrayPart refs)
-        print(f"\n[2] Ingesting metadata XML to RDDMS ({args.dataspace})...")
-        ingest_to_rddms(args.api, args.dataspace, path_meta, "WITSML 2.1 metadata")
-
-        # 5. PUT arrays directly via REST
-        print(f"\n[3] Storing arrays directly via REST (chunk_size={args.chunk_size})...")
+        # 4. PUT arrays directly via REST (must precede metadata — server validates array existence)
+        print(f"\n[2] Storing arrays directly via REST (chunk_size={args.chunk_size})...")
         ingest_arrays_direct(
             args.api, args.dataspace, obj_uuid,
             frame, curves, channel_info,
             token=token, partition=args.partition,
             chunk_size=args.chunk_size, max_rows=args.max_rows
         )
+
+        # 5. Ingest metadata XML to RDDMS (creates the Log object with ExternalDataArrayPart refs)
+        print(f"\n[3] Ingesting metadata XML to RDDMS ({args.dataspace})...")
+        ingest_to_rddms(args.api, args.dataspace, path_meta, "WITSML 2.1 metadata")
 
         # 6. Build manifest
         print(f"\n[4] Building OSDU manifest...")
