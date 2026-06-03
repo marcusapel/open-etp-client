@@ -306,6 +306,57 @@ The system implements a **three-layer architecture**:
 
 ---
 
+## Data Model Deficiencies & Mapping Gaps
+
+### WITSML Deficiencies
+
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| **No interpretation semantics** — WITSML stores measurements, not what they mean. A gamma-ray log has no formal link to a lithology interpretation. | Cannot traverse from measurement to geological conclusion without external context. | Store RESQML interpretation alongside; cross-reference via DOR. |
+| **No multilateral modeling** — Trajectory is one-per-wellbore with no parent intersection concept. | Multilateral wells require separate wellbores with no formal junction point geometry. | RESQML `ParentIntersection` fills this gap. |
+| **Flat parent-child only** — Well→Wellbore→Log. No graph relationships between logs, no property-to-property links. | Cannot model that GR_edited was derived from GR_raw, or that a composite log merges two runs. | Custom `ExtensionNameValue` or out-of-band lineage tracking. |
+| **No geometry type** — Trajectory stores stations (MD, Incl, Azi) but not the interpolation method between them (minimum curvature, tangential, cubic). | Clients must assume minimum curvature; other methods produce different XYZ paths from same stations. | Add `SurveyToolType` hint or store computed XYZ alongside. |
+| **Null value convention (`-999.25`)** — Not formally typed. A sensor reading of -999.25 is indistinguishable from a null. | Ambiguity in curves with extreme negative values (temperature, depth corrections). | Use `NullValue` per LogCurveInfo if set; otherwise consumers must guess. |
+| **No uncertainty model** — Measurements have no error bars, confidence intervals, or probability distributions. | Directional survey accuracy (ellipses of uncertainty) cannot be expressed. | ISCWSA MWD error models applied externally. |
+| **Version fragmentation** — 1.3.1, 1.4.1, 2.0, 2.1 have different container structures, namespaces, and element names for the same concepts. | Parsers must handle 4+ formats. The `typeMap` in `Witsml.controller.ts` exists solely because of this. | Normalize to 2.1 internal representation at ingest time. |
+
+### RESQML Deficiencies
+
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| **No operational metadata** — WellboreFeature has no location, status, operator, or dates. | A RESQML-only dataset cannot answer "where is this well?" or "who operates it?" | Always pair with WITSML; use `WitsmlWellWellbore` DOR. |
+| **Over-decomposed well logs** — Each curve is a separate `Property` object, requiring N+1 objects for N curves plus the frame. | A 46-channel log = 48 ETP objects (1 frame + 1 index + 46 properties). Management overhead is high. | WITSML Log bundles all curves in one object. |
+| **No inline data** — All arrays must be external (HDF5 or DataArray). | Cannot produce a self-contained XML file with curve values. Simple exchange requires HDF5 infrastructure. | Use ETP DataArray protocol or package as EPC (ZIP + HDF5). |
+| **Inheritance complexity** — `xsi:type` required on polymorphic elements; deep class hierarchies (`AbstractRepresentation` → `AbstractGridRepresentation` → `IjkGridRepresentation`). | Steep learning curve; parsers must handle type discrimination. Tooling maturity lower than WITSML. | Code generators from XSD; `processXsiType()` normalizes to flat `$type`. |
+| **No streaming/real-time support** — Designed for static file exchange. No concept of growing objects or channel subscriptions. | Cannot receive live data in RESQML format. | Use WITSML + ETP Protocol 6/21 for real-time; convert to RESQML post-acquisition. |
+| **Weak provenance** — `Citation` has creation date and originator, but no formal lineage chain (who modified what, when, from which source). | Version tracking across interpretation iterations is ad-hoc. | Use OSDU lineage or external provenance systems. |
+
+### OSDU Schema Deficiencies
+
+| Issue | Impact | Workaround |
+|-------|--------|------------|
+| **No native array storage** — OSDU records are JSON metadata only. Curve/grid data must live in external file services (blob, DDMS). | WellLog record describes curves but doesn't contain them. Requires a separate DDMS call to get actual values. | `DDMSDatasets[]` field links to ETP DataArray URIs; RDDMS serves the arrays. |
+| **Lossy abstraction** — `master-data--Well:1.3.0` flattens rich WITSML structures (multiple vertical datums, nested location CRS, extension properties) into fixed schema fields. | Uncommon fields drop silently if the converter doesn't map them. `ExtensionNameValue` pairs often lost. | Map to `ExtensionProperties` bag; accept some loss as cost of catalog uniformity. |
+| **No interpretation layer** — OSDU has `master-data` and `work-product-component` but no concept of RESQML's feature/interpretation/representation pattern. | Cannot express "this trajectory is one interpretation of that wellbore feature" in OSDU's type system. | Store RESQML objects in RDDMS; OSDU references only the authoritative version. |
+| **Schema version coupling** — `WellLog:1.3.0` schema may not match fields available in WITSML 2.1 vs 1.4.1 outputs. OSDU schemas evolve independently of Energistics. | Converter must target a specific OSDU schema version; newer WITSML fields may have no OSDU slot. | Map to closest field or drop; upgrade converters when OSDU schema evolves. |
+| **No relationship graph** — OSDU uses SRN references (string IDs) between records. No typed edges, no cardinality constraints, no traversal queries. | "Find all logs for this well" requires a Search API query with filter, not a graph traversal. | Build relationships into search queries; RDDMS GraphQL adds graph capability on top. |
+| **Partition isolation** — Records in `opendes` partition cannot reference records in another partition. Multi-tenant scenarios fragment the data graph. | Wells from different operators in the same OSDU instance cannot be linked in a single manifest. | Use one partition per project; accept cross-partition queries require federation. |
+| **ETPDataspace is a custom kind** — `dataset--ETPDataspace:1.0.1` is not an official OSDU community schema. It's a local extension to bridge RDDMS dataspaces with the catalog. | Interoperability with other OSDU implementations depends on them accepting this custom kind. | Register as community schema; or rely solely on WPC records for discoverability. |
+
+### Cross-Standard Mapping Gaps
+
+| Mapping | Gap | Severity |
+|---------|-----|----------|
+| RESQML WellboreFeature → OSDU Well | No coordinates, no status — record would be empty | High (not implemented) |
+| RESQML Properties → OSDU WellLog Curves[] | One-to-many mismatch (N properties → 1 WellLog) | Medium (implementable but complex) |
+| WITSML multilateral → RESQML | No junction geometry in WITSML | Medium (requires external data) |
+| WITSML uncertainty → anywhere | No uncertainty model in any of the three schemas | High (industry gap) |
+| OSDU → WITSML (reverse) | OSDU records lack full XML content; cannot reconstruct valid WITSML from catalog record alone | High (OSDU is metadata-only) |
+| Time-indexed logs | WITSML supports time index; RESQML Frame is MD-only; OSDU WellLog assumes depth | Medium (time logs partially supported) |
+| PRODML production data → OSDU | No converter implemented; PRODML objects stored as raw ETP only | Medium (orthogonal to wells) |
+
+---
+
 ## References
 
 - [Energistics WITSML Standards](https://energistics.org/witsml-data-standards)
