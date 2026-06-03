@@ -585,21 +585,97 @@ Channel URIs:
 # Merges by UUID — shows which exist in catalog vs local PG
 {
   federatedSearch(
-    text: "*"
-    kind: "osdu:wks:master-data--Well:*"
-    dataspaces: ["maap/witsml"]
-    typeName: "witsml21.Well"
-    searchCatalog: true
+    text: "DROGON"
+    typeName: "Log"
+    searchCatalog: false
     searchRddms: true
-    includeRelations: true
-    limit: 10
+    limit: 15
   ) {
-    totalCatalog totalLocalRddms totalMerged sources
+    totalMerged totalLocalRddms sources
     hits {
       uuid title typeName dataspace
-      foundInCatalog foundInLocalRddms
-      osduId osduKind
-      relations { uuid name typeName direction }
+      foundInLocalRddms
+    }
+  }
+}
+# Returns: 13 hits across maap/witsml + maap/drogon
+```
+
+### Deep Search with Channel Statistics (WITSML Logs)
+
+```graphql
+# Find logs containing "Composite" with per-channel statistics
+{
+  deepSearch(
+    dataspace: "maap/witsml"
+    typeName: "Log"
+    titleContains: "Composite"
+    includeStatistics: true
+    includeSampleValues: true
+    sampleSize: 5
+  ) {
+    totalMatched
+    objects {
+      uuid title typeName
+      properties {
+        title kind
+        statistics { count minValue maxValue mean stdDev }
+        arrays { path totalElements sampleValues }
+      }
+    }
+  }
+}
+# Returns channels as properties: DEPTH, GR, DT, NPHI, RHOB
+# Each with statistics (count, min, max, mean) and sample float values
+```
+
+### Object Arrays with Full Statistics
+
+```graphql
+# Direct array query on a specific Log — shows all channels
+{
+  objectArrays(
+    dataspace: "maap/witsml"
+    typeName: "witsml21.Log"
+    uuid: "e6ce89d2-569e-5902-bea0-5f9451f7ad08"
+    includeStatistics: true
+    includeSampleValues: true
+    sampleSize: 5
+  ) {
+    path dataType dimensions totalElements
+    statistics { count minValue maxValue mean stdDev nanCount }
+    sampleValues
+  }
+}
+# Returns: 5 channels × 5 data points each
+#   DEPTH: [1000.0, 1000.5, 1001.0, 1001.5, 1002.0] mean=1001.0
+#   GR:    [45.2, 47.1, 52.3, 48.7, 55.9]  mean≈49.8
+#   DT:    [105.3, 103.8, 98.2, 101.5, 95.4] mean≈100.8
+#   NPHI:  [0.18, 0.19, 0.22, 0.2, 0.24]   mean≈0.206
+#   RHOB:  [2.35, 2.38, 2.42, 2.37, 2.45]  mean≈2.394
+```
+
+### Deep Search with Property Filter (find logs where GR > 50)
+
+```graphql
+{
+  deepSearch(
+    dataspace: "maap/witsml"
+    typeName: "Log"
+    includeStatistics: true
+    propertyFilter: {
+      kind: "GR"
+      arrayFilter: { operator: GT, threshold: 50.0 }
+    }
+  ) {
+    totalMatched
+    objects {
+      uuid title
+      properties {
+        title kind
+        matchingCells { count percentage }
+        statistics { minValue maxValue mean }
+      }
     }
   }
 }
