@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-CLIENT_URL="${1:-http://localhost:3000/api/reservoir-ddms/v2}"
+CLIENT_URL="${1:-http://localhost:8080/api/reservoir-ddms/v2}"
 DATASPACE="${2:-maap/drogon}"
 AUTH="Bearer dummy"
 PARTITION="opendes"

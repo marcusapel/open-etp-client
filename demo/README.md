@@ -7,18 +7,49 @@ adding WITSML well data management, query protocols, and real-time streaming.
 
 ```
 demo/
-├── drogon-witsml/      # Synthetic Drogon field (8 wells, logs, channelsets)
-│   ├── data/           # WITSML 1.4.1 + 2.1 XML samples
-│   └── scripts/        # Ingestion and roundtrip test scripts
-├── cvx-witsml/         # Real-field Chevron KKS-1 (DLIS → WITSML)
-│   ├── data/           # WITSML XML + src/ DLIS originals
-│   └── scripts/        # dlis_to_witsml.py, ingest pipelines
-├── manifests/          # Saved OSDU manifest JSONs (interop, preship, eqndev)
-├── streaming/          # Channel streaming producer/consumer demo
-├── demo_witsml.sh      # Quick WITSML demo (ingest + query)
-├── demo_protocols.sh   # ETP protocol showcase
-└── demo_compare_wells.sh
+├── drogon-witsml/         # Synthetic Drogon field → maap/drogon
+│   ├── data/              # WITSML 1.4.1 + 2.1 XML samples
+│   └── scripts/           # Standalone drogon ingestion + roundtrip tests
+├── cvx-witsml/            # Real-field Chevron KKS-1 + MudLog → maap/witsml
+│   ├── data/              # WITSML XML samples + src/ DLIS originals
+│   │   └── src/           # Raw DLIS source files
+│   └── scripts/           # dlis_to_witsml.py, ingest_local.sh (unified pipeline)
+├── manifests/             # Saved OSDU manifest JSONs (interop, preship, eqndev)
+├── streaming/             # Channel streaming producer/consumer demo
+├── demo_witsml.sh         # Quick WITSML demo (ingest + query)
+├── demo_protocols.sh      # ETP protocol showcase (Discovery/Store/Growing/Channel)
+├── demo_compare_wells.sh  # Compare RESQML vs WITSML well representations
+└── ingest_witsml.sh       # Lightweight ingestion (drogon+cvx, hardcoded XML)
 ```
+
+## Quick Start (Local Docker)
+
+```bash
+# 1. Start ETP server + PostgreSQL (from ores/demo/drogonresqml/)
+docker compose up -d
+
+# 2. Start etp-client (from open-etp-client/)
+RDMS_ETP_PROTOCOL=ws RDMS_ETP_HOST=localhost RDMS_ETP_PORT=9002 RDMS_ETP_PATH="" \
+RDMS_REST_PORT=8080 RDMS_REST_ROOT_PATH="/api/reservoir-ddms/v2/" \
+node dist/src/lib/restApi/RestServer.js
+
+# 3. Run unified ingestion (Drogon EPC + WITSML + CVX samples)
+bash demo/cvx-witsml/scripts/ingest_local.sh
+
+# 4. Run DLIS→WITSML pipeline for specific DLIS file
+cd demo/cvx-witsml
+python3 scripts/dlis_to_witsml.py --dlis data/src/MUD_LOG_1.DLIS \
+  --api http://localhost:8080/api/reservoir-ddms/v2 \
+  --dataspace maap/witsml --direct-arrays --token x --partition opendes
+```
+
+## Dataspaces
+
+| Dataspace | Content | Ingestion Script |
+|-----------|---------|------------------|
+| `maap/drogon` | Drogon RESQML (EPC import) + WITSML wells/logs | `ingest_local.sh` or `ingest_drogon_witsml.sh` |
+| `maap/witsml` | Chevron KKS-1, MudLog, exploration samples | `ingest_local.sh` or `dlis_to_witsml.py` |
+
 
 ---
 
@@ -336,7 +367,7 @@ Type names follow ETP convention: `witsml21.Well`, `witsml21.Wellbore`, `witsml2
   objectArrays(
     dataspace: "maap/witsml"
     typeName: "witsml21.Log"
-    uuid: "e6ce89d2-569e-5902-bea0-5f9451f7ad08"
+    uuid: "700a0b4f-316f-54ee-b744-05c5ea27b7f5"
     includeStatistics: true
     includeSampleValues: true
     sampleSize: 5

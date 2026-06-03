@@ -2,8 +2,8 @@
 # Ingest Drogon wells and logs as WITSML 2.1 into maap/witsml dataspace
 set -euo pipefail
 
-API="http://localhost:8080/api/reservoir-ddms/v2/witsml/store"
-DS="maap/witsml"
+API="${API:-http://localhost:8080/api/reservoir-ddms/v2/witsml/store}"
+DS="${DS:-maap/drogon}"
 
 # ─── Drogon Wells ─────────────────────────────────────────────────────────── #
 # 8 wells: A-1..A-4, B-1..B-2, C-1..C-2

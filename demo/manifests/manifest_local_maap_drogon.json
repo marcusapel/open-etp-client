@@ -1,0 +1,349 @@
+{
+  "kind": "osdu:wks:Manifest:1.0.0",
+  "Data": {
+    "Datasets": [
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
+        "legal": {
+          "legaltags": [
+            "opendes-ReservoirDDMS-Legal-Tag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-03T13:54:47.421Z",
+        "id": "opendes:dataset--ETPDataspace:maap-drogon",
+        "modifyTime": "2026-06-03T13:55:14.210Z",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+          "DatasetProperties": {
+            "URI": "eml:///dataspace('maap/drogon')"
+          },
+          "Name": "maap/drogon",
+          "ExtensionProperties": {},
+          "TotalSize": "1392640"
+        }
+      }
+    ],
+    "WorkProductComponents": []
+  },
+  "MasterData": [
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:dcf2d03f-d47c-54f5-8b85-9ad4bc47b1e1",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(dcf2d03f-d47c-54f5-8b85-9ad4bc47b1e1)"
+        ],
+        "FacilityName": "DROGON A-1"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:a8b0e401-a910-5eff-b038-2896303701db",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(a8b0e401-a910-5eff-b038-2896303701db)"
+        ],
+        "FacilityName": "DROGON A-2"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:a2ab41c7-52cf-50c2-b20d-1e95f7d1d9cb",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(a2ab41c7-52cf-50c2-b20d-1e95f7d1d9cb)"
+        ],
+        "FacilityName": "DROGON A-3"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:be282f83-a359-5b3b-bb76-ba7c7c5d10d8",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(be282f83-a359-5b3b-bb76-ba7c7c5d10d8)"
+        ],
+        "FacilityName": "DROGON A-4"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:30ebaa33-fced-56d7-84ca-8544a700ec6e",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(30ebaa33-fced-56d7-84ca-8544a700ec6e)"
+        ],
+        "FacilityName": "DROGON B-1"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:04486d4a-80e8-515b-ac76-7f4b3af987b2",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(04486d4a-80e8-515b-ac76-7f4b3af987b2)"
+        ],
+        "FacilityName": "DROGON B-2"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:8a5e225d-c163-541c-8256-4d44f828e566",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(8a5e225d-c163-541c-8256-4d44f828e566)"
+        ],
+        "FacilityName": "DROGON C-1"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:master-data--Well:1.3.0",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createUser": "Equinor",
+      "id": "opendes:master-data--Well:f9f55572-89e3-5278-bbd0-2750c687b7af",
+      "modifyUser": "Equinor",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/drogon')/witsml21.Well(f9f55572-89e3-5278-bbd0-2750c687b7af)"
+        ],
+        "FacilityName": "DROGON C-2"
+      }
+    }
+  ],
+  "ReferenceData": [
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-03T15:28:12.815Z",
+      "id": "opendes:reference-data--ExistenceKind:Actual",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "ExistenceKind-undefined",
+        "CommitDate": "2026-06-03T15:28:12.815Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-03T15:28:12.815Z",
+      "id": "opendes:reference-data--ExistenceKind:Prototype",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-ReservoirDDMS-Legal-Tag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "ExistenceKind-undefined",
+        "CommitDate": "2026-06-03T15:28:12.815Z"
+      }
+    }
+  ]
+}

@@ -70,7 +70,7 @@ Consumer                          Producer
 cd /home/maap/rddms
 npx ts-node demo/streaming/StreamingServer.ts \
   --dataspace maap/witsml \
-  --log e6ce89d2-569e-5902-bea0-5f9451f7ad08 \
+  --log 700a0b4f-316f-54ee-b744-05c5ea27b7f5 \
   --port 9003 \
   --interval 200 \
   --batch 3

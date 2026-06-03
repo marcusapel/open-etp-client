@@ -43,7 +43,8 @@ COUNTRIES="${COUNTRIES:-US}"
 ORES_DROGON="${ORES_DROGON:-/home/maap/ores/demo/drogonresqml}"
 EPC_FILE="${ORES_DROGON}/drogon_demo.epc"
 H5_FILE="${ORES_DROGON}/drogon_demo.h5"
-WITSML_SAMPLES="${DEMO_DIR}/witsml-samples"
+WITSML_SAMPLES_CVX="${SCRIPT_DIR}/../data"
+WITSML_SAMPLES_DROGON="${DEMO_DIR}/../drogon-witsml/data"
 
 # Dataspaces
 DS_DROGON="maap/drogon"
@@ -366,17 +367,17 @@ ingest_witsml_samples() {
   # ── ChannelSet from samples ─────────────────────────────────────────────── #
   echo "  ChannelSet samples:"
 
-  if [[ -f "$WITSML_SAMPLES/channelset_21.xml" ]]; then
+  if [[ -f "$WITSML_SAMPLES_DROGON/channelset_21.xml" ]]; then
     local cs_xml
-    cs_xml=$(cat "$WITSML_SAMPLES/channelset_21.xml")
+    cs_xml=$(cat "$WITSML_SAMPLES_DROGON/channelset_21.xml")
     witsml_put "$DS_WITSML" "$cs_xml" "ChannelSet: DROGON A-1 GR+DT"
   fi
 
   # ── Well from samples (WITSML 2.1) ─────────────────────────────────────── #
-  if [[ -f "$WITSML_SAMPLES/well_21.xml" ]]; then
+  if [[ -f "$WITSML_SAMPLES_CVX/well_21.xml" ]]; then
     local well_xml
-    well_xml=$(cat "$WITSML_SAMPLES/well_21.xml")
-    witsml_put "$DS_WITSML" "$well_xml" "Well: DROGON C-1 (sample)"
+    well_xml=$(cat "$WITSML_SAMPLES_CVX/well_21.xml")
+    witsml_put "$DS_WITSML" "$well_xml" "Well: Kentish Knock South-1 (sample)"
   fi
 }
 
