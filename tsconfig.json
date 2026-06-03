@@ -28,7 +28,7 @@
     "node_modules",
     "dist",
     "docs",
-    "demo",
+    "witsml-demo",
     "coverage",
     "commitlint.config.js",
     "devops",
