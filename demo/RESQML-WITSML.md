@@ -83,77 +83,72 @@
 ### Three-Way Mapping: WITSML ↔ OSDU ↔ RESQML
 
 ```mermaid
-graph LR
-    subgraph WITSML["WITSML 2.1 (Operational)"]
-        W[Well]
-        WB[Wellbore]
-        LOG[Log]
-        TRAJ[Trajectory]
-        W --> WB
-        WB --> LOG
-        WB --> TRAJ
-    end
+%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '14px'}}}%%
+flowchart TD
+    W[witsml21.Well] -->|converter| OW[master-data--Well]
+    WB[witsml21.Wellbore] -->|converter| OWB[master-data--Wellbore]
+    LOG[witsml21.Log] -->|converter| OWL[WPC--WellLog]
+    TRAJ[witsml21.Trajectory] -->|converter| OWT[WPC--WellboreTrajectory]
 
-    subgraph OSDU["OSDU Data Platform (Catalog)"]
-        OW[master-data--Well]
-        OWB[master-data--Wellbore]
-        OWL[WPC--WellLog]
-        OWT[WPC--WellboreTrajectory]
-        ODS[dataset--ETPDataspace]
-        OW --> OWB
-        OWB --> OWL
-        OWB --> OWT
-        ODS -.->|references| OW
-    end
+    WF[resqml20.WellboreFeature] -.->|no converter| X1[ ]
+    WTR[resqml20.WellboreTrajectoryRep] -.->|no converter| X2[ ]
+    WFR[resqml20.WellboreFrameRep] -.->|skipped| X3[ ]
 
-    subgraph RESQML["RESQML 2.2 (Interpretation)"]
-        WF[WellboreFeature]
-        WI[WellboreInterpretation]
-        WTR[WellboreTrajectoryRep]
-        WFR[WellboreFrameRep]
-        CP[ContinuousProperty]
-        WF --> WI
-        WI --> WTR
-        WTR --> WFR
-        WFR --> CP
-    end
+    WF -.->|DOR cross-ref| W
+    WTR -.->|DOR cross-ref| TRAJ
 
-    %% Cross-standard mappings
-    W ==>|"converter"| OW
-    WB ==>|"converter"| OWB
-    LOG ==>|"converter"| OWL
-    TRAJ ==>|"converter"| OWT
-
-    WF -.->|"WitsmlWellWellbore DOR"| W
-    WTR -.->|"WitsmlTrajectory DOR"| TRAJ
-
-    WF x--x|"no converter"| OSDU
-    WFR x--x|"no converter"| OSDU
+    style OW fill:#2d6a4f,color:#fff
+    style OWB fill:#2d6a4f,color:#fff
+    style OWL fill:#1d4ed8,color:#fff
+    style OWT fill:#1d4ed8,color:#fff
+    style X1 fill:none,stroke:none
+    style X2 fill:none,stroke:none
+    style X3 fill:none,stroke:none
 ```
 
-### OSDU Schema Mapping Detail
+### WITSML Hierarchy → OSDU Records
 
 ```mermaid
-graph TD
-    subgraph OSDU_MD["OSDU Master Data"]
-        MW["master-data--Well:1.3.0<br/>─────────────────<br/>FacilityName<br/>SpatialLocation (lat/lon)<br/>FacilityStates<br/>FacilityOperators<br/>VerticalMeasurements<br/>DefaultVerticalMeasurementID"]
-        MWB["master-data--Wellbore:1.3.0<br/>─────────────────<br/>FacilityName<br/>WellID (SRN ref)<br/>TrajectoryTypeID<br/>TargetFormation<br/>TopMeasuredDepth<br/>BottomMeasuredDepth"]
+%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '14px'}}}%%
+flowchart LR
+    subgraph ETP["ETP Dataspace (e.g. maap/witsml)"]
+        W2[Well] --> WB2[Wellbore]
+        WB2 --> L2[Log<br/>46 channels × 655 pts]
+        WB2 --> T2[Trajectory<br/>MD + Incl + Azi]
     end
 
-    subgraph OSDU_WPC["OSDU Work Product Components"]
-        WL["WPC--WellLog:1.3.0<br/>─────────────────<br/>Name<br/>WellboreID (SRN ref)<br/>TopMeasuredDepth<br/>BaseMeasuredDepth<br/>Curves[]: Mnemonic, UoM<br/>DDMSDatasets[] (ETP URI)"]
-        WT["WPC--WellboreTrajectory:1.3.0<br/>─────────────────<br/>Name<br/>WellboreID (SRN ref)<br/>AzimuthReferenceType<br/>TopMeasuredDepth<br/>BaseDepthMeasuredDepth<br/>DDMSDatasets[] (ETP URI)"]
+    subgraph OSDU["OSDU Catalog (interop)"]
+        MW[master-data--Well<br/>FacilityName, Location]
+        MWB[master-data--Wellbore<br/>WellID, Depths]
+        WL[WPC--WellLog<br/>Curves, DDMSDatasets]
+        WT[WPC--WellboreTrajectory<br/>AzimuthRef, DDMSDatasets]
+        DS[dataset--ETPDataspace<br/>maap/witsml]
     end
 
-    subgraph OSDU_DS["OSDU Datasets"]
-        DS["dataset--ETPDataspace:1.0.1<br/>─────────────────<br/>Name (dataspace path)<br/>Description<br/>DataspaceURI<br/>Parameters[]: objectCount, types"]
-    end
+    W2 ==> MW
+    WB2 ==> MWB
+    L2 ==> WL
+    T2 ==> WT
+    DS -.-> MW
+```
 
-    MW -->|WellID| MWB
-    MWB -->|WellboreID| WL
-    MWB -->|WellboreID| WT
-    DS -.->|references| MW
-    DS -.->|references| MWB
+### RESQML Interpretation Graph (no OSDU projection)
+
+```mermaid
+%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '14px'}}}%%
+flowchart LR
+    WF[WellboreFeature] --> WI[WellboreInterpretation]
+    WI --> WTR[WellboreTrajectoryRep<br/>parametric line geometry]
+    WTR --> WFR[WellboreFrameRep<br/>MD node array]
+    WFR --> P1[Property: GR]
+    WFR --> P2[Property: RHOB]
+    WFR --> P3[Property: DT]
+
+    WF -.->|WitsmlWellWellbore| WITSML[WITSML Well]
+    WTR -.->|WitsmlTrajectory| WITSML2[WITSML Trajectory]
+
+    style WITSML fill:#2d6a4f,color:#fff
+    style WITSML2 fill:#2d6a4f,color:#fff
 ```
 
 ### Source Type → OSDU Kind Mapping
@@ -183,31 +178,20 @@ These converters are not implemented because RESQML well data typically coexists
 
 ---
 
-### WITSML ↔ OSDU Field Mapping (Detailed)
+### WITSML → OSDU Field Mapping
 
-```mermaid
-graph LR
-    subgraph WITSML_Well["witsml21.Well XML"]
-        WT1["Citation.Title"]
-        WT2["GeographicLocationWGS84"]
-        WT3["StatusWell"]
-        WT4["WellAlias"]
-        WT5["uuid attribute"]
-    end
-
-    subgraph OSDU_Well["master-data--Well:1.3.0"]
-        OT1["data.FacilityName"]
-        OT2["data.SpatialLocation"]
-        OT3["data.FacilityStates"]
-        OT4["data.FacilityNameAliases"]
-        OT5["id (SRN)"]
-    end
-
-    WT1 -->|maps| OT1
-    WT2 -->|maps| OT2
-    WT3 -->|maps| OT3
-    WT4 -->|maps| OT4
-    WT5 -->|"v5(uuid)"| OT5
+| WITSML XML Field | OSDU Record Field | Notes |
+|-----------------|-------------------|-------|
+| `uuid` attribute | `id` (SRN: `opendes:master-data--Well:{uuid}`) | Deterministic v5 UUID |
+| `Citation.Title` | `data.FacilityName` | Display name |
+| `GeographicLocationWGS84` | `data.SpatialLocation` | Lat/lon + CRS |
+| `StatusWell` | `data.FacilityStates[]` | Active, plugged, suspended |
+| `WellAlias` | `data.FacilityNameAliases[]` | Regulatory IDs |
+| `VerticalMeasurements` | `data.VerticalMeasurements[]` | KB, DF, GL datums |
+| `Wellbore.WellID` | `data.WellID` (SRN) | Parent reference |
+| `Log.LogCurveInfo[]` | `data.Curves[]` | Mnemonic + UoM per channel |
+| `Log` ETP URI | `data.DDMSDatasets[]` | Links OSDU record to ETP DataArrays |
+| `Trajectory.AziRef` | `data.AzimuthReferenceType` | Grid/True/Magnetic north |
 ```
 
 ---
