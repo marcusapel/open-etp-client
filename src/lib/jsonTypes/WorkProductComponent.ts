@@ -590,7 +590,10 @@ export const getGeometries = (
     return polyLine.LinePatch.map(p => p.Geometry);
   } else if (xml.$type === "resqml22.PointSetRepresentation") {
     const points = xml as SimpleJson<resqml22.PointSetRepresentation>;
-    return points.NodePatchGeometry;
+    if (!points.NodePatchGeometry) return [];
+    return Array.isArray(points.NodePatchGeometry)
+      ? points.NodePatchGeometry
+      : [points.NodePatchGeometry];
   } else if (xml.$type === "resqml22.PolylineRepresentation") {
     const line = xml as SimpleJson<resqml22.PolylineRepresentation>;
     return [line.NodePatchGeometry];

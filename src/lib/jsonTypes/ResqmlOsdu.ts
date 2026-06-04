@@ -78,6 +78,18 @@ import { MasterDataBoundaryFeature22Manifest } from "./MasterDataBoundaryFeature
 
 import { WellboreInterpretation22Manifest } from "./WellboreInterpretation22";
 import { WellboreTrajectoryRepresentation22Manifest } from "./WellboreTrajectoryRepresentation22";
+import { StructuralOrganizationInterpretationManifest } from "./StructuralOrganizationInterpretation";
+import { StructuralOrganizationInterpretation22Manifest } from "./StructuralOrganizationInterpretation22";
+import { RockFluidOrganizationInterpretationManifest } from "./RockFluidOrganizationInterpretation";
+import { RockFluidOrganizationInterpretation22Manifest } from "./RockFluidOrganizationInterpretation22";
+import { RockFluidUnitInterpretationManifest } from "./RockFluidUnitInterpretation";
+import { RockFluidUnitInterpretation22Manifest } from "./RockFluidUnitInterpretation22";
+import { FluidBoundaryFeatureManifest } from "./FluidBoundaryInterpretation";
+import { FluidBoundaryInterpretation22Manifest } from "./FluidBoundaryInterpretation22";
+import { SealedSurfaceFrameworkManifest } from "./SealedSurfaceFramework";
+import { SealedSurfaceFramework22Manifest } from "./SealedSurfaceFramework22";
+import { SealedVolumeFrameworkManifest } from "./SealedVolumeFramework";
+import { SealedVolumeFramework22Manifest } from "./SealedVolumeFramework22";
 
 export { EtpDataspaceManifest } from "./ETPDataspace";
 export { WorkProductManifest } from "./WorkProduct";
@@ -432,67 +444,74 @@ ResqmlOSDU.add(
 
 ResqmlOSDU.add(
   "resqml20.obj_StructuralOrganizationInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
-  EarthModelInterpretationManifest
+  () =>
+    "osdu:wks:work-product-component--StructuralOrganizationInterpretation:1.2.0",
+  StructuralOrganizationInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.StructuralOrganizationInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
-  EarthModelInterpretation22Manifest
+  () =>
+    "osdu:wks:work-product-component--StructuralOrganizationInterpretation:1.2.0",
+  StructuralOrganizationInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_RockFluidOrganizationInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
-  EarthModelInterpretationManifest
+  () =>
+    "osdu:wks:work-product-component--RockFluidOrganizationInterpretation:1.2.0",
+  RockFluidOrganizationInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.RockFluidOrganizationInterpretation",
-  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
-  EarthModelInterpretation22Manifest
+  () =>
+    "osdu:wks:work-product-component--RockFluidOrganizationInterpretation:1.2.0",
+  RockFluidOrganizationInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_RockFluidUnitInterpretation",
-  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
-  GeobodyInterpretationManifest
+  () =>
+    "osdu:wks:work-product-component--RockFluidUnitInterpretation:1.3.0",
+  RockFluidUnitInterpretationManifest
 );
 ResqmlOSDU.add(
   "resqml22.RockFluidUnitInterpretation",
-  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
-  GeobodyInterpretation22Manifest
+  () =>
+    "osdu:wks:work-product-component--RockFluidUnitInterpretation:1.3.0",
+  RockFluidUnitInterpretation22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_FluidBoundaryFeature",
-  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
-  LocalBoundaryFeatureManifest
+  () =>
+    "osdu:wks:work-product-component--FluidBoundaryInterpretation:1.2.0",
+  FluidBoundaryFeatureManifest
 );
 ResqmlOSDU.add(
   "resqml22.FluidBoundaryInterpretation",
   () =>
-    "osdu:wks:work-product-component--GeobodyBoundaryInterpretation:1.1.0",
-  GeobodyBoundaryInterpretation22Manifest
+    "osdu:wks:work-product-component--FluidBoundaryInterpretation:1.2.0",
+  FluidBoundaryInterpretation22Manifest
 );
 
 // ─── Framework & Wellbore Representations ────────────────────────────────────
 
 ResqmlOSDU.add(
   "resqml20.obj_SealedSurfaceFrameworkRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-  GenericRepresentationManifest
+  () => "osdu:wks:work-product-component--SealedSurfaceFramework:1.2.0",
+  SealedSurfaceFrameworkManifest
 );
 ResqmlOSDU.add(
   "resqml22.SealedSurfaceFrameworkRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-  GenericRepresentation22Manifest
+  () => "osdu:wks:work-product-component--SealedSurfaceFramework:1.2.0",
+  SealedSurfaceFramework22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_SealedVolumeFrameworkRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-  GenericRepresentationManifest
+  () => "osdu:wks:work-product-component--SealedVolumeFramework:1.2.0",
+  SealedVolumeFrameworkManifest
 );
 ResqmlOSDU.add(
   "resqml22.SealedVolumeFrameworkRepresentation",
-  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
-  GenericRepresentation22Manifest
+  () => "osdu:wks:work-product-component--SealedVolumeFramework:1.2.0",
+  SealedVolumeFramework22Manifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_BlockedWellboreRepresentation",
