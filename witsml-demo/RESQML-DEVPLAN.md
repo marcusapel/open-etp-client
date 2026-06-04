@@ -567,7 +567,7 @@ Every OSDU record carries:
 
 | Item | What | How |
 |------|------|-----|
-| **O1** | PropertyKind alignment via PWLS | ✅ **DONE** — v2.2 `QuantityClass` → OSDU `UnitQuantityID` mapping implemented in `PropertyType23.ts`. v2.0.1 already uses `RepresentativeUom`. PWLS-3 manifest (3,629 PropertyTypes) already bundled. |
+| **O1** | PropertyKind alignment via PWLS | ✅ **DONE** — v2.2 `QuantityClass` → OSDU `UnitQuantityID` mapping implemented in `PropertyType23.ts`. v2.0.1 already uses `RepresentativeUom`. PWLS-3 manifest (3,629 PropertyTypes) already bundled. **PWLS v4 Curve Catalog** now integrated: `PwlsCurveCatalog.ts` provides 875 standard properties with QuantityClass + PropertyType UUID lookup, plus vendor mnemonic resolution (load SLB/Halliburton/Baker Hughes catalogs at runtime). Used in `WellboreFrameToWellLog.ts`, `WellboreFrameToWellLog22.ts`, and `WitsmlWellLog.ts` for `LogCurveMainFamilyID` enrichment. |
 | **O2** | CRS catalog federation | Expose OSDU CRS catalog to RDDMS via lightweight lookup API (or replicate on deploy) |
 | **O3** | Selective manifest generation | ✅ **DONE** — Subsumed by S1. Default type filter now indexes interpretation-level objects only; representations + properties accessible via ETP but not catalog-indexed by default |
 | **O4** | Session survivability (client) | ✅ **DONE** — `Util.ts` provides `retry()` (exponential backoff, 6 retries) and `retryOnEtpErrors()` (error-code-specific). `ResqmlClient.putUsingPutDataArraysType()` already chunks large arrays: splits into sub-arrays when payload exceeds `negotiatedSize`, sends via `PutDataSubarrays`. Server M26 support provides session resumption. |
@@ -642,7 +642,7 @@ All 9 high-priority M27 schema upgrades (StructuralOrg, RockFluidOrg, RockFluidU
 | Rank | ID | Item | Gain | Severity | Cost | Risk | Notes |
 |------|-----|------|------|----------|------|------|-------|
 | 1 | A1 | RESQML→OSDU converters for interpretation types | 5 | 5 | ✅ Done | L | **COMPLETED** — All major types now registered in `ResqmlOsdu.ts`. Covers both resqml20 and resqml22 namespaces. Organization interpretations map to EarthModelInterpretation; fluid units map to GeobodyInterpretation; framework representations map to GenericRepresentation. |
-| 2 | O1 | PropertyKind alignment via PWLS | 5 | 4 | ✅ Done | L | **COMPLETED** — v2.2 PropertyKind `QuantityClass` now maps to OSDU `UnitQuantityID` (138/189 direct matches). v2.0.1 already had `RepresentativeUom` mapping. PWLS-3 UUID bridge (3,629 entries) was already bundled in `PropertyTypesManifest.json`. |
+| 2 | O1 | PropertyKind alignment via PWLS | 5 | 4 | ✅ Done | L | **COMPLETED** — v2.2 PropertyKind `QuantityClass` now maps to OSDU `UnitQuantityID` (138/189 direct matches). v2.0.1 already had `RepresentativeUom` mapping. PWLS-3 UUID bridge (3,629 entries) bundled in `PropertyTypesManifest.json`. **PWLS v4 Curve Catalog** (`PwlsCurveCatalog.ts`): 875 standard properties with QuantityClass + UUID; vendor mnemonic→property resolution (41K+ mnemonics loadable); integrated into WellLog converters for `LogCurveMainFamilyID`. |
 | 3 | R2 | SoE vs SoR usage documentation | 4 | 5 | ✅ Done | L | **COMPLETED** — Published in community RDDMS README. Defines three tiers (SoR, SoE, SoI), dual-catalog pattern (content vs metadata), 7-step SoE→SoR promotion workflow, governance decision matrix, DataspaceOSDU lock protocol, partial indexing support. |
 | 4 | A3 | Activity/lineage auto-generation | 5 | 4 | M (4-6w) | M | Key differentiator. Requires agreement on ActivityTemplate standardization |
 | 5 | S1 | Reduce manifest object explosion | 4 | 4 | ✅ Done | L | **COMPLETED** — `DEFAULT_DATASPACE_TYPE_PATTERNS` applied when no explicit `typePatterns` provided. Default includes `*Interpretation*`, `*Representation`, `*StratigraphicColumn`, `*Activity*`, `*Collection`, `witsml21.*`. Typical earth model dataspace: ~50 WPC records vs ~600 previously (~90% reduction). |
@@ -804,7 +804,7 @@ flowchart LR
 | Align WDDMS 2.0 WITSML consumption format | OSDU Wellbore DDMS team | Joint | Thomas H. (WDDMS lead) |
 | Define regular surface grid WPC | OSDU Data Definitions WG | RDDMS team | Geophysics domain experts |
 | Energistics RESQML documentation update | Energistics RESQML Work Group | RDDMS team member | Energistics governance |
-| PWLS v3.0 ingestion into RDDMS | Internal | RDDMS team | PV (PWLS expert) |
+| PWLS v4.0 Curve Catalog integration | Internal | RDDMS team | ✅ **DONE** — `PwlsCurveCatalog.ts` (875 properties, vendor mnemonic loading) |
 | Evaluate ETP→OSDU notification bridge | OSDU Architecture WG | Joint | Platform team |
 
 ---

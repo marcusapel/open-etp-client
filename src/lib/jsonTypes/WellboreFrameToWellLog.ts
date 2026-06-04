@@ -15,6 +15,7 @@ import type { SimpleJson } from "../mlTypes/XmlJsonUtil";
 
 import { OSDUContext } from "./OsduContext";
 import { ResqmlWorkProductComponent, ResqmlResource } from "./WorkProductComponent";
+import { isKnownPwlsProperty, getPropertyFromMnemonic } from "./PwlsCurveCatalog";
 
 import { Data, WellLog, Curves } from "./Generated/work-product-component/WellLog.1.3.0";
 
@@ -152,13 +153,29 @@ export class WellboreFrameToWellLogOSDU
           curve.CurveUnit = o.UOM ?? o.Uom ?? undefined;
         }
 
-        // Extract property kind info
+        // Extract property kind info — resolve via PWLS v4 when possible
         if (o.PropertyKind) {
           const pk = o.PropertyKind;
-          if (pk.Kind || pk.Title) {
+          const kindName = pk.Kind ?? pk.Title;
+          if (kindName) {
+            // Use PWLS-validated property name if it matches
+            const pwlsProperty = isKnownPwlsProperty(kindName)
+              ? kindName
+              : undefined;
             curve.LogCurveMainFamilyID = context.addReferenceData(
               "CurveMainFamily",
-              pk.Kind ?? pk.Title
+              pwlsProperty ?? kindName
+            );
+          }
+        }
+
+        // Fallback: if no PropertyKind but mnemonic resolves via PWLS vendor catalog
+        if (!curve.LogCurveMainFamilyID && curve.Mnemonic) {
+          const resolved = getPropertyFromMnemonic(curve.Mnemonic);
+          if (resolved) {
+            curve.LogCurveMainFamilyID = context.addReferenceData(
+              "CurveMainFamily",
+              resolved
             );
           }
         }
