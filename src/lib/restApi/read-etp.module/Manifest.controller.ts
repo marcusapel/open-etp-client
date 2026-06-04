@@ -384,6 +384,29 @@ export class ManifestInputDto {
  * @export
  * @class ManifestDto
  */
+export class ManifestDataDto {
+  @ApiPropertyOptional({
+    name: "Datasets",
+    description: "Array of dataset records.",
+    type: [Object]
+  })
+  Datasets?: object[];
+
+  @ApiPropertyOptional({
+    name: "WorkProduct",
+    description: "Array of work-product records.",
+    type: [Object]
+  })
+  WorkProduct?: object[];
+
+  @ApiPropertyOptional({
+    name: "WorkProductComponents",
+    description: "Array of work-product-component records.",
+    type: [Object]
+  })
+  WorkProductComponents?: object[];
+}
+
 export class ManifestDto {
   @ApiProperty({
     name: "kind",
@@ -398,13 +421,9 @@ export class ManifestDto {
   @ApiPropertyOptional({
     name: "Data",
     description: "Container for Datasets, WorkProduct, and WorkProductComponents.",
-    type: Object,
-    example: {
-      Datasets: [],
-      WorkProductComponents: []
-    }
+    type: ManifestDataDto
   })
-  Data?: object;
+  Data?: ManifestDataDto;
 
   @ApiPropertyOptional({
     name: "MasterData",

@@ -1143,10 +1143,6 @@ export class ResqmlClient {
       ? this.dataspace
           .DeleteDataspaces(dataspaces)
           .then(this.checkErrors.bind(this))
-          .catch(reason => {
-            this.logger.error(reason);
-            return false;
-          })
       : false;
   }
 

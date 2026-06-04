@@ -645,11 +645,11 @@ export const getMinMaxPoints = async (
           if (mod === 0) {
             minX = Math.min(v, minX);
             maxX = Math.max(v, maxX);
+            pNodeCount++;
           } else if (mod === 1) {
             minY = Math.min(v, minY);
             maxY = Math.max(v, maxY);
           }
-          pNodeCount++;
         }
       });
     });
@@ -746,11 +746,11 @@ export const getMinMaxPoints = async (
           if (mod === 0) {
             minX = Math.min(v, minX);
             maxX = Math.max(v, maxX);
+            pNodeCount++;
           } else if (mod === 1) {
             minY = Math.min(v, minY);
             maxY = Math.max(v, maxY);
           }
-          pNodeCount++;
         }
       });
     });

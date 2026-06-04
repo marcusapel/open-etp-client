@@ -111,6 +111,36 @@ const cleanupTransaction = (transactionId: string): void => {
 };
 
 /**
+ * Drain all active transactions during graceful shutdown.
+ * Attempts rollback on each; closes WebSocket sessions.
+ */
+export const drainTransactions = async (): Promise<void> => {
+  const ids = [...etpClients.keys()];
+  if (ids.length === 0) return;
+  logger.info(`Draining ${ids.length} active transaction(s)...`);
+  await Promise.allSettled(
+    ids.map(async id => {
+      const t = etpClients.get(id);
+      if (!t) return;
+      clearTimeout(t.timeoutId);
+      clearInterval(t.pingIntervalId);
+      try {
+        if (t.client.isConnected()) {
+          await t.client.rollbackTransaction(
+            EtpUri.uuidStringToByteArray(id)
+          );
+          await t.client.closeSession();
+        }
+      } catch (err) {
+        logger.warn(`Failed to rollback transaction ${id} during shutdown`);
+      }
+      etpClients.delete(id);
+    })
+  );
+  logger.info("All transactions drained");
+};
+
+/**
  * Pagination of an array
  * @export
  * @template T

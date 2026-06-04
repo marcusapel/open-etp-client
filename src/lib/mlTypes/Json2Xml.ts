@@ -8,6 +8,7 @@ import * as prodml23 from "./xmlns/www.energistics.org/energyml/prodmlv23/prodml
 import { parseJSON } from "./XmlJsonUtil";
 
 import { EtpQualifiedType } from "../common/EtpQualifiedType";
+import { EtpError, ErrorCode } from "../common/EtpTypes";
 
 /*
  * Options for the XMLBuilder
@@ -619,8 +620,15 @@ export class XMLBuilder {
       try {
         this.createDateFromXsdDateTime(value);
       } catch (e) {
-        // Invalid date format
-        value = new Date(value).toISOString();
+        // Strict XSD format rejected — try lenient Date parse
+        const d = new Date(value);
+        if (isNaN(d.getTime())) {
+          throw new EtpError(
+            `Invalid date value for field '${key}': '${value.substring(0, 64)}'. Expected XSD dateTime format (e.g. 2024-01-01T00:00:00Z).`,
+            ErrorCode.EINVALID_ARGUMENT
+          );
+        }
+        value = d.toISOString();
       }
     }
     const textValue = this.replaceEntitiesValue(value);

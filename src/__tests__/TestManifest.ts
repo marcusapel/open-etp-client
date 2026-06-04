@@ -291,3 +291,141 @@ describe("A3: Auto-lineage Activity generation", () => {
     expect(context.generateLineageActivity).toBe(false);
   });
 });
+
+describe("RESQML 2.2 Converter Registration", () => {
+  const { ResqmlOSDUMap } = require("../lib/jsonTypes/OsduContext");
+  const registry = ResqmlOSDUMap.getInstance();
+
+  // Ensure ResqmlOsdu module is loaded (triggers all .add() calls)
+  require("../lib/jsonTypes/ResqmlOsdu");
+
+  const resqml22Types = [
+    {
+      type: "resqml22.FluidBoundaryInterpretation",
+      kind: "osdu:wks:work-product-component--FluidBoundaryInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.SealedSurfaceFrameworkRepresentation",
+      kind: "osdu:wks:work-product-component--SealedSurfaceFramework:1.2.0"
+    },
+    {
+      type: "resqml22.RockFluidOrganizationInterpretation",
+      kind: "osdu:wks:work-product-component--RockFluidOrganizationInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.RockFluidUnitInterpretation",
+      kind: "osdu:wks:work-product-component--RockFluidUnitInterpretation:1.3.0"
+    },
+    {
+      type: "resqml22.StructuralOrganizationInterpretation",
+      kind: "osdu:wks:work-product-component--StructuralOrganizationInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.WellboreInterpretation",
+      kind: "osdu:wks:work-product-component--WellboreInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.WellboreTrajectoryRepresentation",
+      kind: "osdu:wks:work-product-component--WellboreTrajectory:1.3.0"
+    },
+    {
+      type: "resqml22.SubRepresentation",
+      kind: "osdu:wks:work-product-component--SubRepresentation:1.2.0"
+    },
+    {
+      type: "resqml22.UnstructuredGridRepresentation",
+      kind: "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.2.0"
+    },
+    {
+      type: "resqml22.EarthModelInterpretation",
+      kind: "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.FaultInterpretation",
+      kind: "osdu:wks:work-product-component--FaultInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.HorizonInterpretation",
+      kind: "osdu:wks:work-product-component--HorizonInterpretation:1.2.0"
+    },
+    {
+      type: "resqml22.IjkGridRepresentation",
+      kind: "osdu:wks:work-product-component--IjkGridRepresentation:1.2.0"
+    },
+    {
+      type: "resqml22.GeobodyBoundaryInterpretation",
+      kind: "osdu:wks:work-product-component--GeobodyBoundaryInterpretation:1.1.0"
+    },
+    {
+      type: "resqml22.GeobodyInterpretation",
+      kind: "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0"
+    },
+    {
+      type: "resqml22.GridConnectionSetRepresentation",
+      kind: "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.2.0"
+    },
+    {
+      type: "resqml22.BoundaryFeature",
+      kind: "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0"
+    },
+    {
+      type: "resqml22.StratigraphicColumn",
+      kind: "osdu:wks:work-product-component--StratigraphicColumn:1.2.0"
+    },
+    {
+      type: "resqml22.StratigraphicColumnRankInterpretation",
+      kind: "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.3.0"
+    },
+    {
+      type: "resqml22.StratigraphicUnitInterpretation",
+      kind: "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.3.0"
+    },
+    {
+      type: "resqml22.ContinuousProperty",
+      kind: "osdu:wks:work-product-component--GenericProperty:1.2.0"
+    },
+    {
+      type: "resqml22.DiscreteProperty",
+      kind: "osdu:wks:work-product-component--GenericProperty:1.2.0"
+    }
+  ];
+
+  it.each(resqml22Types)(
+    "has converter registered for $type",
+    ({ type }) => {
+      const entry = registry.get(type);
+      expect(entry).toBeDefined();
+      expect(entry.convert).toBeInstanceOf(Function);
+    }
+  );
+
+  it.each(resqml22Types)(
+    "returns correct OSDU kind for $type",
+    ({ type, kind }) => {
+      const entry = registry.get(type);
+      expect(entry).toBeDefined();
+      // osduKind is a function that takes an object and returns the kind string
+      const result = entry.osduKind({} as any);
+      expect(result).toEqual(kind);
+    }
+  );
+
+  it("all resqml22 types have matching resqml20 counterparts where applicable", () => {
+    // Key types that should exist in both versions
+    const dualTypes = [
+      ["resqml22.FaultInterpretation", "resqml20.obj_FaultInterpretation"],
+      ["resqml22.HorizonInterpretation", "resqml20.obj_HorizonInterpretation"],
+      ["resqml22.EarthModelInterpretation", "resqml20.obj_EarthModelInterpretation"],
+      ["resqml22.IjkGridRepresentation", "resqml20.obj_IjkGridRepresentation"]
+    ];
+
+    for (const [v22, v20] of dualTypes) {
+      const entry22 = registry.get(v22);
+      const entry20 = registry.get(v20);
+      expect(entry22).toBeDefined();
+      expect(entry20).toBeDefined();
+      // Both should produce the same OSDU kind
+      expect(entry22.osduKind({} as any)).toEqual(entry20.osduKind({} as any));
+    }
+  });
+});
