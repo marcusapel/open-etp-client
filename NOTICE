@@ -9,7 +9,7 @@ This software includes the following software and licenses:
 The following software have components provided under the terms of this license:
 
 - rxjs (from https://www.npmjs.com/package/rxjs)
-- ts-morph (from https://www.npmjs.com/package/ts-morph)
+- ts-morph (from https://github.com/dsherret/ts-morph#readme)
 
 ========================================================================
 Apache-2.0
@@ -45,11 +45,11 @@ The following software have components provided under the terms of this license:
 - events (from https://github.com/Gozala/events#readme)
 - express (from https://expressjs.com/)
 - fast-xml-parser (from https://github.com/NaturalIntelligence/fast-xml-parser#readme)
-- helmet (from https://helmetjs.github.io/)
+- helmet (from https://helmet.js.org/)
 - jsonwebtoken (from https://github.com/auth0/node-jsonwebtoken#readme)
 - node-fetch (from https://github.com/node-fetch/node-fetch)
 - sax (from https://www.npmjs.com/package/sax)
-- swagger-ui-express (from https://www.npmjs.com/package/swagger-ui-express)
-- ts-morph (from https://www.npmjs.com/package/ts-morph)
+- swagger-ui-express (from https://github.com/scottie1984/swagger-ui-express)
+- ts-morph (from https://github.com/dsherret/ts-morph#readme)
 - uuid (from https://github.com/uuidjs/uuid#readme)
 - xml-js (from https://www.npmjs.com/package/xml-js)
