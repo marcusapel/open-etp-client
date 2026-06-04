@@ -1058,6 +1058,9 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>,
     context: OSDUContext
   ): Promise<IResqmlDataObject | undefined> {
+    if (!dor) {
+      return undefined;
+    }
     if (dor._data) {
       return dor._data;
     }
@@ -1491,6 +1494,10 @@ export class ResqmlWorkProductComponent<
   }> {
     if (geometries.length < 1) {
       return Promise.reject(new Error("No geometry provided"));
+    }
+
+    if (!geometries[0]?.LocalCrs) {
+      return Promise.reject(new Error("No LocalCrs in geometry"));
     }
 
     const crsObj = await this.getObjectFromDor(

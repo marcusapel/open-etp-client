@@ -139,11 +139,13 @@ export const createManifest = async (
     return Promise.reject("No URI provided");
   }
   try {
+    const tManifestStart = Date.now();
     try {
       await registerDMS(context);
     } catch {
       // Ignore registration errors — continue without DMS registration
     }
+    logger.info(`[perf] registerDMS: ${Date.now() - tManifestStart}ms`);
     const manifests: Manifest = {
       // $schema:
       //   "https://community.opengroup.org/osdu/data/data-definitions/-/raw/master/Generated/manifest/Manifest.1.0.0.json",
@@ -274,15 +276,30 @@ export const createManifest = async (
       const tmpUris = [...dataspaceObjects[dataspace]];
       let resolvedObjects: (IResqmlDataObject | null)[] = [];
 
-      // slice objectUris to avoid "too many arguments" error
+      const t0 = Date.now();
+      // Batch size: use larger batches to minimize ETP round-trips.
+      // The ETP protocol layer already handles message-size splitting internally.
+      const BATCH_SIZE = 50;
       while (tmpUris.length > 0) {
-        const batch = tmpUris.splice(0, 5);
+        const batch = tmpUris.splice(0, BATCH_SIZE);
+        logger.info(`[perf] Fetching batch of ${batch.length} URIs from ${dataspace}, first: ${batch[0]?.substring(batch[0].lastIndexOf('/'))}`);
         try {
+          const t1 = Date.now();
           const arr = await client.getResolvedObjects(
             batch,
             objects,
             false
           );
+          const batchNulls = arr.filter(o => o === null).length;
+          logger.info(`[perf] Batch result: ${arr.length} items, ${batchNulls} nulls, objects map size=${objects.size}, took ${Date.now()-t1}ms`);
+          if (batchNulls > 0 && batchNulls === arr.length) {
+            // Try single fetch to diagnose
+            const testUri = batch[0];
+            logger.warn(`[debug] All nulls! Trying single getObjects for: ${testUri}`);
+            const singleMap = new Map<string, any>();
+            const single = await client.getResolvedObjects([testUri], singleMap, false);
+            logger.warn(`[debug] Single result: ${single.length} items, null=${single[0] === null}, singleMap size=${singleMap.size}`);
+          }
           resolvedObjects = resolvedObjects.concat(arr);
         } catch (e: any) {
           logger.error(`getResolvedObjects failed for batch: ${batch.map(u => u.substring(u.lastIndexOf('/') + 1)).join(', ')} — ${e?.message ?? e}`);
@@ -291,8 +308,9 @@ export const createManifest = async (
 
       const nullCount = resolvedObjects.filter(o => o === null).length;
       const noTypeCount = resolvedObjects.filter(o => o !== null && o?.$type === undefined).length;
-      logger.info(`Resolved ${resolvedObjects.length} objects for dataspace ${dataspace} (null=${nullCount}, noType=${noTypeCount})`);
+      logger.info(`Resolved ${resolvedObjects.length} objects for dataspace ${dataspace} in ${Date.now() - t0}ms (null=${nullCount}, noType=${noTypeCount})`);
 
+      const tConvert = Date.now();
       for (let i = 0; i < resolvedObjects.length; i++) {
         const resObj = resolvedObjects[i];
         if (resObj?.$type === undefined) {
@@ -317,12 +335,17 @@ export const createManifest = async (
           continue;
         }
         try {
+          const tObj = Date.now();
           let res = await c.convert(
             etpUri.uri,
             resolvedObjects[i],
             context,
             client
           );
+          const convertMs = Date.now() - tObj;
+          if (convertMs > 200) {
+            logger.warn(`[perf] Slow converter: ${etpUri.dataObjectType} took ${convertMs}ms`);
+          }
           const dataspaceUri = EtpUri.createDataSpaceUri(etpUri.dataSpace).uri;
           const aclLegal = context.dataspaceACLs.get(dataspaceUri);
           if (aclLegal !== undefined && res !== undefined) {
@@ -379,6 +402,7 @@ export const createManifest = async (
           continue;
         }
       }
+      logger.info(`[perf] Convert ${resolvedObjects.length} objects: ${Date.now() - tConvert}ms`);
     }
 
     // A3: Auto-generate lineage Activity record for this manifest build

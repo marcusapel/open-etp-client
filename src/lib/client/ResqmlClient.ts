@@ -1222,7 +1222,10 @@ export class ResqmlClient {
             ? xml2typescript(
                 byteToString(dob.data),
                 new EtpUri(dob.resource.uri).dataObjectType
-              )
+              ).catch(err => {
+                this.logger.warn(`xml2typescript failed for ${new EtpUri(dob.resource.uri).dataObjectType}: ${err}`);
+                return null;
+              })
             : null
         )
       )
@@ -1582,14 +1585,17 @@ export class ResqmlClient {
         const tUris = cURIs.filter(u => !objects.get(u));
         if (tUris.length > 0) {
           try {
-            (await this.getObjects(tUris)).forEach(
+            const fetched = await this.getObjects(tUris);
+            const fetchedCount = fetched.filter(o => o !== null).length;
+            this.logger.info(`[perf] getObjects: requested=${tUris.length}, got=${fetchedCount}`);
+            fetched.forEach(
               // eslint-disable-next-line no-loop-func
               (o, i) => o && objects.set(tUris[i], o)
             );
-          } catch (refErr) {
+          } catch (refErr: any) {
             // Some referenced objects may not exist — continue with what we have
             this.logger.warn(
-              `Failed to fetch ${tUris.length} referenced object(s), continuing with partial resolution`
+              `Failed to fetch ${tUris.length} referenced object(s): ${refErr?.message ?? refErr}`
             );
           }
         }
