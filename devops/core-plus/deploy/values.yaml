@@ -45,3 +45,16 @@ limits:
   maxTokens: 12
   tokensPerFill: 12
   fillInterval: "1s"
+
+# Istio DestinationRule for the oetp-client Service. Sticky-sessions by
+# data-partition-id keep all requests for a given partition on the same
+# oetp-client pod, which matches the upstream OSDU helm template
+# (ddms.reservoir.template.yaml in OEP-RP). The trafficPolicy block is
+# rendered verbatim into the DestinationRule spec, so any field accepted
+# by istio.io/v1beta1 DestinationRule.spec.trafficPolicy can be supplied.
+destinationRule:
+  enabled: true
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        httpHeaderName: data-partition-id
