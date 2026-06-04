@@ -512,9 +512,23 @@ Every OSDU record carries:
 
 | Issue | Impact | Current Workaround |
 |-------|--------|-------------------|
-| Manifest generates too many objects | Overwhelming OSDU ingestion, noisy catalog | Filter by type pattern; manual pruning |
+| Manifest generates too many objects | Overwhelming OSDU ingestion, noisy catalog | ✅ Fixed — Default `typePatterns` filter applied |
 | Many RESQML types have no OSDU converter | Objects silently skipped | ✅ Fixed — all major types now registered |
 | Generated manifest quality varies | Missing fields, incorrect relationships | Manual editing post-generation |
+| Manifests have empty ACL/legal tags | OSDU rejects records without ACLs | Post-process to inject partition-specific values |
+| Record IDs use `single:` prefix | Wrong partition prefix for target OSDU instance | Post-process to replace with actual partition |
+| RESQML 2.0.1 objects return empty from ETP | Manifest builder gets null objects → 0 WPCs | Fix XML root element format (strip `obj_` prefix) |
+
+### 9.5 ETP Protocol Compliance
+
+| Issue | Impact | Current Workaround |
+|-------|--------|-------------------|
+| PutDataObjects universally fails (transaction bug) | No standards-compliant write path | Direct PostgreSQL import |
+| RESQML 2.2 EPC import not supported | Cannot import native 2.2 EPCs via CLI | Direct DB import or force version=2.0 |
+| XML→AVRO→JSON is lossy | Cannot reconstruct original XML/EPC | Store raw XML alongside AVRO |
+| DOR UUIDs stripped on some deployments | Manifest builder cannot resolve references | Use local ETP server (DORs preserved) |
+| No EPC export capability | Cannot extract model back to standard format | Not available — fundamental gap |
+| ExtraMetadata silently dropped | OSDU-specific tags lost on import | Re-add via OSDU record update |
 
 ### 9.5 Collaboration & Versioning
 
@@ -936,6 +950,191 @@ For reliable manifest generation from RESQML 2.2 data on ADME instances:
 - **Use the Python EPC-based manifest builder** (`build_full_manifest_22.py`) which reads the EPC directly
 - **Do NOT rely on the REST API manifest builder** for types with DOR references stored on ADME
 - The REST API builder works correctly on the LOCAL ETP server (where DOR UUIDs are preserved in object bodies)
+
+---
+
+## Appendix H-1: ETP Server & Client Deficiencies — Interop Validation (2026-06-04)
+
+> Findings from end-to-end ingestion testing: synthetic RESQML 2.2 (52 objects) + RESQML 2.0.1 (23 objects) through ETP server → REST API → manifest build → OSDU Storage.
+
+### Critical: ETP Server Transaction System Broken (PutDataObjects)
+
+**Symptom:** ALL write operations via ETP `PutDataObjects` (Protocol 4) fail with:
+```
+ProtocolException(1000): ETP-15 Failed to get transaction for <dataspace> after 0 tries over 2969042470520714s
+```
+
+**Affected scope:** Universal — fails for ANY client (TypeScript ETPClient, Python websockets, curl from inside Docker network). Not an authentication, network, or client issue.
+
+**Root cause:** The ETP server environment has `RDMS_DATA_CONNECTIVITY_MODE=standalone` which disables the transaction coordinator. The enormous timeout value (`2969042470520714s`) indicates an uninitialized/overflow counter.
+
+**Impact:**
+- Cannot write data via the ETP protocol (the standard write path)
+- The `openETPServer --import-epc` CLI bypasses ETP by writing directly to PostgreSQL ("Direct-import" mode)
+- No standards-compliant write path exists on the current server
+
+**Fix required (ETP Server):**
+1. Fix transaction initialization when `RDMS_DATA_CONNECTIVITY_MODE=standalone` — should either initialize a local transaction manager or bypass transactions for single-node mode
+2. Add configuration option `RDMS_ETP_WRITE_MODE=direct|transactional` to explicitly select write behavior
+3. Return a meaningful error message instead of an overflow timeout value
+
+**Workaround used:** Direct PostgreSQL INSERT (bypassing ETP entirely) — see `/tmp/pg_import.py`
+
+---
+
+### Critical: RESQML 2.2 EPC Import Not Supported by fesapi
+
+**Symptom:** `openETPServer --import-epc` fails to import RESQML 2.2 EPCs:
+```
+Error: Unknown content type: application/x-resqml+xml;version=2.2;type=BoundaryFeature
+```
+
+**Root cause:** The import tool uses fesapi (C++ library) which only recognizes `version=2.0` content types in `[Content_Types].xml`. RESQML 2.2 uses `version=2.2`.
+
+**Impact:**
+- Cannot import native RESQML 2.2 EPCs via the standard import tool
+- Must use workaround (direct PostgreSQL import or force version=2.0 in EPC metadata)
+
+**Fix required (ETP Server):**
+1. Update fesapi content-type parser to accept `version=2.2` and `version=2.3` (EML)
+2. Alternatively, add a Python/TypeScript-based EPC importer that understands all Energistics versions
+3. Register `resqml22.*` and `eml23.*` as valid qualified-type prefixes in the import pipeline
+
+---
+
+### High: XML Root Element Format Mismatch for RESQML 2.0.1
+
+**Symptom:** Objects stored with Python-generated XML (energyml-utils) cannot be read back by the ETP server via `GetDataObjects`. Resources are listed but object bodies return empty `[]`.
+
+**Root cause:** The ETP server's XML parser expects RESQML 2.0.1 objects with element names WITHOUT the `obj_` prefix:
+```xml
+<!-- Expected by ETP server (fesapi format): -->
+<resqml2:FaultInterpretation ... xsi:type="resqml2:obj_FaultInterpretation">
+
+<!-- Python energyml-utils generates: -->
+<resqml:obj_FaultInterpretation ...>
+```
+
+The server uses the root element name (not `xsi:type`) to locate the AVRO deserializer. When the element name has `obj_` prefix, the deserializer doesn't find it.
+
+**Note:** RESQML 2.2 objects work fine because both the server and Python generate element names WITHOUT `obj_` prefix (e.g., `<resqml:BoundaryFeature>`).
+
+**Fix required (ETP Server):**
+1. The XML parser should accept BOTH formats: `<ns:TypeName>` and `<ns:obj_TypeName>` for RESQML 2.0.1
+2. Alternatively, strip `obj_` prefix from element name before deserializer lookup
+3. Document the expected XML format for direct database imports
+
+**Fix required (Client/Tools):**
+1. When generating RESQML 2.0.1 XML for ETP ingestion, strip `obj_` from root element names
+2. Add an XML normalization step in the EPC import pipeline
+
+---
+
+### High: ETPClient Missing RESQML 2.2 in supportedDataObjects
+
+**Symptom:** ETP session negotiation doesn't advertise support for RESQML 2.2, causing servers to reject 2.2 objects.
+
+**Fix applied:** Added `resqml22.*` and `eml23.*` to `requestSession()` supportedDataObjects in [ETPClient.ts](src/lib/client/ETPClient.ts#L378).
+
+**Remaining gap:** The `supportedDataObjects` list should be dynamically constructed from the converter registry (`ResqmlOSDUMap.getInstance().getAll().keys()`) rather than hardcoded.
+
+---
+
+### Medium: Manifest Build Returns Empty WPCs for RESQML 2.0.1 After Direct DB Import
+
+**Symptom:** `POST /manifests/build` returns 0 WPCs for a dataspace that has valid RESQML 2.0.1 objects visible via resource listing.
+
+**Root cause chain:**
+1. Direct PostgreSQL import stores XML with `obj_` prefix element names
+2. ETP server `GetDataObjects` fails to deserialize → returns null
+3. Manifest builder receives all-null resolved objects → skips all conversions → 0 WPCs
+
+**Resolution:** Fix the XML format (strip `obj_` from element names) OR fix the server's XML parser (see above).
+
+---
+
+### Medium: OSDU Workflow Ingestion (`Osdu_ingest`) is a Test Stub
+
+**Symptom:** `POST /api/workflow/v1/workflow/Osdu_ingest/workflowRun` always returns `status: failed` regardless of manifest validity.
+
+**Root cause:** On `admeinterop.energy.azure.com`, there are TWO `Osdu_ingest` workflow registrations:
+1. Real platform DAG (`createdBy: RootUser`, `registrationInstructions: {dagName: "Osdu_ingest"}`)
+2. Test stub (`createdBy: <service-principal>`, description: "This prints a storage record sent to the system")
+
+The test stub intercepts requests because it was registered later with the same workflowId.
+
+**Workaround:** Use direct `PUT /api/storage/v2/records` for manifest ingestion (bypasses workflow entirely). All 97 records (64 RESQML 2.2 + 33 RESQML 2.0.1) stored successfully via direct storage API.
+
+**Fix required (OSDU Instance):**
+1. Delete the test stub workflow registration
+2. Or rename the test stub to `Osdu_ingest_test` (which already exists separately)
+
+---
+
+### Medium: Manifest Records Missing ACLs and Legal Tags
+
+**Symptom:** Manifests generated by `POST /manifests/build` have empty `acl.owners`, `acl.viewers`, and `legal.legaltags` arrays. OSDU ingestion rejects such records.
+
+**Root cause:** The manifest builder runs without OSDU context (no entitlements lookup, no legal tag configuration). It generates structurally valid manifests but without the operational metadata OSDU requires.
+
+**Fix required (Client):**
+1. Accept ACL/legal-tag configuration in the manifest build request body (or environment)
+2. Populate all records with valid defaults from the target OSDU partition
+3. Replace `single:` ID prefix with the actual partition name (e.g., `opendes:`)
+
+**Current workaround:** Post-process manifest JSON to inject ACLs, legal tags, and fix ID prefixes before ingestion.
+
+---
+
+### Low: `data-partition-id` in Single-Partition Mode Still Requires Header
+
+**Symptom:** Even with `RDMS_DATA_PARTITION_MODE=single`, the REST API requires `data-partition-id` header and `Authorization: Bearer <token>` (any token accepted).
+
+**Expected behavior:** In single-partition mode, these headers should be optional.
+
+---
+
+### Summary: Compliance Gap Matrix
+
+| Standard Requirement | Current Status | Severity | Fix Location |
+|---------------------|----------------|----------|--------------|
+| ETP Protocol 4 (Store) write path | ❌ Broken (transaction bug) | Critical | ETP Server |
+| RESQML 2.2 EPC import | ❌ Not supported (fesapi limitation) | Critical | ETP Server |
+| RESQML 2.0.1 XML format tolerance | ⚠️ Only accepts non-`obj_` element names | High | ETP Server |
+| RESQML 2.2 session negotiation | ✅ Fixed | — | Client |
+| Lossless XML round-trip | ❌ XML→AVRO→JSON is lossy | High | ETP Server architecture |
+| DOR UUID preservation | ❌ Stripped on some deployments | High | ETP Server |
+| EPC export from ETP | ❌ Not possible (no XML reconstruction) | Medium | ETP Server |
+| Manifest ACL/legal population | ⚠️ Manual post-processing needed | Medium | Client |
+| OSDU workflow ingestion | ⚠️ Test stub blocks real DAG | Medium | OSDU Instance |
+
+### Enabling Lossless Transfer: Required Architecture Changes
+
+For true **lossless** RESQML round-trip (EPC → ETP → EPC with no data loss):
+
+1. **Store raw XML alongside AVRO** — The ETP server should store the original XML in a `raw_xml` column (or blob). AVRO is used for indexed queries; raw XML is used for export.
+2. **Preserve DOR UUIDs in object bodies** — Do not strip `UUID` from `DataObjectReference` elements during AVRO normalization. The relationship graph is supplementary, not a replacement.
+3. **Implement EPC export** — `GET /dataspaces/:id/export` endpoint that reconstructs EPC zip from stored raw XML + HDF5 arrays.
+4. **Support both v2.0.1 and v2.2 content types** — The server must recognize `version=2.0`, `version=2.2`, and `version=2.3` in import and protocol negotiation.
+5. **Fix PutDataObjects** — Without a working ETP write path, the server is read-only (violating ETP spec compliance).
+6. **ExtraMetadata preservation** — Store all `ExtraMetadata` key-value pairs (currently silently dropped). These carry OSDU-specific tags like `osdu:FieldName`, `osdu:Basin`, etc.
+
+### Prioritized Fix Plan
+
+| Priority | Component | Fix | Effort | Independence |
+|----------|-----------|-----|--------|--------------|
+| P0 | ETP Server | Fix PutDataObjects transaction initialization in standalone mode | 1-2 weeks | 🟢 LOCAL |
+| P0 | ETP Server | Support `version=2.2` and `version=2.3` content types in EPC import | 1 week | 🟢 LOCAL |
+| P1 | ETP Server | Accept both `obj_TypeName` and `TypeName` element names for RESQML 2.0.1 XML | 1 week | 🟢 LOCAL |
+| P1 | Client | Dynamic `supportedDataObjects` from converter registry | 2 days | 🟢 LOCAL |
+| P1 | Client | Add ACL/legal-tag/partition config to manifest build request | 1 week | 🟢 LOCAL |
+| P2 | ETP Server | Store raw XML in `obj.raw_xml` column (preserve original) | 2-3 weeks | 🟢 LOCAL |
+| P2 | ETP Server | Preserve DOR UUIDs in object body (not just relationship graph) | 2 weeks | 🟢 LOCAL |
+| P2 | Client | Add unit tests for all new RESQML 2.2 converters | 1 week | 🟢 LOCAL |
+| P3 | ETP Server | EPC export endpoint (`GET /dataspaces/:id/export.epc`) | 4-6 weeks | 🟢 LOCAL |
+| P3 | ETP Server | ExtraMetadata preservation | 1 week | 🟢 LOCAL |
+| P3 | OSDU Instance | Remove test-stub `Osdu_ingest` workflow registration | 1 day | 🟡 COORD |
+| P3 | Client | Update stale examples (Example1.ts, CreateJsonSchema.ts) | 2 days | 🟢 LOCAL |
 
 ---
 

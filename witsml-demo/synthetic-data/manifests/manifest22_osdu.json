@@ -1,0 +1,2730 @@
+{
+  "kind": "osdu:wks:Manifest:1.0.0",
+  "Data": {
+    "Datasets": [
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T17:45:17.305Z",
+        "id": "opendes:dataset--ETPDataspace:maap-synthetic22",
+        "modifyTime": "2026-06-04T17:45:17.305Z",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "single:reference-data--ExistenceKind:Actual:",
+          "DatasetProperties": {
+            "URI": "eml:///dataspace('maap/synthetic22')"
+          },
+          "Name": "maap/synthetic22",
+          "ExtensionProperties": {},
+          "TotalSize": "237568"
+        }
+      }
+    ],
+    "WorkProductComponents": [
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/eml23.LocalEngineeringCompoundCrs(df7d94a3-1387-452f-a60b-d2b8fd208e11)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Local CRS"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:d8bf5f53-6fae-4eb6-85e5-75804ccc9289",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(d8bf5f53-6fae-4eb6-85e5-75804ccc9289)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Geobody Boundary"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:b6654f49-5de3-4d98-bceb-4dd8b36d458e",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(b6654f49-5de3-4d98-bceb-4dd8b36d458e)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault 2"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:19fc369c-50f4-43de-97f6-fa52a76c63ff",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(19fc369c-50f4-43de-97f6-fa52a76c63ff)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault 1"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:b84128d6-6e6d-4e2f-8d3a-8832d8077b8b",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(b84128d6-6e6d-4e2f-8d3a-8832d8077b8b)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Horizon 2"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:2f69acae-3807-489f-b3d3-15869a77adf7",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(2f69acae-3807-489f-b3d3-15869a77adf7)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Horizon 1"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--HorizonInterpretation:f62deb4e-a2ed-4c7e-bddc-edfbd2cc9d8d",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.HorizonInterpretation(f62deb4e-a2ed-4c7e-bddc-edfbd2cc9d8d)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Horizon 2 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:b84128d6-6e6d-4e2f-8d3a-8832d8077b8b:",
+          "FeatureName": "Synthetic Horizon 2",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--HorizonInterpretation:15f56704-5a3c-4a70-ab94-08652c0dc385",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.HorizonInterpretation(15f56704-5a3c-4a70-ab94-08652c0dc385)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Horizon 1 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:2f69acae-3807-489f-b3d3-15869a77adf7:",
+          "FeatureName": "Synthetic Horizon 1",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--FaultInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--FaultInterpretation:88fce2ad-a504-44fc-af96-b041db0c37e6",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.FaultInterpretation(88fce2ad-a504-44fc-af96-b041db0c37e6)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault 2 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:b6654f49-5de3-4d98-bceb-4dd8b36d458e:",
+          "FeatureName": "Synthetic Fault 2"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--FaultInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--FaultInterpretation:8688bca3-a39e-454e-8714-da255d973dad",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.FaultInterpretation(8688bca3-a39e-454e-8714-da255d973dad)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault 1 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:19fc369c-50f4-43de-97f6-fa52a76c63ff:",
+          "FeatureName": "Synthetic Fault 1"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GeobodyInterpretation:f2651efb-41b6-4a70-b88e-9d3434226d61",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.GeobodyInterpretation(f2651efb-41b6-4a70-b88e-9d3434226d61)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Geobody Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:d8bf5f53-6fae-4eb6-85e5-75804ccc9289:",
+          "FeatureName": "Synthetic Geobody Boundary"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GeobodyBoundaryInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GeobodyBoundaryInterpretation:ff27983e-6b95-451c-b8ee-5630fb1a349f",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.GeobodyBoundaryInterpretation(ff27983e-6b95-451c-b8ee-5630fb1a349f)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Geobody Boundary Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:d8bf5f53-6fae-4eb6-85e5-75804ccc9289:",
+          "FeatureName": "Synthetic Geobody Boundary"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--WellboreInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.WellboreInterpretation(6bd8ae88-950c-443d-b943-67ec885dc4ce)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Wellbore Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Wellbore",
+          "IsDrilled": true
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StratigraphicUnitInterpretation:c42fb118-e351-4a7f-9006-883403af4941",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.StratigraphicUnitInterpretation(c42fb118-e351-4a7f-9006-883403af4941)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Strat Unit 2 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Strat Unit 2 Feature",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StratigraphicUnitInterpretation:9e940fff-49ac-4b68-bff1-73d0565b1460",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.StratigraphicUnitInterpretation(9e940fff-49ac-4b68-bff1-73d0565b1460)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Strat Unit 1 Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Strat Unit 1 Feature",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructuralOrganizationInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StructuralOrganizationInterpretation:e31560ff-a5f9-4137-b98c-23cfe7e1acbb",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.StructuralOrganizationInterpretation(e31560ff-a5f9-4137-b98c-23cfe7e1acbb)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Structural Org Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Organization Model",
+          "OrderingCriteriaID": "opendes:reference-data--OrderingCriteria:Age:",
+          "FaultInterpretationIDs": [
+            "single:work-product-component--FaultInterpretation:8688bca3-a39e-454e-8714-da255d973dad::",
+            "single:work-product-component--FaultInterpretation:88fce2ad-a504-44fc-af96-b041db0c37e6::"
+          ],
+          "HorizonInterpretationIDs": [
+            "single:work-product-component--HorizonInterpretation:15f56704-5a3c-4a70-ab94-08652c0dc385::",
+            "single:work-product-component--HorizonInterpretation:f62deb4e-a2ed-4c7e-bddc-edfbd2cc9d8d::"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StratigraphicColumnRankInterpretation:6a98d7e3-4c4d-40af-bc9c-523cf7219b5e",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.StratigraphicColumnRankInterpretation(6a98d7e3-4c4d-40af-bc9c-523cf7219b5e)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic StratCol Rank Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Organization Model",
+          "StratigraphicRoleType": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:",
+          "StratigraphicUnitInterpretationSet": [
+            "single:work-product-component--StratigraphicUnitInterpretation:9e940fff-49ac-4b68-bff1-73d0565b1460:",
+            "single:work-product-component--StratigraphicUnitInterpretation:c42fb118-e351-4a7f-9006-883403af4941:"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--EarthModelInterpretation:db971212-531d-4daa-b8e0-8fe365e04f77",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.EarthModelInterpretation(db971212-531d-4daa-b8e0-8fe365e04f77)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Earth Model Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Organization Model"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--RockFluidOrganizationInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--RockFluidOrganizationInterpretation:1736ed7c-41a3-4e00-8813-5b53d5818c71",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.RockFluidOrganizationInterpretation(1736ed7c-41a3-4e00-8813-5b53d5818c71)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Rock Fluid Org Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Organization Model",
+          "RockFluidUnitInterpretationIDs": [
+            "single:work-product-component--RockFluidUnitInterpretation:437980db-f6d5-4666-9028-857fa7e1bec2::"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--RockFluidUnitInterpretation:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--RockFluidUnitInterpretation:437980db-f6d5-4666-9028-857fa7e1bec2",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.RockFluidUnitInterpretation(437980db-f6d5-4666-9028-857fa7e1bec2)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Rock Fluid Unit Interp",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureName": "Synthetic Rock Volume",
+          "PhaseID": "opendes:reference-data--RockFluidUnitPhase:OilColumn:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--FluidBoundaryInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--FluidBoundaryInterpretation:b8cae02f-7b32-4821-b556-b39343b26a61",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.FluidBoundaryInterpretation(b8cae02f-7b32-4821-b556-b39343b26a61)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fluid Boundary (OWC)",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:2f69acae-3807-489f-b3d3-15869a77adf7:",
+          "FeatureName": "Synthetic Horizon 1",
+          "FluidContactTypeID": "opendes:reference-data--FluidContactType:WaterOilContact:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GenericRepresentation:bb7837ef-3c80-4e6e-9cae-d513ecc147c2",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.TriangulatedSetRepresentation(bb7837ef-3c80-4e6e-9cae-d513ecc147c2)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Horizon 1 Surface",
+          "IndexableElementCount": [
+            {
+              "Count": 4,
+              "IndexableElementID": "single:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:15f56704-5a3c-4a70-ab94-08652c0dc385:",
+          "InterpretationName": "Synthetic Horizon 1 Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "Role": "opendes:reference-data--RepresentationRole:Map:",
+          "Type": "opendes:reference-data--RepresentationType:TriangulatedSurface:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GenericRepresentation:8bdd57e2-0252-4dac-b5ce-cb0e194ec842",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.PointSetRepresentation(8bdd57e2-0252-4dac-b5ce-cb0e194ec842)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Geobody Points",
+          "IndexableElementCount": [],
+          "InterpretationID": "opendes:work-product-component--GeobodyInterpretation:f2651efb-41b6-4a70-b88e-9d3434226d61:",
+          "InterpretationName": "Synthetic Geobody Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "Type": "opendes:reference-data--RepresentationType:PointSet:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GenericRepresentation:835dc810-2761-4ff8-80b4-4f7842d6b96b",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.PolylineRepresentation(835dc810-2761-4ff8-80b4-4f7842d6b96b)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault 1 Trace",
+          "IndexableElementCount": [],
+          "InterpretationID": "opendes:work-product-component--FaultInterpretation:8688bca3-a39e-454e-8714-da255d973dad:",
+          "InterpretationName": "Synthetic Fault 1 Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "Type": "opendes:reference-data--RepresentationType:Polyline:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GenericRepresentation:45f7eff3-e24e-4e20-8477-0fc65fad8b12",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.PolylineSetRepresentation(45f7eff3-e24e-4e20-8477-0fc65fad8b12)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Fault Network",
+          "IndexableElementCount": [
+            {
+              "Count": 8,
+              "IndexableElementID": "single:reference-data--IndexableElement:nodes:"
+            },
+            {
+              "Count": 8,
+              "IndexableElementID": "single:reference-data--IndexableElement:edges:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--FaultInterpretation:88fce2ad-a504-44fc-af96-b041db0c37e6:",
+          "InterpretationName": "Synthetic Fault 2 Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "Type": "opendes:reference-data--RepresentationType:PolylineSet:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructureMap:1.0.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StructureMap:5dc380ea-61f1-4ae1-bede-3d0d4007b96b",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.Grid2dRepresentation(5dc380ea-61f1-4ae1-bede-3d0d4007b96b)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Seismic Horizon Pick",
+          "IndexableElementCount": [
+            {
+              "Count": 100,
+              "IndexableElementID": "single:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:f62deb4e-a2ed-4c7e-bddc-edfbd2cc9d8d:",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "NodeCountOnIAxis": 10,
+          "NodeCountOnJAxis": 10,
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--IjkGridRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--IjkGridRepresentation:3683b501-b088-4736-9ea5-9fc38216858b",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.IjkGridRepresentation(3683b501-b088-4736-9ea5-9fc38216858b)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic IJK Grid",
+          "IndexableElementCount": [
+            {
+              "Count": 18,
+              "IndexableElementID": "single:reference-data--IndexableElement:cells:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--EarthModelInterpretation:db971212-531d-4daa-b8e0-8fe365e04f77:",
+          "InterpretationName": "Synthetic Earth Model Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "ActiveCellCount": 18,
+          "HasFiniteElementSubnodes": false,
+          "ExpansionInDirection": "K",
+          "HasCollocatedNodeInKDirection": false,
+          "HasLateralGaps": false,
+          "HasParametricGeometry": false,
+          "HasNoGeometry": false,
+          "HasSplitNode": false,
+          "KDirectionID": "opendes:reference-data--KDirectionType:down:",
+          "Ni": 3,
+          "Nj": 3,
+          "Nk": 2,
+          "PillarShapeID": "opendes:reference-data--PillarShapeType:straight:",
+          "IsRightHanded": true
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--UnstructuredGridRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--UnstructuredGridRepresentation:7a55db53-76ce-45b0-bafe-d982c59138a2",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.UnstructuredGridRepresentation(7a55db53-76ce-45b0-bafe-d982c59138a2)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Unstructured Grid",
+          "IndexableElementCount": [
+            {
+              "Count": 4,
+              "IndexableElementID": "single:reference-data--IndexableElement:cells:"
+            },
+            {
+              "Count": 8,
+              "IndexableElementID": "single:reference-data--IndexableElement:nodes:"
+            },
+            {
+              "Count": 24,
+              "IndexableElementID": "single:reference-data--IndexableElement:faces:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--EarthModelInterpretation:db971212-531d-4daa-b8e0-8fe365e04f77:",
+          "InterpretationName": "Synthetic Earth Model Interp",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:",
+          "HasFiniteElementSubnodes": false,
+          "HasNoGeometry": false
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": "{\"authCode\":{\"auth\":\"EPSG\",\"code\":32631}}",
+            "coordinateReferenceSystemID": "single:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631:"
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GridConnectionSetRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GridConnectionSetRepresentation:ba3acc02-932e-4e4e-a31d-56b37944a0fb",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.GridConnectionSetRepresentation(ba3acc02-932e-4e4e-a31d-56b37944a0fb)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Grid Connections",
+          "IndexableElementCount": [
+            {
+              "Count": 4,
+              "IndexableElementID": "single:reference-data--IndexableElement:contacts:"
+            }
+          ],
+          "ConnectionCount": 4,
+          "GridRepresentationIDs": [
+            "single:work-product-component--IjkGridRepresentation:3683b501-b088-4736-9ea5-9fc38216858b:"
+          ],
+          "InterpretationIDs": [
+            "single:work-product-component--EarthModelInterpretation:db971212-531d-4daa-b8e0-8fe365e04f77:"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--WellboreTrajectory:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--WellboreTrajectory:51947682-7f78-4790-989d-b443e68a2fa9",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.WellboreTrajectoryRepresentation(51947682-7f78-4790-989d-b443e68a2fa9)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Wellbore Trajectory",
+          "WellboreID": "opendes:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce:",
+          "TopDepthMeasuredDepth": 0,
+          "BaseDepthMeasuredDepth": 3000,
+          "ActiveIndicator": true
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--WellLog:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--WellLog:183096ca-a5fc-4703-8015-3b7531ceae0a",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.WellboreFrameRepresentation(183096ca-a5fc-4703-8015-3b7531ceae0a)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Wellbore Frame",
+          "WellboreID": "opendes:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce:",
+          "IsRegular": false,
+          "SamplingDomainTypeID": "opendes:reference-data--SamplingDomainType:MeasuredDepth:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--WellLog:1.3.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--WellLog:30aac747-6c28-495b-827a-db1d2565ad2c",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.WellboreFrameRepresentation(30aac747-6c28-495b-827a-db1d2565ad2c)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Well Log Frame",
+          "WellboreID": "opendes:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce:",
+          "IsRegular": false,
+          "SamplingDomainTypeID": "opendes:reference-data--SamplingDomainType:MeasuredDepth:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--GenericRepresentation:5c9305fe-1111-45cf-8140-aa532ee55062",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BlockedWellboreRepresentation(5c9305fe-1111-45cf-8140-aa532ee55062)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Blocked Wellbore",
+          "InterpretationID": "opendes:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce:",
+          "InterpretationName": "Synthetic Wellbore Interp",
+          "Type": "opendes:reference-data--RepresentationType:BlockedWellbore:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--SealedSurfaceFramework:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--SealedSurfaceFramework:8693062c-c5e7-45ac-a393-de1760d2edeb",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.SealedSurfaceFrameworkRepresentation(8693062c-c5e7-45ac-a393-de1760d2edeb)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Sealed Surface Framework",
+          "InterpretationID": "opendes:work-product-component--StructuralOrganizationInterpretation:e31560ff-a5f9-4137-b98c-23cfe7e1acbb:",
+          "InterpretationName": "Synthetic Structural Org Interp",
+          "IsHomogeneous": true,
+          "RepresentationIDs": [
+            "single:work-product-component--GenericRepresentation:bb7837ef-3c80-4e6e-9cae-d513ecc147c2::"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--SubRepresentation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--SubRepresentation:4e7d4805-115a-4d7e-8b1a-de691ba156f5",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.SubRepresentation(4e7d4805-115a-4d7e-8b1a-de691ba156f5)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Sub-Representation",
+          "IndexableElementCount": [
+            {
+              "Count": 1,
+              "IndexableElementID": "single:reference-data--IndexableElement:cells:"
+            }
+          ],
+          "ElementCount": 1,
+          "IndexableElementID": "opendes:reference-data--IndexableElement:cells:",
+          "SupportingRepresentationIDs": [
+            "single:work-product-component--IjkGridRepresentation:3683b501-b088-4736-9ea5-9fc38216858b:"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StratigraphicColumn:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--StratigraphicColumn:2a80cf10-b77e-45b6-bf12-c23e99563e47",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.StratigraphicColumn(2a80cf10-b77e-45b6-bf12-c23e99563e47)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Stratigraphic Column",
+          "StratigraphicColumnRankInterpretationSet": [
+            "single:work-product-component--StratigraphicColumnRankInterpretation:6a98d7e3-4c4d-40af-bc9c-523cf7219b5e:"
+          ]
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--Activity:1.4.0",
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T00:00:00.000Z",
+        "createUser": "RDDMS Synthetic",
+        "id": "opendes:work-product-component--Activity:4f289103-8402-4d2a-9fb6-0208ecdd7c3c",
+        "modifyTime": "2026-06-04T00:00:00.000Z",
+        "modifyUser": "RDDMS Synthetic",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/synthetic22')/eml23.Activity(4f289103-8402-4d2a-9fb6-0208ecdd7c3c)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T00:00:00.000Z",
+          "Name": "Synthetic Grid Generation Activity",
+          "ActivityTemplateID": "opendes:master-data--ActivityTemplate:37745edb-b214-4713-8b5f-fff9e871b872:",
+          "Parameters": [
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObjectParameter:",
+              "Title": "InputGrid",
+              "DataObjectParameter": "single:work-product-component--IjkGridRepresentation:3683b501-b088-4736-9ea5-9fc38216858b:"
+            }
+          ]
+        }
+      },
+      {
+        "id": "opendes:work-product-component--Activity:6589fdd6-6d3e-50e2-8431-4c350ab74f9b",
+        "kind": "osdu:wks:work-product-component--Activity:1.4.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.dataservices.energy"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.dataservices.energy"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-public-usa-dataset"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "data": {
+          "Name": "RDDMS Manifest Build",
+          "Description": "Auto-generated lineage: 37 work-product-component(s) produced from ETP dataspace objects.",
+          "Parameters": [
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--Activity:4f289103-8402-4d2a-9fb6-0208ecdd7c3c:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--EarthModelInterpretation:db971212-531d-4daa-b8e0-8fe365e04f77:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--FaultInterpretation:8688bca3-a39e-454e-8714-da255d973dad:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--FaultInterpretation:88fce2ad-a504-44fc-af96-b041db0c37e6:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--FluidBoundaryInterpretation:b8cae02f-7b32-4821-b556-b39343b26a61:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GenericRepresentation:45f7eff3-e24e-4e20-8477-0fc65fad8b12:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GenericRepresentation:5c9305fe-1111-45cf-8140-aa532ee55062:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GenericRepresentation:835dc810-2761-4ff8-80b4-4f7842d6b96b:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GenericRepresentation:8bdd57e2-0252-4dac-b5ce-cb0e194ec842:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GenericRepresentation:bb7837ef-3c80-4e6e-9cae-d513ecc147c2:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GeobodyBoundaryInterpretation:ff27983e-6b95-451c-b8ee-5630fb1a349f:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GeobodyInterpretation:f2651efb-41b6-4a70-b88e-9d3434226d61:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--GridConnectionSetRepresentation:ba3acc02-932e-4e4e-a31d-56b37944a0fb:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--HorizonInterpretation:15f56704-5a3c-4a70-ab94-08652c0dc385:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--HorizonInterpretation:f62deb4e-a2ed-4c7e-bddc-edfbd2cc9d8d:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--IjkGridRepresentation:3683b501-b088-4736-9ea5-9fc38216858b:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalBoundaryFeature:19fc369c-50f4-43de-97f6-fa52a76c63ff:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalBoundaryFeature:2f69acae-3807-489f-b3d3-15869a77adf7:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalBoundaryFeature:b6654f49-5de3-4d98-bceb-4dd8b36d458e:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalBoundaryFeature:b84128d6-6e6d-4e2f-8d3a-8832d8077b8b:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalBoundaryFeature:d8bf5f53-6fae-4eb6-85e5-75804ccc9289:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--LocalModelCompoundCrs:df7d94a3-1387-452f-a60b-d2b8fd208e11:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--RockFluidOrganizationInterpretation:1736ed7c-41a3-4e00-8813-5b53d5818c71:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--RockFluidUnitInterpretation:437980db-f6d5-4666-9028-857fa7e1bec2:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--SealedSurfaceFramework:8693062c-c5e7-45ac-a393-de1760d2edeb:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StratigraphicColumn:2a80cf10-b77e-45b6-bf12-c23e99563e47:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StratigraphicColumnRankInterpretation:6a98d7e3-4c4d-40af-bc9c-523cf7219b5e:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StratigraphicUnitInterpretation:9e940fff-49ac-4b68-bff1-73d0565b1460:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StratigraphicUnitInterpretation:c42fb118-e351-4a7f-9006-883403af4941:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StructuralOrganizationInterpretation:e31560ff-a5f9-4137-b98c-23cfe7e1acbb:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--StructureMap:5dc380ea-61f1-4ae1-bede-3d0d4007b96b:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--SubRepresentation:4e7d4805-115a-4d7e-8b1a-de691ba156f5:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--UnstructuredGridRepresentation:7a55db53-76ce-45b0-bafe-d982c59138a2:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--WellLog:183096ca-a5fc-4703-8015-3b7531ceae0a:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--WellLog:30aac747-6c28-495b-827a-db1d2565ad2c:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--WellboreInterpretation:6bd8ae88-950c-443d-b943-67ec885dc4ce:"
+            },
+            {
+              "ParameterKindID": "single:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "single:work-product-component--WellboreTrajectory:51947682-7f78-4790-989d-b443e68a2fa9:"
+            }
+          ],
+          "SoftwareSpecifications": [
+            {
+              "SoftwareName": "RDDMS",
+              "Version": "1.0"
+            }
+          ],
+          "ActivityTemplateID": "opendes:master-data--ActivityTemplate:RDDMSManifestBuild:"
+        },
+        "createTime": "2026-06-04T18:30:35.359Z",
+        "modifyTime": "2026-06-04T18:30:35.359Z"
+      }
+    ]
+  },
+  "MasterData": [
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--BoundaryFeature:1.2.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": []
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--BoundaryFeature:d8bf5f53-6fae-4eb6-85e5-75804ccc9289",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(d8bf5f53-6fae-4eb6-85e5-75804ccc9289)"
+        ],
+        "FeatureName": "Synthetic Geobody Boundary"
+      }
+    },
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--BoundaryFeature:1.2.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": []
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--BoundaryFeature:b6654f49-5de3-4d98-bceb-4dd8b36d458e",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(b6654f49-5de3-4d98-bceb-4dd8b36d458e)"
+        ],
+        "FeatureName": "Synthetic Fault 2"
+      }
+    },
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--BoundaryFeature:1.2.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": []
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--BoundaryFeature:19fc369c-50f4-43de-97f6-fa52a76c63ff",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(19fc369c-50f4-43de-97f6-fa52a76c63ff)"
+        ],
+        "FeatureName": "Synthetic Fault 1"
+      }
+    },
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--BoundaryFeature:1.2.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": []
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--BoundaryFeature:b84128d6-6e6d-4e2f-8d3a-8832d8077b8b",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(b84128d6-6e6d-4e2f-8d3a-8832d8077b8b)"
+        ],
+        "FeatureName": "Synthetic Horizon 2"
+      }
+    },
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--BoundaryFeature:1.2.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": []
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--BoundaryFeature:2f69acae-3807-489f-b3d3-15869a77adf7",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "DDMSDatasets": [
+          "eml://reservoir-ddms1/dataspace('maap/synthetic22')/resqml22.BoundaryFeature(2f69acae-3807-489f-b3d3-15869a77adf7)"
+        ],
+        "FeatureName": "Synthetic Horizon 1"
+      }
+    },
+    {
+      "acl": {
+        "owners": [],
+        "viewers": []
+      },
+      "kind": "osdu:wks:master-data--ActivityTemplate:1.1.0",
+      "legal": {
+        "legaltags": [],
+        "otherRelevantDataCountries": [],
+        "status": "compliant"
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "single:master-data--ActivityTemplate:37745edb-b214-4713-8b5f-fff9e871b872",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "single:reference-data--ExistenceKind:Prototype:",
+        "Parameters": [
+          {
+            "IsInput": true,
+            "IsOutput": false,
+            "MaxOccurs": 1,
+            "MinOccurs": 1,
+            "Title": "InputGrid"
+          }
+        ]
+      }
+    }
+  ],
+  "ReferenceData": [
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "kind": "osdu:wks:reference-data--PropertyType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createTime": "2026-06-04T00:00:00.000Z",
+      "createUser": "RDDMS Synthetic",
+      "id": "opendes:reference-data--PropertyType:61bfb311-175c-482f-bdd6-87d799973841",
+      "modifyTime": "2026-06-04T00:00:00.000Z",
+      "modifyUser": "RDDMS Synthetic",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "Name": "Synthetic Porosity Kind",
+        "Code": "Synthetic Porosity Kind",
+        "ParentPropertyTypeID": "",
+        "UnitQuantityID": "opendes:reference-data--UnitQuantity:dimensionless:"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--ExistenceKind:Actual",
+      "kind": "osdu:wks:reference-data--ExistenceKind:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Actual",
+        "Name": "ExistenceKind-Actual",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--ExistenceKind:Prototype",
+      "kind": "osdu:wks:reference-data--ExistenceKind:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Prototype",
+        "Name": "ExistenceKind-Prototype",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--DomainType:Depth",
+      "kind": "osdu:wks:reference-data--DomainType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Depth",
+        "Name": "DomainType-Depth",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic",
+      "kind": "osdu:wks:reference-data--StratigraphicRoleType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Chronostratigraphic",
+        "Name": "StratigraphicRoleType-Chronostratigraphic",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--OrderingCriteria:Age",
+      "kind": "osdu:wks:reference-data--OrderingCriteria:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Age",
+        "Name": "OrderingCriteria-Age",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RockFluidUnitPhase:OilColumn",
+      "kind": "osdu:wks:reference-data--RockFluidUnitPhase:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "OilColumn",
+        "Name": "RockFluidUnitPhase-OilColumn",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--FluidContactType:WaterOilContact",
+      "kind": "osdu:wks:reference-data--FluidContactType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "WaterOilContact",
+        "Name": "FluidContactType-WaterOilContact",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--IndexableElement:nodes",
+      "kind": "osdu:wks:reference-data--IndexableElement:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "nodes",
+        "Name": "IndexableElement-nodes",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationRole:Map",
+      "kind": "osdu:wks:reference-data--RepresentationRole:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Map",
+        "Name": "RepresentationRole-Map",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationType:TriangulatedSurface",
+      "kind": "osdu:wks:reference-data--RepresentationType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "TriangulatedSurface",
+        "Name": "RepresentationType-TriangulatedSurface",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--CoordinateReferenceSystem:Projected%3AEPSG%3A%3A32631",
+      "kind": "osdu:wks:reference-data--CoordinateReferenceSystem:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Projected%3AEPSG%3A%3A32631",
+        "Name": "CoordinateReferenceSystem-Projected%3AEPSG%3A%3A32631",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationType:PointSet",
+      "kind": "osdu:wks:reference-data--RepresentationType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "PointSet",
+        "Name": "RepresentationType-PointSet",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationType:Polyline",
+      "kind": "osdu:wks:reference-data--RepresentationType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "Polyline",
+        "Name": "RepresentationType-Polyline",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--IndexableElement:edges",
+      "kind": "osdu:wks:reference-data--IndexableElement:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "edges",
+        "Name": "IndexableElement-edges",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationType:PolylineSet",
+      "kind": "osdu:wks:reference-data--RepresentationType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "PolylineSet",
+        "Name": "RepresentationType-PolylineSet",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--IndexableElement:cells",
+      "kind": "osdu:wks:reference-data--IndexableElement:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "cells",
+        "Name": "IndexableElement-cells",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--KDirectionType:down",
+      "kind": "osdu:wks:reference-data--KDirectionType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "down",
+        "Name": "KDirectionType-down",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--PillarShapeType:straight",
+      "kind": "osdu:wks:reference-data--PillarShapeType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "straight",
+        "Name": "PillarShapeType-straight",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--IndexableElement:faces",
+      "kind": "osdu:wks:reference-data--IndexableElement:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "faces",
+        "Name": "IndexableElement-faces",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--IndexableElement:contacts",
+      "kind": "osdu:wks:reference-data--IndexableElement:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "contacts",
+        "Name": "IndexableElement-contacts",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--SamplingDomainType:MeasuredDepth",
+      "kind": "osdu:wks:reference-data--SamplingDomainType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "MeasuredDepth",
+        "Name": "SamplingDomainType-MeasuredDepth",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--RepresentationType:BlockedWellbore",
+      "kind": "osdu:wks:reference-data--RepresentationType:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "BlockedWellbore",
+        "Name": "RepresentationType-BlockedWellbore",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--UnitQuantity:dimensionless",
+      "kind": "osdu:wks:reference-data--UnitQuantity:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "dimensionless",
+        "Name": "UnitQuantity-dimensionless",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.dataservices.energy"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.dataservices.energy"
+        ]
+      },
+      "createTime": "2026-06-04T18:30:35.422Z",
+      "id": "opendes:reference-data--ParameterKind:DataObjectParameter",
+      "kind": "osdu:wks:reference-data--ParameterKind:1.0.0",
+      "legal": {
+        "legaltags": [
+          "opendes-public-usa-dataset"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Code": "DataObjectParameter",
+        "Name": "ParameterKind-DataObjectParameter",
+        "CommitDate": "2026-06-04T18:30:35.422Z"
+      }
+    }
+  ]
+}
