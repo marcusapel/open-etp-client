@@ -10,6 +10,8 @@ import {
   getQuantityClassFromMnemonic,
   getLoadedMnemonicCount,
   hasVendorCatalog,
+  getLoadedVendors,
+  getPwlsStatus,
   PwlsPropertyNames
 } from "../lib/jsonTypes/PwlsCurveCatalog";
 
@@ -81,23 +83,23 @@ describe("PwlsCurveCatalog", () => {
         $schema: "https://placeholder.opengroup.org/schemas/1.0.0/pwls_curve_mapping.json",
         schemaVersion: "1.0.0" as const,
         LastUpdated: "2025-01-01",
-        "Company Code": 440,
+        "Company Code": 999,
         "Company Name": "TestVendor",
         data: [
           {
-            "Curve Mnemonic": "TNPHI",
+            "Curve Mnemonic": "XTEST_NP1",
             Property: "neutron porosity",
             "Curve Unit Quantity Class": "dimensionless",
-            "LIS Curve Mnemonic": "TNPH"
+            "LIS Curve Mnemonic": "XNP1"
           },
           {
-            "Curve Mnemonic": "TGR",
+            "Curve Mnemonic": "XTEST_GR1",
             Property: "gamma ray",
             "Curve Unit Quantity Class": "API gamma ray",
             "LIS Curve Mnemonic": null
           },
           {
-            "Curve Mnemonic": "TDT",
+            "Curve Mnemonic": "XTEST_DT1",
             Property: "acoustic slowness",
             "Curve Unit Quantity Class": "time per length",
             "LIS Curve Mnemonic": null
@@ -106,18 +108,18 @@ describe("PwlsCurveCatalog", () => {
       };
 
       const added = loadVendorCatalog(mockCatalog);
-      expect(added).toBeGreaterThanOrEqual(3);
+      expect(added).toBe(3);
       expect(hasVendorCatalog()).toBe(true);
     });
 
     it("should resolve loaded mnemonics to PWLS properties", () => {
-      expect(getPropertyFromMnemonic("TNPHI")).toBe("neutron porosity");
-      expect(getPropertyFromMnemonic("TGR")).toBe("gamma ray");
-      expect(getPropertyFromMnemonic("TDT")).toBe("acoustic slowness");
+      expect(getPropertyFromMnemonic("XTEST_NP1")).toBe("neutron porosity");
+      expect(getPropertyFromMnemonic("XTEST_GR1")).toBe("gamma ray");
+      expect(getPropertyFromMnemonic("XTEST_DT1")).toBe("acoustic slowness");
     });
 
     it("should resolve mnemonics case-insensitively (uppercase fallback)", () => {
-      expect(getPropertyFromMnemonic("tnphi")).toBe("neutron porosity");
+      expect(getPropertyFromMnemonic("xtest_np1")).toBe("neutron porosity");
     });
 
     it("should return undefined for unknown mnemonics", () => {
@@ -125,20 +127,106 @@ describe("PwlsCurveCatalog", () => {
     });
 
     it("should chain mnemonic → property → UUID", () => {
-      const uuid = getPropertyTypeIdFromMnemonic("TDT");
+      const uuid = getPropertyTypeIdFromMnemonic("XTEST_DT1");
       // "acoustic slowness" has a UUID in the manifest
       expect(uuid).toBeDefined();
       expect(typeof uuid).toBe("string");
     });
 
     it("should chain mnemonic → property → QuantityClass", () => {
-      expect(getQuantityClassFromMnemonic("TNPHI")).toBe("dimensionless");
-      expect(getQuantityClassFromMnemonic("TDT")).toBe("time per length");
+      expect(getQuantityClassFromMnemonic("XTEST_NP1")).toBe("dimensionless");
+      expect(getQuantityClassFromMnemonic("XTEST_DT1")).toBe("time per length");
     });
 
     it("should return undefined for unknown mnemonic chains", () => {
       expect(getPropertyTypeIdFromMnemonic("UNKNOWN_XYZ")).toBeUndefined();
       expect(getQuantityClassFromMnemonic("UNKNOWN_XYZ")).toBeUndefined();
     });
+  });
+
+  describe("Auto-loaded SLB vendor catalog (default)", () => {
+    it("should have SLB auto-loaded at module init", () => {
+      expect(hasVendorCatalog()).toBe(true);
+      expect(getLoadedVendors()).toContain("Schlumberger");
+    });
+
+    it("should have ~30K SLB mnemonics loaded", () => {
+      // SLB has 30,201 + any test mnemonics added above
+      expect(getLoadedMnemonicCount()).toBeGreaterThan(30000);
+    });
+
+    it("should resolve common SLB mnemonics", () => {
+      // Well-known SLB curve mnemonics
+      expect(getPropertyFromMnemonic("GR")).toBeDefined();
+      expect(getPropertyFromMnemonic("NPHI")).toBeDefined();
+      expect(getPropertyFromMnemonic("RHOB")).toBeDefined();
+      expect(getPropertyFromMnemonic("DT")).toBeDefined();
+    });
+
+    it("should resolve GR → gamma ray", () => {
+      expect(getPropertyFromMnemonic("GR")).toBe("gamma ray");
+    });
+
+    it("should resolve NPHI → thermal neutron porosity", () => {
+      expect(getPropertyFromMnemonic("NPHI")).toBe("thermal neutron porosity");
+    });
+
+    it("should resolve RHOB → bulk density", () => {
+      expect(getPropertyFromMnemonic("RHOB")).toBe("bulk density");
+    });
+
+    it("should resolve DT → compressional slowness", () => {
+      expect(getPropertyFromMnemonic("DT")).toBe("compressional slowness");
+    });
+
+    it("should chain SLB mnemonic → property → QuantityClass", () => {
+      expect(getQuantityClassFromMnemonic("GR")).toBe("API gamma ray");
+      expect(getQuantityClassFromMnemonic("NPHI")).toBe("dimensionless");
+      expect(getQuantityClassFromMnemonic("RHOB")).toBe("mass per volume");
+      expect(getQuantityClassFromMnemonic("DT")).toBe("time per length");
+    });
+
+    it("should chain SLB mnemonic → property → UUID", () => {
+      const grUuid = getPropertyTypeIdFromMnemonic("GR");
+      expect(grUuid).toBeDefined();
+      expect(grUuid!.length).toBe(36);
+
+      const dtUuid = getPropertyTypeIdFromMnemonic("DT");
+      expect(dtUuid).toBeDefined();
+      expect(dtUuid!.length).toBe(36);
+    });
+  });
+
+  describe("getPwlsStatus() introspection", () => {
+    it("should return complete status summary", () => {
+      const status = getPwlsStatus();
+      expect(status.properties).toBe(875);
+      expect(status.mnemonics).toBeGreaterThan(30000);
+      expect(status.vendors).toContain("Schlumberger");
+    });
+  });
+
+  describe("Full resolution chain (end-to-end)", () => {
+    const testCases = [
+      { mnemonic: "GR", property: "gamma ray", qc: "API gamma ray" },
+      { mnemonic: "NPHI", property: "thermal neutron porosity", qc: "dimensionless" },
+      { mnemonic: "RHOB", property: "bulk density", qc: "mass per volume" },
+      { mnemonic: "DT", property: "compressional slowness", qc: "time per length" },
+      { mnemonic: "SP", property: "spontaneous potential", qc: "electric potential difference" },
+      { mnemonic: "CALI", property: "borehole diameter", qc: "length" },
+      { mnemonic: "PERM", property: "permeability", qc: "permeability rock" },
+    ];
+
+    for (const tc of testCases) {
+      it(`${tc.mnemonic} → ${tc.property} → ${tc.qc}`, () => {
+        const resolved = getPropertyFromMnemonic(tc.mnemonic);
+        expect(resolved).toBe(tc.property);
+        expect(getQuantityClassFromMnemonic(tc.mnemonic)).toBe(tc.qc);
+        expect(isKnownPwlsProperty(tc.property)).toBe(true);
+        // UUID should exist for standard properties
+        const uuid = getPropertyTypeIdFromMnemonic(tc.mnemonic);
+        expect(uuid).toBeDefined();
+      });
+    }
   });
 });

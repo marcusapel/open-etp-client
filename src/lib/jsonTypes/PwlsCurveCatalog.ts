@@ -1,4 +1,5 @@
 import PwlsPropertiesData from "./PwlsProperties.json";
+import PwlsVendorSLB from "./PwlsVendorCatalogSLB.json";
 import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
 
 /**
@@ -7,6 +8,10 @@ import { getPropertyTypeIDFromResqmlAlias } from "./PropertyTypes";
  * Provides lookup of PWLS standard properties and their QuantityClass,
  * plus resolution of curve mnemonics to PWLS properties when a vendor
  * catalog is loaded.
+ *
+ * Default: SLB catalog (30,201 mnemonics) auto-loaded at startup.
+ * Additional vendor catalogs can be loaded via `loadVendorCatalog()` or
+ * the REST endpoint `POST /pwls/catalog`.
  *
  * Source: https://community.opengroup.org/energistics/pwls-curve-catalog
  * License: Apache-2.0
@@ -85,13 +90,16 @@ export function isKnownPwlsProperty(property: string): boolean {
   return propertyMap.has(property.toLowerCase());
 }
 
-// --- Vendor mnemonic catalog (loaded on demand) ---
+// --- Vendor mnemonic catalog ---
 
 /** Map: mnemonic (case-sensitive) → PWLS property name */
 const mnemonicMap = new Map<string, string>();
 
 /** Map: mnemonic (uppercase) → PWLS property name (for case-insensitive fallback) */
 const mnemonicMapUpper = new Map<string, string>();
+
+/** Loaded vendor names for introspection */
+const loadedVendors: string[] = [];
 
 /**
  * Load a PWLS v4 vendor curve catalog JSON.
@@ -110,6 +118,9 @@ export function loadVendorCatalog(catalog: PwlsVendorCatalog): number {
       mnemonicMapUpper.set(m.toUpperCase(), entry.Property);
       added++;
     }
+  }
+  if (!loadedVendors.includes(catalog["Company Name"])) {
+    loadedVendors.push(catalog["Company Name"]);
   }
   return added;
 }
@@ -170,3 +181,28 @@ export function getLoadedMnemonicCount(): number {
 export function hasVendorCatalog(): boolean {
   return mnemonicMap.size > 0;
 }
+
+/**
+ * Get list of loaded vendor names.
+ */
+export function getLoadedVendors(): string[] {
+  return [...loadedVendors];
+}
+
+/**
+ * Get PWLS catalog status summary (for health/status endpoints).
+ */
+export function getPwlsStatus(): {
+  properties: number;
+  mnemonics: number;
+  vendors: string[];
+} {
+  return {
+    properties: propertyMap.size,
+    mnemonics: mnemonicMap.size,
+    vendors: [...loadedVendors]
+  };
+}
+
+// --- Auto-load default vendor catalog (SLB, 30,201 mnemonics) ---
+loadVendorCatalog(PwlsVendorSLB as PwlsVendorCatalog);

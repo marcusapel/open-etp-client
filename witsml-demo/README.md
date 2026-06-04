@@ -427,6 +427,159 @@ Base commit: `4e20d0d` (Merge branch 'drop-dev2-jobs' into 'main')
 
 ---
 
+## 5. PWLS v4 Curve Catalog — Reference Data for RDDMS
+
+### Overview
+
+The **Practical Well Log Standard (PWLS) v4.0** provides a standardized mapping of curve mnemonics to property kinds. RDDMS integrates PWLS as reference data to resolve vendor-specific mnemonics (e.g., SLB "NPHI", Halliburton "TNPH") to standard OSDU property references.
+
+**Source:** [Energistics PWLS Curve Catalog](https://community.opengroup.org/energistics/pwls-curve-catalog) (Apache-2.0)
+
+### Scope — Not Just Wells
+
+PWLS applies to **any RDDMS object carrying property classifications**, not only well logs:
+
+| RDDMS Object | PWLS Use | Example |
+|--------------|----------|---------|
+| WITSML `Log` → `WellLog` WPC | Mnemonic → `LogCurveMainFamilyID` | "GR" → `reference-data--CurveMainFamily:gamma ray:` |
+| RESQML `WellboreFrameRepresentation` | PropertyKind validation + enrichment | PropertyKind "porosity" → PWLS-validated standard name |
+| RESQML `ContinuousProperty` on grids | PropertyKind → OSDU PropertyType UUID | PropertyKind "permeability" → UUID `d5c5b5c7-...` |
+| Any `PropertyKind` (v2.0.1 or v2.2) | Standard name → QuantityClass → UnitQuantityID | "density" → "mass per volume" |
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  PwlsCurveCatalog.ts                                          │
+│                                                              │
+│  ┌─── Static (bundled at build) ──────────────────────────┐  │
+│  │ PwlsProperties.json — 875 standard properties          │  │
+│  │   property → { quantityClass, propertyTypeId (UUID) }   │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌─── Default Vendor (auto-loaded at startup) ────────────┐  │
+│  │ PwlsVendorCatalogSLB.json — 30,201 SLB mnemonics       │  │
+│  │   mnemonic → property name                             │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+│  ┌─── Runtime (POST /health/pwls/catalog) ────────────────┐  │
+│  │ Additional vendor catalogs (Halliburton, Baker Hughes)  │  │
+│  │ First-loaded wins on mnemonic collision                 │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+  PropertyType.ts    WellboreFrameToWellLog.ts   WitsmlWellLog.ts
+  (UUID bridge)      (LogCurveMainFamilyID)      (Curves[] from ChannelSets)
+```
+
+### Resolution Chain
+
+```
+Vendor Mnemonic (e.g., "NPHI")
+    → PWLS Property Name ("neutron porosity")
+        → OSDU PropertyType UUID ("3fa85f64-...")
+        → EML QuantityClass ("dimensionless")
+        → OSDU reference-data--CurveMainFamily ("neutron porosity")
+```
+
+### REST API
+
+#### `GET /health/pwls` — Catalog Status
+
+Returns current state of loaded PWLS catalogs.
+
+**Response:**
+```json
+{
+  "properties": 875,
+  "mnemonics": 30201,
+  "vendors": ["Schlumberger"]
+}
+```
+
+#### `POST /health/pwls/catalog` — Load Vendor Catalog
+
+Upload a PWLS v4 vendor `curve_mappings.json` to extend mnemonic resolution at runtime. SLB is loaded by default; use this to add Halliburton, Baker Hughes, or custom catalogs.
+
+**Request body** (format from [PWLS Curve Catalog schema 1.0.0](https://community.opengroup.org/energistics/pwls-curve-catalog/-/tree/main/schema/1.0.0)):
+
+```json
+{
+  "schemaVersion": "1.0.0",
+  "LastUpdated": "2025-05-30",
+  "Company Code": 280,
+  "Company Name": "Halliburton",
+  "data": [
+    {
+      "Curve Mnemonic": "TNPH",
+      "Property": "neutron porosity",
+      "Curve Unit Quantity Class": "dimensionless",
+      "LIS Curve Mnemonic": "TNPH",
+      "Curve Description": "Thermal Neutron Porosity"
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `schemaVersion` | string | ✅ | Must be `"1.0.0"` |
+| `LastUpdated` | string (date) | ✅ | ISO date of catalog update |
+| `Company Code` | integer | ✅ | RP66 organization code |
+| `Company Name` | string | ✅ | Vendor name |
+| `data` | array | ✅ | Curve mnemonic entries |
+| `data[].Curve Mnemonic` | string | ✅ | Vendor mnemonic (e.g., "NPHI") |
+| `data[].Property` | string | ✅ | PWLS standard property name |
+| `data[].Curve Unit Quantity Class` | string | ✅ | EML QuantityClass |
+| `data[].LIS Curve Mnemonic` | string\|null | ✅ | Legacy LIS mnemonic |
+| `data[].Curve Description` | string | ❌ | Human-readable description |
+
+**Response:**
+```json
+{
+  "added": 4411,
+  "total": 34612,
+  "vendor": "Halliburton"
+}
+```
+
+**Behavior:**
+- Mnemonics accumulate across vendors (call multiple times for multiple vendors)
+- First-loaded mnemonic wins on collision (SLB default takes priority over later loads)
+- No persistence — resets on server restart (SLB re-loaded automatically)
+
+#### Example: Load Halliburton catalog at runtime
+
+```bash
+# Download from Energistics and POST to RDDMS
+curl -sS "https://community.opengroup.org/energistics/pwls-curve-catalog/-/raw/main/catalog/Halliburton/curve_mappings.json" \
+  | curl -X POST http://localhost:8080/api/reservoir-ddms/v2/health/pwls/catalog \
+    -H "Content-Type: application/json" -d @-
+```
+
+### Automatic Behavior (No User Action Required)
+
+During manifest generation, the following happens automatically:
+
+1. **RESQML PropertyKind names** are validated against 875 PWLS standard properties
+2. **WITSML Channel mnemonics** are resolved via loaded vendor catalogs (SLB by default)
+3. **`LogCurveMainFamilyID`** in WellLog WPCs is populated with the resolved property name
+4. **`PropertyType` converters** use PWLS UUIDs to bridge RESQML → OSDU reference IDs
+
+### File Layout
+
+```
+src/lib/jsonTypes/
+├── PwlsCurveCatalog.ts           # Module: lookup functions + auto-load
+├── PwlsProperties.json           # 875 standard properties (bundled)
+├── PwlsVendorCatalogSLB.json     # SLB default catalog (30,201 mnemonics)
+├── PropertyTypesManifest.json    # PWLS-3 UUID bridge (3,629 entries, existing)
+└── PropertyTypes.ts              # UUID lookup (existing, extended by PWLS v4)
+```
+
+---
+
 ## Appendix A: Demo Scripts
 
 ### Prerequisites
