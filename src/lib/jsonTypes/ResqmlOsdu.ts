@@ -66,6 +66,15 @@ import { WitsmlWellManifest } from "./WitsmlWell";
 import { WitsmlWellboreManifest } from "./WitsmlWellbore";
 import { WitsmlWellLogManifest } from "./WitsmlWellLog";
 import { WitsmlTrajectoryManifest } from "./WitsmlTrajectory";
+import { WitsmlRigManifest } from "./WitsmlRig";
+import { WitsmlFluidsReportManifest } from "./WitsmlFluidsReport";
+import { WitsmlTubularManifest } from "./WitsmlTubular";
+import { WitsmlBhaRunManifest } from "./WitsmlBhaRun";
+import { WitsmlWellCompletionManifest } from "./WitsmlWellCompletion";
+import { WellboreFrameToWellLogManifest } from "./WellboreFrameToWellLog";
+import { WellboreFrameToWellLog22Manifest } from "./WellboreFrameToWellLog22";
+import { MasterDataBoundaryFeatureManifest } from "./MasterDataBoundaryFeature";
+import { MasterDataBoundaryFeature22Manifest } from "./MasterDataBoundaryFeature22";
 
 export { EtpDataspaceManifest } from "./ETPDataspace";
 export { WorkProductManifest } from "./WorkProduct";
@@ -507,6 +516,44 @@ ResqmlOSDU.add(
   "witsml21.Trajectory",
   () => "osdu:wks:work-product-component--WellboreTrajectory:1.3.0",
   WitsmlTrajectoryManifest
+);
+ResqmlOSDU.add(
+  "witsml21.Rig",
+  () => "osdu:wks:work-product-component--Rig:1.3.0",
+  WitsmlRigManifest
+);
+ResqmlOSDU.add(
+  "witsml21.FluidsReport",
+  () => "osdu:wks:work-product-component--FluidsReport:1.3.0",
+  WitsmlFluidsReportManifest
+);
+ResqmlOSDU.add(
+  "witsml21.Tubular",
+  () => "osdu:wks:work-product-component--Tubular:1.3.0",
+  WitsmlTubularManifest
+);
+ResqmlOSDU.add(
+  "witsml21.BhaRun",
+  () => "osdu:wks:work-product-component--BHARunReport:1.3.0",
+  WitsmlBhaRunManifest
+);
+ResqmlOSDU.add(
+  "witsml21.WellCompletion",
+  () => "osdu:wks:work-product-component--WellboreCompletion:1.3.0",
+  WitsmlWellCompletionManifest
+);
+
+// ─── S2: WellboreFrameRepresentation → WellLog (flatten) ────────────────────
+
+ResqmlOSDU.add(
+  "resqml20.obj_WellboreFrameRepresentation",
+  () => "osdu:wks:work-product-component--WellLog:1.3.0",
+  WellboreFrameToWellLogManifest
+);
+ResqmlOSDU.add(
+  "resqml22.WellboreFrameRepresentation",
+  () => "osdu:wks:work-product-component--WellLog:1.3.0",
+  WellboreFrameToWellLog22Manifest
 );
 
 export default ResqmlOSDU;

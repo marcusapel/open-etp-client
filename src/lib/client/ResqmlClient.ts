@@ -70,7 +70,7 @@ import { ChannelSubscribeCustomer } from "../protocols/ChannelSubscribeCustomer"
 import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
 import { createODataQueries, queryFilter } from "../oDataParser/oDataUtils";
-import { retryOnEtpErrors } from "../common/Util";
+import { retry, retryOnEtpErrors } from "../common/Util";
 import { DataspaceOSDUCustomer } from "../protocols/DataspaceOSDUCustomer";
 import * as Eml20 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv201/commonv2";
 import * as Eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/resqmlv22/commonv2";
@@ -126,6 +126,16 @@ export * as Eml23 from "../mlTypes/xmlns/www.energistics.org/energyml/witsmlv21/
 
 const authenticationKeyBase =
   process.env.RDMS_AUTHENTICATION_KEY_BASE || "osdu-rddms";
+
+/**
+ * Item 24: SSL TLS options for WSS connections.
+ * When RDMS_ETP_SSL_VERIFY is "false", self-signed certificates are accepted.
+ * Enables single-image deployment for both SSL and non-SSL environments.
+ */
+const tlsOptions: object | undefined =
+  process.env.RDMS_ETP_SSL_VERIFY === "false"
+    ? { rejectUnauthorized: false }
+    : undefined;
 
 export type IResqmlDataObject =
   | SimpleJson<Eml23.AbstractObject>
@@ -384,7 +394,8 @@ export class ResqmlClient {
         encoding: "binary",
         maxReceivedMessageSize: maxMessagePayloadSize,
         noHeaders: false,
-        url
+        url,
+        ...(tlsOptions ? { tlsOptions } : {})
       };
       try {
         this.client.on("connect", resolve);
@@ -429,7 +440,8 @@ export class ResqmlClient {
         encoding: "binary",
         maxReceivedMessageSize: maxMessagePayloadSize,
         noHeaders: false,
-        url
+        url,
+        ...(tlsOptions ? { tlsOptions } : {})
       };
       try {
         this.client.on("connect", resolve);
@@ -2501,10 +2513,12 @@ export class ResqmlClient {
           uid: array.uid
         };
       promises.push(
-        this.dataArray
-          .putSubarrays([da])
-          .then(b => b.map(e => e.code === ErrorCode.IS_OK))
-          .then(b => b.reduce((p, c) => p && c, true))
+        retry(() =>
+          this.dataArray
+            .putSubarrays([da])
+            .then(b => b.map(e => e.code === ErrorCode.IS_OK))
+            .then(b => b.reduce((p, c) => p && c, true))
+        )
       );
     }
     return Promise.all(promises).then(results =>
@@ -2534,7 +2548,7 @@ export class ResqmlClient {
         customData: a.customData,
         uid: a.uid
       }));
-    return this.dataArray.put(das).then(e => {
+    return retry(() => this.dataArray.put(das).then(e => {
       // If no error info returned, assume success
       if (e.length === 0) {
         return true;
@@ -2549,7 +2563,7 @@ export class ResqmlClient {
 
       // All operations succeeded
       return true;
-    });
+    }));
   }
 
   /**

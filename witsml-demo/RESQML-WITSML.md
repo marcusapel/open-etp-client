@@ -378,6 +378,118 @@ RESQML adds value **only** when you need to:
 
 ---
 
+## Discussion: Wellbore DDMS vs RDDMS — How WITSML is Stored
+
+### How Wellbore DDMS (WDDMS) Stores WITSML
+
+The OSDU **Wellbore DDMS** (community implementation by EPAM/Schlumberger) takes a **decompose-and-flatten** approach:
+
+1. **Ingest via REST API** — WITSML XML is parsed at the API boundary. The XML envelope is discarded; individual fields are extracted into JSON columns.
+2. **Relational storage** — Each WITSML object type gets a dedicated PostgreSQL table (or Cosmos DB collection). `Well`, `Wellbore`, `Log`, `Trajectory`, `FluidsReport` are separate entities with foreign-key relationships.
+3. **Curve data in blob/parquet** — Log curve values are stripped from XML and stored in Apache Parquet files on Azure Blob / AWS S3. The WDDMS serves them via a custom `/data` endpoint returning columnar batches.
+4. **Schema-locked** — The internal data model is tightly coupled to the OSDU WPC schemas (`WellLog:1.3.0`, `WellboreTrajectory:1.3.0`). Ingest rejects fields not in the target schema.
+5. **No native WITSML preservation** — The original XML is not retained. Round-tripping (store → retrieve → get identical WITSML) is not guaranteed.
+6. **Version-specific parsers** — Separate ingest paths for WITSML 1.4.1 vs 2.0 vs 2.1, each with bespoke field extraction logic.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Wellbore DDMS (WDDMS)                                  │
+│                                                         │
+│  Client → REST API → XML Parser → Field Extraction      │
+│                          ↓                              │
+│              ┌───────────┴───────────┐                  │
+│              │ JSON metadata (PG/Cosmos)                 │
+│              │ Parquet arrays (Blob/S3)                  │
+│              └───────────────────────┘                  │
+│                                                         │
+│  Retrieval: JSON response (lossy vs original XML)       │
+└─────────────────────────────────────────────────────────┘
+```
+
+### How RDDMS Stores WITSML
+
+RDDMS takes a **lossless-native** approach via ETP 1.2:
+
+1. **Store via ETP Protocol 4 (Store)** — WITSML XML is stored verbatim as the `dataObject.data` blob. The full XML document (namespace, extensions, comments) is preserved byte-for-byte.
+2. **Unified object store** — All Energistics objects (WITSML, RESQML, PRODML, EML Common) live in the same PostgreSQL store, keyed by ETP URI (`eml:///dataspace('x')/witsml21.Well(uuid)`). No type-specific tables.
+3. **Curve data via ETP DataArrays** — Bulk numeric data stored as typed arrays (`Float64Array`, `Int64Array`) in PostgreSQL large objects or S3, served via ETP Protocol 9 (DataArray). Same protocol for WITSML channels and RESQML properties.
+4. **Schema-agnostic** — RDDMS stores whatever the client sends. WITSML extensions, custom `ExtensionNameValue` pairs, vendor-specific elements — all preserved. No field filtering at ingest.
+5. **Full round-trip fidelity** — `GetDataObjects` returns the exact XML that was `PutDataObjects`'d. Bitwise identical (modulo XML declaration normalization).
+6. **OSDU projection is separate** — Manifest converters run on-demand (or at ingest-time via webhook) to produce OSDU catalog records. The converter is a read-only projection — it never modifies the stored object.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Reservoir DDMS (RDDMS)                                 │
+│                                                         │
+│  Client → ETP WebSocket → PutDataObjects (native XML)   │
+│                              ↓                          │
+│              ┌───────────────┴──────────────┐           │
+│              │ XML blob (PG/S3) — lossless  │           │
+│              │ DataArrays (typed binary)    │           │
+│              └──────────────┬──────────────┘           │
+│                             ↓ (on-demand)              │
+│              ┌──────────────┴──────────────┐           │
+│              │ Manifest Converter → OSDU    │           │
+│              │ (read-only projection)       │           │
+│              └─────────────────────────────┘           │
+│                                                         │
+│  Retrieval: Original XML via GetDataObjects (lossless)  │
+│             OR OSDU JSON via catalog (lossy projection)  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Comparison Table
+
+| Dimension | Wellbore DDMS | RDDMS | Winner |
+|-----------|--------------|-------|--------|
+| **Storage fidelity** | Lossy — XML decomposed to JSON fields; extensions dropped | Lossless — original XML preserved verbatim | RDDMS |
+| **Round-trip guarantee** | No — cannot reconstruct original WITSML from stored data | Yes — `GetDataObjects` returns exact input | RDDMS |
+| **Protocol** | REST (custom endpoints per type) | ETP 1.2 (Energistics standard, binary Avro) | RDDMS (standards-based) |
+| **Multi-standard support** | WITSML only | WITSML + RESQML + PRODML + EML Common | RDDMS |
+| **Cross-standard linking** | Not possible — different DDMS instances | Native DOR cross-references in same store | RDDMS |
+| **Schema evolution** | Requires DB migration + parser update per new field | Store-once, add converter later — no re-ingest needed | RDDMS |
+| **Array performance** | Parquet columnar (good for column-slice queries) | ETP DataArray (good for full-array retrieval, supports sub-arrays) | Tie (different trade-offs) |
+| **OSDU catalog integration** | Native — WDDMS IS the OSDU implementation | Projection via manifest builder (decoupled) | WDDMS (tighter) |
+| **Query capability** | SQL-like queries on decomposed fields | ETP GetDataObjects by URI/type + OSDU Search on projections | WDDMS (richer server-side filtering) |
+| **Real-time streaming** | Not supported (batch REST only) | ETP Protocol 6 (ChannelSubscribe) + Protocol 21 (ChannelDataLoad) | RDDMS |
+| **Vendor tool interop** | Custom REST clients needed | Any ETP 1.2 client (Petrel, TIBCO, custom) connects directly | RDDMS |
+| **Extension data** | `ExtensionNameValue` pairs may be dropped | All extensions preserved in XML blob | RDDMS |
+| **Version handling** | Separate code paths per WITSML version | Version-agnostic store; converters handle version differences | RDDMS |
+| **Deployment complexity** | Simpler (REST API + blob store) | Higher (ETP C++ server + WebSocket infra + manifest pipeline) | WDDMS |
+
+### Why RDDMS is Superior for WITSML
+
+**1. Lossless storage is non-negotiable for subsurface data.**
+Wellbore data has regulatory and legal significance. A well trajectory used to plan a $200M drilling campaign must be retrievable exactly as submitted. WDDMS's decompose-and-flatten approach means that if a field isn't mapped to the internal schema, it's silently lost. RDDMS stores the original — always.
+
+**2. ETP is the Energistics standard; REST is not.**
+WDDMS uses a bespoke REST API that no industry tool speaks natively. RDDMS speaks ETP 1.2 — the same protocol that Petrel, TIBCO StreamBase, Emerson's own tools, and the Energistics certification suite use. Any ETP-certified client connects without custom integration.
+
+**3. Cross-standard linking eliminates data silos.**
+A geoscientist's interpretation (RESQML) of a driller's survey (WITSML) stored in the same dataspace with DOR references means you can traverse from `HorizonInterpretation` → `WellboreFrameRepresentation` → `WitsmlWellWellbore` → `Well` in a single graph walk. WDDMS can't reference RESQML objects at all.
+
+**4. Schema evolution without re-ingestion.**
+When OSDU adds `WellLog:1.4.0` or WITSML 2.2 introduces new elements, RDDMS needs only a new converter — the stored objects are already complete. WDDMS must: (a) update parsers, (b) migrate existing records, (c) potentially re-ingest from source because dropped fields are unrecoverable.
+
+**5. Real-time capability.**
+RDDMS handles live drilling data via ETP streaming protocols (ChannelSubscribe, ChannelDataLoad). The same server that stores historical logs can receive and forward real-time MWD data. WDDMS has no streaming capability — it's batch-only.
+
+**6. Single system for the full well lifecycle.**
+From real-time acquisition (ETP streaming) → operational storage (WITSML native) → interpretation context (RESQML cross-ref) → catalog discovery (OSDU projection) → simulation input (RESQML grids + properties) — RDDMS covers the entire lifecycle. WDDMS handles only the middle slice.
+
+### When WDDMS Might Be Preferred
+
+- **Simpler deployment** — No WebSocket infrastructure, no C++ binary server, no ETP handshake complexity
+- **Direct OSDU integration** — If your only goal is populating the OSDU catalog and you don't need lossless storage or cross-standard linking
+- **Server-side query filtering** — WDDMS can filter curves by mnemonic or depth range server-side via SQL; ETP requires fetching the object and filtering client-side (though RDDMS mitigates this with GraphQL)
+- **Existing OSDU ecosystem tooling** — If your platform is built around OSDU REST APIs exclusively and adding ETP WebSocket support to all consumers is not feasible
+
+### Conclusion
+
+The Wellbore DDMS is adequate for **catalog-centric workflows** where OSDU JSON records are the primary consumption format and lossless XML preservation is not required. RDDMS is superior for **data-centric workflows** where fidelity, standards compliance, cross-standard integration, streaming, and full lifecycle coverage matter. In a mature OSDU deployment, both can coexist — WDDMS for simple catalog operations, RDDMS as the authoritative System of Engagement for subsurface professionals.
+
+---
+
 ## References
 
 - [Energistics WITSML Standards](https://energistics.org/witsml-data-standards)

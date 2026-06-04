@@ -245,4 +245,46 @@ export default class HealthAPI {
       }
     });
   }
+
+  /**
+   * R4: List all registered converters for diagnostics.
+   * Returns the source types and their target OSDU kinds.
+   */
+  @Get("converters")
+  @ApiOkResponse({
+    description: "List of registered type converters",
+    schema: {
+      type: "object",
+      properties: {
+        count: { type: "number" },
+        types: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              sourceType: { type: "string" },
+              targetKind: { type: "string" }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiOperation({
+    summary: "List registered converters.",
+    description: "Returns all registered RESQML/WITSML → OSDU type converters for diagnostics and validation.",
+    security: [],
+    servers: swaggerServers
+  })
+  public Converters(): { count: number; types: { sourceType: string; targetKind: string }[] } {
+    const { getRegisteredTypes, getTargetKind } = require("../../jsonTypes/registerConverter");
+    const types: string[] = getRegisteredTypes();
+    return {
+      count: types.length,
+      types: types.map(t => ({
+        sourceType: t,
+        targetKind: getTargetKind(t) ?? "unknown"
+      }))
+    };
+  }
 }

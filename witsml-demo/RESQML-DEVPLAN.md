@@ -542,9 +542,9 @@ Every OSDU record carries:
 | Item | What | How |
 |------|------|-----|
 | **S1** | Reduce manifest object explosion | ✅ **DONE** — Added `DEFAULT_DATASPACE_TYPE_PATTERNS` in `Manifest.ts`. Dataspace-level manifest now indexes only interpretations, representations, strat columns, activities, collections, and WITSML types by default. Properties, CRS, features, TimeSeries excluded. Pass `typePatterns: ["*"]` for full indexing. |
-| **S2** | Flatten well-log-in-model mapping | Map `WellboreFrameRepresentation` + all attached properties as single `WPC--WellLog` with `Curves[]` |
-| **S3** | Simplify RESQML Feature→OSDU master-data | Auto-create `master-data--BoundaryFeature` from RESQML `BoundaryFeature` (direct 1:1) |
-| **S4** | Standardize collaboration project mapping | Map RDDMS dataspace UUID → OSDU `x-collaboration` header automatically |
+| **S2** | Flatten well-log-in-model mapping | ✅ **DONE** — `WellboreFrameToWellLog.ts` (v2.0) and `WellboreFrameToWellLog22.ts` (v2.2) map `WellboreFrameRepresentation` + all attached ContinuousProperty/DiscreteProperty objects into single `WPC--WellLog:1.3.0` with `Curves[]`. Registered in `ResqmlOsdu.ts`. Eliminates N+1 object explosion (1 frame + N properties → 1 WellLog). |
+| **S3** | Simplify RESQML Feature→OSDU master-data | ✅ **DONE** — `MasterDataBoundaryFeature.ts` (v2.0) and `MasterDataBoundaryFeature22.ts` (v2.2) auto-create `master-data--BoundaryFeature:1.2.0` from RESQML `BoundaryFeature`. Called from `LocalBoundaryFeature22Manifest`. **Dedup check**: queries OSDU Storage for existing record before creating — returns `undefined` to skip if already exists. |
+| **S4** | Standardize collaboration project mapping | ✅ **DONE** — When no `x-collaboration` header is provided, `Manifest.ts` auto-derives a deterministic UUID from the dataspace name using UUID v5 (namespace-based). Same dataspace always maps to same collaboration UUID. The `extractCollaborationHeader()` helper in `ControllerUtils.ts` extracts explicit headers; `OsduContext.collaboration` forwards to all downstream OSDU API calls. Swagger updated with header documentation. |
 
 ### 10.2 Optimize
 
@@ -553,7 +553,7 @@ Every OSDU record carries:
 | **O1** | PropertyKind alignment via PWLS | ✅ **DONE** — v2.2 `QuantityClass` → OSDU `UnitQuantityID` mapping implemented in `PropertyType23.ts`. v2.0.1 already uses `RepresentativeUom`. PWLS-3 manifest (3,629 PropertyTypes) already bundled. |
 | **O2** | CRS catalog federation | Expose OSDU CRS catalog to RDDMS via lightweight lookup API (or replicate on deploy) |
 | **O3** | Selective manifest generation | ✅ **DONE** — Subsumed by S1. Default type filter now indexes interpretation-level objects only; representations + properties accessible via ETP but not catalog-indexed by default |
-| **O4** | Session survivability (client) | Implement retry logic with array chunking for large transfers |
+| **O4** | Session survivability (client) | ✅ **DONE** — `Util.ts` provides `retry()` (exponential backoff, 6 retries) and `retryOnEtpErrors()` (error-code-specific). `ResqmlClient.putUsingPutDataArraysType()` already chunks large arrays: splits into sub-arrays when payload exceeds `negotiatedSize`, sends via `PutDataSubarrays`. Server M26 support provides session resumption. |
 | **O5** | S3/blob storage for large arrays | Production path for models >1GB (bypass PG TOAST for HDF5 chunks) |
 
 ### 10.3 Add
@@ -562,11 +562,11 @@ Every OSDU record carries:
 |------|------|-----|
 | **A1** | RESQML → OSDU converters for all interpretation types | ✅ **DONE** — All major types registered in `ResqmlOsdu.ts` (both v2.0.1 and v2.2). Includes: FaultInterpretation, HorizonInterpretation, EarthModelInterpretation, StructuralOrganization, StratigraphicColumn, GeobodyInterpretation, RockFluidUnit/Org, FluidBoundary, SealedSurface/VolumeFramework, BlockedWellbore |
 | **A2** | SeismicHorizon manifest from `Grid2dRepresentation` | ✅ **DONE** — Implemented StructureMap routing for depth-domain Grid2d. Both v2.0.1 (`StructureMap.ts`) and v2.2 (`StructureMap22.ts`) converters. `Grid2dToOsduKind` now routes: SeismicBinGrid → SeismicHorizon → StructureMap → GenericRepresentation. Schema `StructureMap.1.0.0.ts` created from official M27 definition. |
-| **A3** | Activity/lineage auto-generation | On RDDMS ingestion: auto-create OSDU `WPC--Activity` with inputs/outputs, template for each workflow step |
-| **A4** | WITSML → DataDef manifest mappings | Complete WITSML 2.1 object → OSDU kind converters (beyond Well/Wellbore/Log/Trajectory) |
+| **A3** | Activity/lineage auto-generation | ✅ **DONE** — `Manifest.ts` auto-generates a `WPC--Activity:1.4.0` record after all converters run. Lists all produced WPCs as `DataObjectParameter` outputs. UUID is deterministic (v5 hash of sorted output IDs) so re-running the same manifest produces the same Activity. Controlled via `context.generateLineageActivity` flag (default: true). Includes `SoftwareSpecifications` and `ActivityTemplateID` reference. |
+| **A4** | WITSML → DataDef manifest mappings | ✅ **DONE** — Extended beyond Well/Wellbore/Log/Trajectory. New converters registered: `WitsmlRig.ts` → `Rig:1.3.0`, `WitsmlFluidsReport.ts` → `FluidsReport:1.3.0`, `WitsmlTubular.ts` → `Tubular:1.3.0`, `WitsmlBhaRun.ts` → `BHARunReport:1.3.0`, `WitsmlWellCompletion.ts` → `WellboreCompletion:1.3.0`. All registered in `ResqmlOsdu.ts`. |
 | **A5** | Notification alignment | ETP `SubscriptionNotification` → OSDU notification service bridge for SoE→SoR event propagation |
 | **A6** | Regular surface grid WPC | Define or adopt a dedicated OSDU WPC for Petrel-style regular 2D grids with Z + multi-property |
-| **A7** | Completion data in RDDMS | Store WITSML completion objects; map to OSDU `WPC` or use PRODML flow networks |
+| **A7** | Completion data in RDDMS | ✅ **DONE** — `WitsmlWellCompletion.ts` stores WITSML 2.1 `WellCompletion` objects and maps to `WPC--WellboreCompletion:1.3.0`. Extracts: `WellboreID`, `WellID`, `CompletionName`, `StatusHistory[]` (status, dates, remarks). Registered as `witsml21.WellCompletion` in `ResqmlOsdu.ts`. |
 | **A8** | Multi-DDMS dataset versioning | Implement version tracking across RDDMS dataspaces with OSDU record versioning |
 
 ### 10.4 Reorganize
@@ -575,13 +575,43 @@ Every OSDU record carries:
 |------|------|-----|
 | **R1** | Energistics RESQML documentation ownership | Establish maintenance path for RESQML schema docs and user guide (currently stale at v2.0.1 in EO) |
 | **R2** | SoE vs SoR usage documentation | ✅ **DONE** — Published in [community README](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/home). Covers: SoR/SoE/SoI tiers, dual-catalog pattern, 7-step promotion workflow, governance guidance table, partial indexing, cross-DDMS patterns |
-| **R3** | RDDMS ↔ WDDMS boundary definition | Publish decision matrix: which well data goes where, consumption format (WITSML native vs Parquet/JSON) |
-| **R4** | Manifest builder architecture | Modular converter registry — each converter is a standalone module, community can contribute independently |
+| **R3** | RDDMS ↔ WDDMS boundary definition | ✅ **DONE** — Published in `RESQML-WITSML.md` § "Wellbore DDMS vs RDDMS". Covers: storage approach comparison (decompose-flatten vs lossless-native), 14-dimension comparison table, protocol differences (REST vs ETP), cross-standard linking capability, when-to-use decision matrix, deployment trade-offs. |
+| **R4** | Manifest builder architecture | ✅ **DONE** — `registerConverter.ts` provides modular registry API: `registerConverter()`, `registerConverters()`, `hasConverter()`, `getRegisteredTypes()`, `getTargetKind()`. Each converter is self-contained (standalone `.ts` file + `.add()` registration in `ResqmlOsdu.ts`). Community contribution guide in JSDoc. `GET /health/converters` endpoint exposes all registered types + target OSDU kinds at runtime. |
 | **R5** | OSDU Data Definition contribution pipeline | Establish process for RDDMS team to contribute new WPC kinds and schema updates to OSDU DD |
 
 ---
 
 ## 11. Prioritized Backlog
+
+### Independence Classification
+
+Tasks marked **🟢 LOCAL** affect only `open-etp-client`, are additive (no breaking changes), low risk, and independent of community components (WDDMS, OSDU DD, Energistics governance). These can be implemented immediately without coordination.
+
+Tasks marked **🟡 COORD** require alignment with other teams or external APIs but implementation is still in this repo.
+
+Tasks marked **🔴 EXTERNAL** require community decisions, cross-team protocols, or infrastructure changes outside this repo.
+
+| ID | Classification | Reason |
+|----|---------------|--------|
+| S2 | 🟢 LOCAL | Converter code only — maps WellboreFrame+Properties → WellLog WPC |
+| S3 | 🟢 LOCAL | Converter code only — auto-create master-data from BoundaryFeature |
+| S4 | 🟢 LOCAL | Header mapping logic in REST layer |
+| O4 | 🟢 LOCAL | Client-side retry + chunking logic |
+| A4 | 🟢 LOCAL | New converter modules for WITSML 2.1 → OSDU kinds |
+| R4 | 🟢 LOCAL | Internal refactoring of converter registry |
+| A3 | 🟡 COORD | Code is local but ActivityTemplate standardization needs DD WG |
+| R3 | 🟡 COORD | Decision doc requires WDDMS team input |
+| O2 | 🔴 EXTERNAL | Cross-DDMS API dependency (Wellbore/Seismic DDMS teams) |
+| A5 | 🔴 EXTERNAL | Bridging two eventing systems, architecture WG decision |
+| A6 | 🔴 EXTERNAL | OSDU DD contribution + approval process |
+| O5 | 🔴 EXTERNAL | Production infrastructure migration (PG → S3) |
+| A8 | 🔴 EXTERNAL | Cross-system versioning protocol |
+| R1 | 🔴 EXTERNAL | Energistics governance change |
+| R5 | 🔴 EXTERNAL | Community process, not code |
+
+**Appendix F — M27 Schema Upgrades: ALL 🟢 LOCAL**
+
+All 9 high-priority M27 schema upgrades (StructuralOrg, RockFluidOrg, RockFluidUnit, FluidBoundary, SealedSurfaceFramework, SealedVolumeFramework, SubRepresentation, GridConnectionSet, UnsealedSurfaceFramework) are purely additive converter code within `open-etp-client`. No external API changes, no community approval needed — we just create TypeScript interfaces from published M27 JSON schemas and register converters.
 
 ### Scoring Criteria
 
@@ -602,43 +632,43 @@ Every OSDU record carries:
 
 ### Tier 2: High Gain + Medium Severity (Do Next)
 
-| Rank | ID | Item | Gain | Severity | Cost | Risk | Notes |
-|------|-----|------|------|----------|------|------|-------|
-| 6 | A2 | SeismicHorizon/StructureMap from Grid2dRep | 4 | 3 | ✅ Done | L | **COMPLETED** — Grid2d routing: SeismicBinGrid (lattice only) → SeismicHorizon (time-domain on lattice) → StructureMap (depth-domain with horizon interp) → GenericRepresentation (fallback). Both v2.0.1 and v2.2 converters created. Uses official M27 StructureMap.1.0.0 schema. |
-| 7 | O2 | CRS catalog federation | 4 | 4 | M (4-6w) | M | Cross-DDMS dependency. Needs community agreement on API |
-| 8 | R3 | RDDMS↔WDDMS boundary definition | 4 | 4 | L (2w) | M | Organizational — needs Wellbore DDMS team alignment |
-| 9 | O4 | Session survivability (client) | 3 | 4 | M (4w) | L | Server done in M26. Client retry + array chunking needed |
-| 10 | A4 | WITSML→DataDef manifest mappings | 4 | 3 | M (6-8w) | L | Extends existing converters. Community contribution opportunity |
+| Rank | ID | Item | Scope | Gain | Severity | Cost | Risk | Notes |
+|------|-----|------|-------|------|----------|------|------|-------|
+| 6 | A2 | SeismicHorizon/StructureMap from Grid2dRep | ✅ Done | 4 | 3 | ✅ Done | L | **COMPLETED** — Grid2d routing: SeismicBinGrid (lattice only) → SeismicHorizon (time-domain on lattice) → StructureMap (depth-domain with horizon interp) → GenericRepresentation (fallback). Both v2.0.1 and v2.2 converters created. Uses official M27 StructureMap.1.0.0 schema. |
+| 7 | O2 | CRS catalog federation | 🔴 EXTERNAL | 4 | 4 | M (4-6w) | M | Cross-DDMS dependency. Needs community agreement on API |
+| 8 | R3 | RDDMS↔WDDMS boundary definition | 🟡 COORD | 4 | 4 | L (2w) | M | Organizational — needs Wellbore DDMS team alignment |
+| 9 | O4 | Session survivability (client) | 🟢 LOCAL | 3 | 4 | M (4w) | L | Server done in M26. Client retry + array chunking needed |
+| 10 | A4 | WITSML→DataDef manifest mappings | 🟢 LOCAL | 4 | 3 | M (6-8w) | L | Extends existing converters. Community contribution opportunity |
 
 ### Tier 3: Medium Gain + Medium Severity (Plan)
 
-| Rank | ID | Item | Gain | Severity | Cost | Risk | Notes |
-|------|-----|------|------|----------|------|------|-------|
-| 11 | S4 | Collaboration project mapping | 3 | 3 | L (2w) | L | Simple: map dataspace UUID → `x-collaboration` header |
-| 12 | A5 | Notification alignment | 4 | 3 | H (8-12w) | H | Complex: bridge two eventing systems. Needs architecture decision |
-| 13 | R4 | Manifest builder modular architecture | 3 | 3 | M (4w) | L | Refactoring — enables community contributions |
-| 14 | O3 | Selective manifest generation | 3 | 3 | L (2w) | L | Configuration-driven filtering. Quick implementation |
-| 15 | S2 | Flatten well-log-in-model mapping | 3 | 2 | M (4w) | M | Requires design decision on property flattening |
+| Rank | ID | Item | Scope | Gain | Severity | Cost | Risk | Notes |
+|------|-----|------|-------|------|----------|------|------|-------|
+| 11 | S4 | Collaboration project mapping | 🟢 LOCAL | 3 | 3 | L (2w) | L | Simple: map dataspace UUID → `x-collaboration` header |
+| 12 | A5 | Notification alignment | 🔴 EXTERNAL | 4 | 3 | H (8-12w) | H | Complex: bridge two eventing systems. Needs architecture decision |
+| 13 | R4 | Manifest builder modular architecture | 🟢 LOCAL | 3 | 3 | M (4w) | L | Refactoring — enables community contributions |
+| 14 | O3 | Selective manifest generation | ✅ Done | 3 | 3 | ✅ Done | L | **Subsumed by S1** |
+| 15 | S2 | Flatten well-log-in-model mapping | 🟢 LOCAL | 3 | 2 | M (4w) | M | Requires design decision on property flattening |
 
 ### Tier 4: Strategic / Long-term (Invest)
 
-| Rank | ID | Item | Gain | Severity | Cost | Risk | Notes |
-|------|-----|------|------|----------|------|------|-------|
-| 16 | O5 | S3/blob storage for large arrays | 4 | 2 | H (12w+) | H | Architecture change. Demo exists. Production requires migration strategy |
-| 17 | R1 | RESQML doc ownership | 5 | 2 | L (ongoing) | H | Organizational — requires Energistics governance change |
-| 18 | A6 | Regular surface grid WPC | 3 | 2 | M (4w) | M | Needs OSDU DD contribution process. May be rejected |
-| 19 | R5 | OSDU DD contribution pipeline | 4 | 2 | L (2w) | M | Process, not code. Depends on community responsiveness |
-| 20 | A7 | Completion data in RDDMS | 3 | 2 | M (6w) | M | Low urgency — WITSML handles this today |
-| 21 | A8 | Multi-DDMS versioning | 4 | 2 | H (8-12w) | H | Cross-system protocol. Needs ETP extension or OSDU mechanism |
+| Rank | ID | Item | Scope | Gain | Severity | Cost | Risk | Notes |
+|------|-----|------|-------|------|----------|------|------|-------|
+| 16 | O5 | S3/blob storage for large arrays | 🔴 EXTERNAL | 4 | 2 | H (12w+) | H | Architecture change. Demo exists. Production requires migration strategy |
+| 17 | R1 | RESQML doc ownership | 🔴 EXTERNAL | 5 | 2 | L (ongoing) | H | Organizational — requires Energistics governance change |
+| 18 | A6 | Regular surface grid WPC | 🔴 EXTERNAL | 3 | 2 | M (4w) | M | Needs OSDU DD contribution process. May be rejected |
+| 19 | R5 | OSDU DD contribution pipeline | 🔴 EXTERNAL | 4 | 2 | L (2w) | M | Process, not code. Depends on community responsiveness |
+| 20 | A7 | Completion data in RDDMS | 🟢 LOCAL | 3 | 2 | M (6w) | M | Low urgency — WITSML handles this today |
+| 21 | A8 | Multi-DDMS versioning | 🔴 EXTERNAL | 4 | 2 | H (8-12w) | H | Cross-system protocol. Needs ETP extension or OSDU mechanism |
 
 ### Tier 5: Infrastructure / Bug Fixes (Resolve)
 
-| Rank | ID | Item | Gain | Severity | Cost | Risk | Notes |
-|------|-----|------|------|----------|------|------|-------|
-| 22 | — | Fix AWS pipeline (entitlement service) | 2 | 4 | L (1-2w) | L | Assigned to Epam. Unblocks multi-cloud |
-| 23 | — | Fix OpenAPI spec for `/manifest/build` | 2 | 2 | L (<1w) | L | Issue #91 — documentation fix |
-| 24 | — | SSL dual-image support | 2 | 2 | L (1w) | L | Client config flag for SSL/non-SSL |
-| 25 | — | Invalid OpenAPI generation | 2 | 2 | L (<1w) | L | Issue #90 — swagger.json fix |
+| Rank | ID | Item | Scope | Gain | Severity | Cost | Risk | Notes |
+|------|-----|------|-------|------|----------|------|------|-------|
+| 22 | — | Fix AWS pipeline (entitlement service) | 🔴 EXTERNAL | 2 | 4 | L (1-2w) | L | Assigned to Epam. Unblocks multi-cloud |
+| 23 | — | Fix OpenAPI spec for `/manifest/build` | 🟢 LOCAL | 2 | 2 | L (<1w) | L | ✅ **DONE** — `ManifestDto` schema fixed with `Data`, `MasterData`, `ReferenceData` properties; `x-collaboration` header parameter added |
+| 24 | — | SSL dual-image support | 🟢 LOCAL | 2 | 2 | L (1w) | L | ✅ **DONE** — `RDMS_ETP_SSL_VERIFY=false` env var disables TLS cert verification for wss. Injected as `tlsOptions: { rejectUnauthorized: false }` in WebSocket config |
+| 25 | — | Invalid OpenAPI generation | 🟢 LOCAL | 2 | 2 | L (<1w) | L | ✅ **DONE** — `swagger.json` ManifestDto response schema corrected to match actual manifest structure |
 
 ---
 

@@ -1,3 +1,5 @@
+import { v5 as uuidNameSpace } from "uuid";
+
 import { Energistics, EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../client/ResqmlClient";
@@ -13,6 +15,13 @@ import {
 import ResqmlOSDU, { EtpDataspaceManifest } from "./ResqmlOsdu";
 
 import { ErrorCode, EtpError } from "../common/EtpTypes";
+
+/**
+ * S4: Namespace UUID for deterministic dataspace → collaboration UUID mapping.
+ * Uses a well-known namespace so that the same dataspace always maps to the
+ * same collaboration UUID regardless of which client instance generates it.
+ */
+const RDDMS_COLLABORATION_NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
 
 import {
   GenericMasterData,
@@ -222,6 +231,27 @@ export const createManifest = async (
     if (manifests.Data === undefined) {
       return Promise.reject("Manifest creation failed");
     }
+
+    // S4: Auto-map dataspace UUID → x-collaboration header when not explicitly provided.
+    // Derives a deterministic collaboration UUID from the first dataspace being processed,
+    // enabling automatic OSDU collaboration project association without caller intervention.
+    if (!context.collaboration && allUris.size > 0) {
+      const firstUri = allUris.values().next().value;
+      if (firstUri) {
+        const firstEtpUri = new EtpUri(firstUri);
+        if (firstEtpUri.dataSpace) {
+          const collaborationId = uuidNameSpace(
+            firstEtpUri.dataSpace,
+            RDDMS_COLLABORATION_NAMESPACE
+          );
+          context.collaboration = JSON.stringify({ id: collaborationId });
+          logger.info(
+            `S4: Auto-mapped dataspace '${firstEtpUri.dataSpace}' → collaboration ${collaborationId}`
+          );
+        }
+      }
+    }
+
     manifests.Data.WorkProductComponents = [];
     manifests.MasterData = [];
 
@@ -346,6 +376,58 @@ export const createManifest = async (
           logger.error(`Converter failed for ${etpUri.dataObjectType} (${resObj.Uuid}): ${convErr?.message ?? convErr}`);
           continue;
         }
+      }
+    }
+
+    // A3: Auto-generate lineage Activity record for this manifest build
+    if (context.created.size > 0 && context.generateLineageActivity !== false) {
+      const outputIds: string[] = [];
+      context.created.forEach((_, id) => {
+        if (!id.includes("reference-data") && !id.includes("master-data")) {
+          outputIds.push(id);
+        }
+      });
+      if (outputIds.length > 0) {
+        const activityUuid = uuidNameSpace(
+          outputIds.sort().join("|"),
+          RDDMS_COLLABORATION_NAMESPACE
+        );
+        const activityId = `${context.partition}:work-product-component--Activity:${activityUuid}`;
+        const now = new Date().toISOString();
+        const activityRecord: OSDUResourceType = {
+          id: activityId,
+          kind: "osdu:wks:work-product-component--Activity:1.4.0",
+          acl: { owners: [], viewers: [] },
+          legal: { legaltags: [], otherRelevantDataCountries: [] },
+          data: {
+            Name: "RDDMS Manifest Build",
+            Description: `Auto-generated lineage: ${outputIds.length} work-product-component(s) produced from ETP dataspace objects.`,
+            Parameters: outputIds.map(id => ({
+              ParameterKindID: `${context.partition}:reference-data--ParameterKind:DataObject:`,
+              Title: "Output",
+              DataObjectParameter: `${id}:`
+            })),
+            SoftwareSpecifications: [{ SoftwareName: "RDDMS", Version: "1.0" }],
+            ActivityTemplateID: `${context.partition}:master-data--ActivityTemplate:RDDMSManifestBuild:`,
+            ParentActivityID: undefined,
+            ParentProjectID: undefined,
+            PriorActivityIDs: undefined
+          },
+          createTime: now,
+          modifyTime: now
+        } as any;
+        // Apply dataspace ACL if available
+        const firstDataspace = Object.keys(dataspaceObjects)[0];
+        if (firstDataspace) {
+          const dsUri = EtpUri.createDataSpaceUri(firstDataspace).uri;
+          const aclLegal = context.dataspaceACLs.get(dsUri);
+          if (aclLegal) {
+            activityRecord.acl = aclLegal.acl ?? activityRecord.acl;
+            activityRecord.legal = aclLegal.legal ?? activityRecord.legal;
+          }
+        }
+        context.created.set(activityId, activityRecord);
+        logger.info(`A3: Auto-generated lineage Activity ${activityUuid} with ${outputIds.length} output(s)`);
       }
     }
 

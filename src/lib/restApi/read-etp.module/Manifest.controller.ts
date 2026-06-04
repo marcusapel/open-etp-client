@@ -46,6 +46,7 @@ import {
   HasDataPartitionGuard,
   createSession,
   errorMessageSchema,
+  extractCollaborationHeader,
   extractDataPartitionId,
   extractToken,
   httpErrorFromEtpError,
@@ -392,7 +393,32 @@ export class ManifestDto {
       "The schema identification for the manifest record. It is constrained to be version 1.0.0 in the context of this endpoint.",
     maxLength: 23
   })
-  id!: string;
+  kind!: string;
+
+  @ApiPropertyOptional({
+    name: "Data",
+    description: "Container for Datasets, WorkProduct, and WorkProductComponents.",
+    type: Object,
+    example: {
+      Datasets: [],
+      WorkProductComponents: []
+    }
+  })
+  Data?: object;
+
+  @ApiPropertyOptional({
+    name: "MasterData",
+    description: "Array of master-data records (Well, Wellbore, BoundaryFeature, etc.).",
+    type: [Object]
+  })
+  MasterData?: object[];
+
+  @ApiPropertyOptional({
+    name: "ReferenceData",
+    description: "Array of reference-data records (PropertyType, CRS, UOM, etc.).",
+    type: [Object]
+  })
+  ReferenceData?: object[];
 }
 
 @ApiBearerAuth("access-token")
@@ -408,6 +434,14 @@ export class ManifestDto {
   }
 })
 @UseGuards(HasDataPartitionGuard())
+@ApiHeader({
+  name: "x-collaboration",
+  required: false,
+  description: "Optional collaboration context forwarded to OSDU storage services (JSON string).",
+  schema: {
+    type: "string"
+  }
+})
 @ApiTags("Manifest")
 @ApiUnauthorizedResponse(errorMessageSchema("Unauthorized", 401))
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
@@ -463,6 +497,7 @@ export default class ObjectsManifestAPI {
       const bearer = extractToken(request);
       const jwt = bearer ? (decode(bearer) as JwtPayload) : {};
       const partition = extractDataPartitionId(request);
+      const collaboration = extractCollaborationHeader(request);
 
       logger.info(`Extracted partition ID: ${partition}`);
       const context = new OSDUContext(
@@ -473,6 +508,7 @@ export default class ObjectsManifestAPI {
       );
 
       context.bearer = bearer;
+      context.collaboration = collaboration;
 
       // Remove the "array" part of the technical assurances to convert to internal representation
       if (body.technicalAssurances !== undefined) {

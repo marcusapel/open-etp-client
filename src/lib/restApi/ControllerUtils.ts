@@ -271,6 +271,19 @@ export const extractDataPartitionId = (
 };
 
 /**
+ * Extract x-collaboration header value from request (S4).
+ * The header is an opaque JSON string forwarded to downstream OSDU services.
+ *
+ * @param {express.Request} [request]
+ * @returns {string | undefined}
+ */
+export const extractCollaborationHeader = (
+  request?: express.Request
+): string | undefined => {
+  return request?.header("x-collaboration");
+};
+
+/**
  * Convert from Regex object to string
  *
  * @param {RegExp} regex

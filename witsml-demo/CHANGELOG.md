@@ -8,6 +8,75 @@ infrastructure.
 
 ---
 
+## A3 + R3: Lineage & Boundary Definition (2026-06-04)
+
+### A3: Auto-lineage Activity Generation
+- `Manifest.ts` post-processing step auto-creates `WPC--Activity:1.4.0` after all converters run
+- All produced WPCs listed as `DataObjectParameter` outputs with `ParameterKindID: DataObject`
+- Deterministic UUID (v5 hash of sorted output IDs) — idempotent on re-run
+- Controlled via `context.generateLineageActivity` (default: `true`)
+- Includes `SoftwareSpecifications: [{ SoftwareName: "RDDMS", Version: "1.0" }]`
+- 3 new unit tests in `TestManifest.ts`
+
+### R3: RDDMS ↔ WDDMS Boundary Definition
+- Published comprehensive comparison in `RESQML-WITSML.md` § "Wellbore DDMS vs RDDMS"
+- 14-dimension comparison table (fidelity, protocol, multi-standard, streaming, etc.)
+- Decision matrix: when RDDMS is superior vs when WDDMS suffices
+- Architecture diagrams for both approaches
+
+---
+
+## RDDMS Sprint: S2–S4, O4, A4, A7, R4, #23–25 (2026-06-04)
+
+### S2: WellboreFrame → WellLog Flattening
+- `WellboreFrameToWellLog.ts` (v2.0) and `WellboreFrameToWellLog22.ts` (v2.2)
+- Maps `WellboreFrameRepresentation` + all attached properties → single `WPC--WellLog:1.3.0` with `Curves[]`
+- Eliminates N+1 object explosion (1 frame + N properties → 1 WellLog)
+
+### S3: MasterData BoundaryFeature with Dedup
+- `MasterDataBoundaryFeature.ts` (v2.0) / `MasterDataBoundaryFeature22.ts` (v2.2)
+- Auto-creates `master-data--BoundaryFeature:1.2.0` from RESQML `BoundaryFeature`
+- **Dedup**: queries OSDU Storage (`getOSDUResourceVersion`) before creating — skips if already exists
+
+### S4: Auto-collaboration from Dataspace
+- When no `x-collaboration` header is provided, derives deterministic UUID v5 from dataspace name
+- Same dataspace always maps to same collaboration UUID (namespace: `6ba7b810-9dad-11d1-80b4-00c04fd430c8`)
+- Added `RDDMS_COLLABORATION_NAMESPACE` constant in `Manifest.ts`
+
+### O4: Session Survivability (Retry + Chunking)
+- `Util.ts` provides `retry()` (exponential backoff, 6 retries) and `retryOnEtpErrors()`
+- `putUsingPutDataArraysType()` chunks arrays exceeding `negotiatedSize` into sub-arrays
+
+### A4: WITSML Additional Type Converters
+- `WitsmlRig.ts` → `Rig:1.3.0`
+- `WitsmlFluidsReport.ts` → `FluidsReport:1.3.0`
+- `WitsmlTubular.ts` → `Tubular:1.3.0`
+- `WitsmlBhaRun.ts` → `BHARunReport:1.3.0`
+
+### A7: WITSML WellCompletion
+- `WitsmlWellCompletion.ts` → `WPC--WellboreCompletion:1.3.0`
+- Extracts: WellboreID, WellID, CompletionName, StatusHistory[]
+
+### R4: Modular Converter Registry
+- `registerConverter.ts`: `registerConverter()`, `registerConverters()`, `hasConverter()`, `getRegisteredTypes()`, `getTargetKind()`
+- Comprehensive JSDoc community contribution guide
+- `GET /health/converters` endpoint exposes all registered types + target kinds
+
+### #23 + #25: OpenAPI / Swagger Fixes
+- `ManifestDto` schema corrected: added `Data`, `MasterData`, `ReferenceData` object properties
+- `x-collaboration` header parameter added to `/manifests/build` endpoint
+
+### #24: SSL Configuration
+- `RDMS_ETP_SSL_VERIFY=false` disables TLS certificate verification for wss connections
+- Injected as `tlsOptions: { rejectUnauthorized: false }` in WebSocket client config
+- Documented in `config.default.env`
+
+### Tests Added
+- 10 new unit tests in `TestManifest.ts` covering: R4 registry (6), S4 auto-collaboration (1), S3 dedup (1), SSL config (2)
+- All 12 tests passing
+
+---
+
 ## RESQML → OSDU Converter Completions (2026-06-03)
 
 ### A1: All Missing RESQML Type Registrations
