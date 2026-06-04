@@ -404,6 +404,88 @@ ResqmlOSDU.add(
   UnstructuredGridRepresentation22Manifest
 );
 
+// ─── Organization & Fluid Interpretations ────────────────────────────────────
+
+ResqmlOSDU.add(
+  "resqml20.obj_StructuralOrganizationInterpretation",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
+  EarthModelInterpretationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.StructuralOrganizationInterpretation",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
+  EarthModelInterpretation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_RockFluidOrganizationInterpretation",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
+  EarthModelInterpretationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.RockFluidOrganizationInterpretation",
+  () => "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
+  EarthModelInterpretation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_RockFluidUnitInterpretation",
+  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
+  GeobodyInterpretationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.RockFluidUnitInterpretation",
+  () => "osdu:wks:work-product-component--GeobodyInterpretation:1.3.0",
+  GeobodyInterpretation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_FluidBoundaryFeature",
+  () => "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+  LocalBoundaryFeatureManifest
+);
+ResqmlOSDU.add(
+  "resqml22.FluidBoundaryInterpretation",
+  () =>
+    "osdu:wks:work-product-component--GeobodyBoundaryInterpretation:1.1.0",
+  GeobodyBoundaryInterpretation22Manifest
+);
+
+// ─── Framework & Wellbore Representations ────────────────────────────────────
+
+ResqmlOSDU.add(
+  "resqml20.obj_SealedSurfaceFrameworkRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.SealedSurfaceFrameworkRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_SealedVolumeFrameworkRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.SealedVolumeFrameworkRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_BlockedWellboreRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentationManifest
+);
+ResqmlOSDU.add(
+  "resqml22.BlockedWellboreRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentation22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_WellboreMarkerFrameRepresentation",
+  () => "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  GenericRepresentationManifest
+);
+
 // ─── WITSML Types ────────────────────────────────────────────────────────────
 
 ResqmlOSDU.add(

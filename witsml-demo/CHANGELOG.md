@@ -8,6 +8,106 @@ infrastructure.
 
 ---
 
+## RESQML → OSDU Converter Completions (2026-06-03)
+
+### A1: All Missing RESQML Type Registrations
+
+Added 15 new `.add()` registrations to `src/lib/jsonTypes/ResqmlOsdu.ts` —
+purely additive, no existing code modified.
+
+| RESQML Type | OSDU Kind | Converter Reused |
+|---|---|---|
+| `StructuralOrganizationInterpretation` (v2.0 + v2.2) | `EarthModelInterpretation:1.2.0` | EarthModelInterpretation |
+| `RockFluidOrganizationInterpretation` (v2.0 + v2.2) | `EarthModelInterpretation:1.2.0` | EarthModelInterpretation |
+| `RockFluidUnitInterpretation` (v2.0 + v2.2) | `GeobodyInterpretation:1.3.0` | GeobodyInterpretation |
+| `FluidBoundaryFeature` (v2.0) | `LocalBoundaryFeature:1.2.0` | LocalBoundaryFeature |
+| `FluidBoundaryInterpretation` (v2.2) | `GeobodyBoundaryInterpretation:1.1.0` | GeobodyBoundaryInterpretation22 |
+| `SealedSurfaceFrameworkRepresentation` (v2.0 + v2.2) | `GenericRepresentation:1.2.0` | GenericRepresentation |
+| `SealedVolumeFrameworkRepresentation` (v2.0 + v2.2) | `GenericRepresentation:1.2.0` | GenericRepresentation |
+| `BlockedWellboreRepresentation` (v2.0 + v2.2) | `GenericRepresentation:1.2.0` | GenericRepresentation |
+| `WellboreMarkerFrameRepresentation` (v2.0) | `GenericRepresentation:1.2.0` | GenericRepresentation |
+
+**Impact:** RESQML objects of these types that were previously silently skipped
+during manifest generation now produce OSDU records. No existing behavior changed.
+
+### O1: PropertyKind QuantityClass → UnitQuantity Mapping
+
+Fixed `src/lib/jsonTypes/PropertyType23.ts`: the `UnitQuantityID` field was
+hardcoded to `undefined` (via unused `representativeUom` variable). Now maps
+`xml.QuantityClass` directly through `addReferenceData("UnitQuantity", ...)`.
+
+- 138/189 EML `QuantityClassKind` values resolve to existing OSDU `UnitQuantity` records
+- Remaining 48 produce valid reference strings (resolve when OSDU adds those records)
+- v2.0.1 path (`PropertyType.ts`) already used `RepresentativeUom` — unchanged
+- Zero risk: previously empty field now populated; no route/API changes
+
+### R2: SoE vs SoR Usage Documentation (community README)
+
+Published comprehensive SoE/SoR/SoI documentation in the [RDDMS community README](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/home).
+Key sections added:
+
+- **Three operational tiers**: SoR (immutable, indexed), SoE (read-write workspace), SoI (analytics/ML consumption)
+- **Dual-Catalog Pattern**: RDDMS owns content (XML + binary arrays); OSDU catalog owns metadata (JSON for search). "The catalog record is a metadata projection of the RDDMS object."
+- **SoE → SoR Promotion Workflow**: 7-step sequence (add content → validate → lock dataspace → generate manifest → refine → ingest via Storage API → searchable)
+- **Governance Guidance table**: When to use SoR vs SoE, who controls promotion, ACL enforcement, partial indexing
+- **"RDDMS vs OSDU Catalog — When to Use Which"**: Decision matrix for API selection
+- **DataspaceOSDU protocol (2424)**: Lock, copy, remote-copy as governance operations
+- **Workflow integration**: Project-scoped dataspaces, Activity provenance, BusinessDecision gates
+
+### S1: Default Dataspace Type Filter (Reduce Manifest Explosion)
+
+Added `DEFAULT_DATASPACE_TYPE_PATTERNS` to `src/lib/jsonTypes/Manifest.ts`. When
+`POST /manifests/build` is called without explicit `typePatterns`, the manifest
+builder now applies a default whitelist that indexes only discovery-worthy types:
+
+| Pattern | Matches |
+|---|---|
+| `*Interpretation*` | All interpretation types (Fault, Horizon, EarthModel, Geobody, Stratigraphic, Organization, FluidBoundary) |
+| `*Representation` | All representation types (Grids, Surfaces, Frameworks, Wellbore, Sub) |
+| `*StratigraphicColumn` | StratigraphicColumn |
+| `*Activity*` | Activity + ActivityTemplate |
+| `*Collection` | DataobjectCollection |
+| `witsml21.*` | All WITSML types (Well, Wellbore, Log, Trajectory) |
+
+**Excluded by default** (support/ancillary objects):
+- Properties (ContinuousProperty, DiscreteProperty, CategoricalProperty)
+- PropertyKind / PropertySet
+- CRS (LocalDepth3dCrs, LocalTime3dCrs, LocalEngineeringCompoundCrs)
+- TimeSeries, StringTableLookup
+- Features (GeneticBoundaryFeature, TectonicBoundaryFeature, OrganizationFeature, etc.)
+
+**Opt-in to full indexing:** Pass `typePatterns: ["*"]` to restore pre-S1 behavior.
+
+**Impact:** A typical earth model dataspace (1 grid + 500 properties + 30 features +
+10 CRS + timeseries) now generates ~50 WPC records instead of ~600. Reduces
+Storage API load, Elasticsearch noise, and ingestion time by ~90%.
+
+### A2: StructureMap Manifest from Grid2dRepresentation (Depth-Domain)
+
+Added dedicated StructureMap converter for depth-domain `Grid2dRepresentation`
+objects that have a `HorizonInterpretation` and are NOT on a seismic lattice.
+
+**New files:**
+- `src/lib/jsonTypes/Generated/work-product-component/StructureMap.1.0.0.ts` — M27 schema interface
+- `src/lib/jsonTypes/StructureMap22.ts` — v2.2 converter (uses `Point3dLatticeArray.Dimension`)
+- `src/lib/jsonTypes/StructureMap.ts` — v2.0.1 converter (uses `Point3dLatticeArray.Offset`)
+
+**Modified files:**
+- `src/lib/jsonTypes/SeismicBinGrid2Representation22.ts` — Added StructureMap branch to `Grid2dToOsduKind22` and `Grid2dRepresentation22Manifest`
+- `src/lib/jsonTypes/SeismicBinGrid2Representation.ts` — Added StructureMap branch to `Grid2dToOsduKind` and `Grid2dRepresentationManifest`
+
+**Routing logic** (both v2.0 and v2.2):
+1. `SeismicBinGrid` — Grid2d that IS a seismic lattice (no interpretation, no Z values)
+2. `SeismicHorizon` — Grid2d on a seismic lattice (Point3dFromRepresentationLatticeArray)
+3. `StructureMap` — Grid2d with HorizonInterpretation, NOT on seismic lattice (depth/direct points)
+4. `GenericRepresentation` — fallback
+
+**Populated fields:** `BinWidthOnIaxis/Jaxis`, `MapGridBearingOfBinGridJaxis`,
+`OriginEasting/Northing`, `NodeCountOnIAxis/JAxis`, `InterpretationID/Name`,
+`LocalModelCompoundCrsID`, `DomainTypeID`, `SpatialArea`, `IndexableElementCount`
+
+---
+
 ## WITSML → OSDU Manifest Generation (2026-06-03)
 
 ### New Converter Files

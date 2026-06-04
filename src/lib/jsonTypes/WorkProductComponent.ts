@@ -976,12 +976,28 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     if (dor20.ContentType !== undefined) {
       const refType = new EtpContentType(dor20.ContentType).etpType;
       const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
-      return `${ds}/${refType}(${dor20.UUID})`;
+      // EML 2.0 uses uppercase UUID; EML 2.3 DORs that still carry ContentType
+      // (common in v2.2 files generated with EML 2.0 style DORs) may use either
+      const uuid = dor20.UUID ?? (dor as any).Uuid;
+      return `${ds}/${refType}(${uuid})`;
     }
     const dor23 = dor as SimpleJson<eml23.DataObjectReference>;
-    const refType = dor23.QualifiedType;
-    const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
-    return `${ds}/${refType}(${dor23.Uuid})`;
+    if (dor23.QualifiedType !== undefined) {
+      const refType = dor23.QualifiedType;
+      const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
+      return `${ds}/${refType}(${dor23.Uuid})`;
+    }
+    // Fallback: DOR may have UUID (uppercase) from v2.0-style XML in a v2.2 context
+    const anyDor = dor as any;
+    if (anyDor.UUID !== undefined || anyDor.Uuid !== undefined) {
+      const uuid = anyDor.UUID ?? anyDor.Uuid;
+      // Try to infer type from _data if available
+      const refType = anyDor._data?.$type ?? "unknown";
+      const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
+      return `${ds}/${refType}(${uuid})`;
+    }
+    // Cannot construct URI
+    throw new Error(`DOR missing both ContentType and QualifiedType for ref in ${uri}`);
   }
 
   /**

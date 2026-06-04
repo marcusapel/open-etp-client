@@ -2,6 +2,9 @@ import { Energistics, EtpUri, ResqmlClient, URI } from "../client/ResqmlClient";
 
 import type { IResqmlDataObject } from "../client/ResqmlClient";
 
+import logging from "../common/Logging";
+const logger = logging.getLogger("EtpClient");
+
 import {
   DataspaceLegalACL,
   OSDUContext,
@@ -89,12 +92,30 @@ const getACLForDataspace = (
 };
 
 /**
+ * Default type patterns applied when indexing entire dataspaces without
+ * explicit typePatterns. Focuses on discovery-worthy types (interpretations,
+ * representations, wells) and excludes support objects (properties, CRS,
+ * time series, features, property kinds).
+ * Pass typePatterns: ["*"] to opt into indexing all types.
+ */
+export const DEFAULT_DATASPACE_TYPE_PATTERNS: string[] = [
+  "*Interpretation*",
+  "*Representation",
+  "*StratigraphicColumn",
+  "*Activity*",
+  "*Collection",
+  "witsml21.*"
+];
+
+/**
  * Create a manifest for a list of uris
  *
  * @param {ResqmlClient} client linked to ETP server
  * @param {URI[]} uris List of URIS to add as work product components
  * @param {OSDUContext} context OSDU related information
- * @param {string[]} [typePatterns] Optional list of type patterns to filter the URIs
+ * @param {string[]} [typePatterns] Optional list of type patterns to filter the URIs.
+ *   When undefined, DEFAULT_DATASPACE_TYPE_PATTERNS is used for dataspace-level URIs.
+ *   Pass ["*"] to index all types.
  * @param {number} [maxManifestSize] Optional maximum size of the manifest in MB, default is 1000
  * @return {Promise<Manifest>}
  */
@@ -126,7 +147,8 @@ export const createManifest = async (
 
     const allUris = new Set<string>();
 
-    const matchPatterns: RegExp[] | undefined = typePatterns?.map(
+    const effectivePatterns = typePatterns ?? DEFAULT_DATASPACE_TYPE_PATTERNS;
+    const matchPatterns: RegExp[] = effectivePatterns.map(
       t => new RegExp(t.replaceAll("*", "\\w*").replaceAll("?", "\\w?"))
     );
 
@@ -141,7 +163,7 @@ export const createManifest = async (
         let dataspaceUris = await client.getDataspaceResources(
           dataspaceUri.uri
         );
-        if (matchPatterns) {
+        if (matchPatterns.length > 0) {
           dataspaceUris = dataspaceUris.filter(f => {
             const u: EtpUri = new EtpUri(f.uri);
             for (const p of matchPatterns) {
@@ -224,17 +246,20 @@ export const createManifest = async (
 
       // slice objectUris to avoid "too many arguments" error
       while (tmpUris.length > 0) {
+        const batch = tmpUris.splice(0, 5);
         try {
           const arr = await client.getResolvedObjects(
-            tmpUris.splice(0, 5),
+            batch,
             objects,
             false
           );
           resolvedObjects = resolvedObjects.concat(arr);
-        } catch {
-          // Some objects failed to resolve (e.g. malformed URIs) - skip batch
+        } catch (e: any) {
+          logger.error(`getResolvedObjects failed for batch: ${batch.map(u => u.substring(u.lastIndexOf('/') + 1)).join(', ')} — ${e?.message ?? e}`);
         }
       }
+
+      logger.info(`Resolved ${resolvedObjects.length} objects for dataspace ${dataspace}`);
 
       for (let i = 0; i < resolvedObjects.length; i++) {
         const resObj = resolvedObjects[i];
@@ -256,6 +281,7 @@ export const createManifest = async (
 
         const c = ResqmlOSDU.get(etpUri.dataObjectType);
         if (c === undefined) {
+          logger.warn(`No converter for type: ${etpUri.dataObjectType} (from $type=${resObj.$type})`);
           continue;
         }
         try {
@@ -315,8 +341,9 @@ export const createManifest = async (
               context.created.set(res.id, res);
             }
           }
-        } catch {
+        } catch (convErr: any) {
           // Converter failed for this object - skip it
+          logger.error(`Converter failed for ${etpUri.dataObjectType} (${resObj.Uuid}): ${convErr?.message ?? convErr}`);
           continue;
         }
       }
