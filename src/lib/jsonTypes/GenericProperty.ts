@@ -397,7 +397,7 @@ export const GenericPropertyManifest = async (
     uri,
     xml.SupportingRepresentation
   );
-  if (dorUri.includes("resqml20.obj_WellboreFrameRepresentation")) {
+  if (dorUri === undefined || dorUri.includes("resqml20.obj_WellboreFrameRepresentation")) {
     return undefined;
   }
   return new GenericPropertyOSDU(xml, context).initData(uri, xml, client);

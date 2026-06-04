@@ -289,7 +289,9 @@ export const createManifest = async (
         }
       }
 
-      logger.info(`Resolved ${resolvedObjects.length} objects for dataspace ${dataspace}`);
+      const nullCount = resolvedObjects.filter(o => o === null).length;
+      const noTypeCount = resolvedObjects.filter(o => o !== null && o?.$type === undefined).length;
+      logger.info(`Resolved ${resolvedObjects.length} objects for dataspace ${dataspace} (null=${nullCount}, noType=${noTypeCount})`);
 
       for (let i = 0; i < resolvedObjects.length; i++) {
         const resObj = resolvedObjects[i];
@@ -502,7 +504,7 @@ export const createManifest = async (
                       }
                       return resolve();
                     })
-              );
+              ).catch(() => resolve());
             })
           );
         }

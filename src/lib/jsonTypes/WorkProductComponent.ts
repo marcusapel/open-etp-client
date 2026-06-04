@@ -952,10 +952,11 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
     const xml = dor
       ? await this.getObjectFromDor(client, uri, dor, context)
       : undefined;
+    const dorUri = dor ? ResqmlWorkProductComponent.dorToUri(uri, dor) : undefined;
     const srn =
-      dor === undefined || xml === undefined
+      dor === undefined || xml === undefined || dorUri === undefined
         ? undefined
-        : context.uriToSrn(ResqmlWorkProductComponent.dorToUri(uri, dor), xml);
+        : context.uriToSrn(dorUri, xml);
     return srn === undefined ? undefined : srn + ":";
   }
 
@@ -971,7 +972,7 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
   public static dorToUri(
     uri: string,
     dor: SimpleJson<eml20.DataObjectReference | eml23.DataObjectReference>
-  ): string {
+  ): string | undefined {
     const dor20 = dor as SimpleJson<eml20.DataObjectReference>;
     if (dor20.ContentType !== undefined) {
       const refType = new EtpContentType(dor20.ContentType).etpType;
@@ -996,8 +997,8 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
       const ds = EtpUri.createDataSpaceUri(new EtpUri(uri).dataSpace).uri;
       return `${ds}/${refType}(${uuid})`;
     }
-    // Cannot construct URI
-    throw new Error(`DOR missing both ContentType and QualifiedType for ref in ${uri}`);
+    // Cannot construct URI — return undefined to signal graceful skip
+    return undefined;
   }
 
   /**
@@ -1058,6 +1059,9 @@ export class ResqmlResource<RES_TYPE extends IResqmlDataObject> {
       return dor._data;
     }
     const dorUri = ResqmlWorkProductComponent.dorToUri(uri, dor);
+    if (dorUri === undefined) {
+      return undefined;
+    }
     const objects = await this.getObjects(client, [dorUri], context);
     return objects.length === 1 && objects[0] !== null ? objects[0] : undefined;
   }

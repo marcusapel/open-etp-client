@@ -76,10 +76,25 @@ import { WellboreFrameToWellLog22Manifest } from "./WellboreFrameToWellLog22";
 import { MasterDataBoundaryFeatureManifest } from "./MasterDataBoundaryFeature";
 import { MasterDataBoundaryFeature22Manifest } from "./MasterDataBoundaryFeature22";
 
+import { WellboreInterpretation22Manifest } from "./WellboreInterpretation22";
+import { WellboreTrajectoryRepresentation22Manifest } from "./WellboreTrajectoryRepresentation22";
+
 export { EtpDataspaceManifest } from "./ETPDataspace";
 export { WorkProductManifest } from "./WorkProduct";
 
 const ResqmlOSDU = ResqmlOSDUMap.getInstance();
+
+ResqmlOSDU.add(
+  "resqml22.WellboreInterpretation",
+  () => "osdu:wks:work-product-component--WellboreInterpretation:1.2.0",
+  WellboreInterpretation22Manifest
+);
+
+ResqmlOSDU.add(
+  "resqml22.WellboreTrajectoryRepresentation",
+  () => "osdu:wks:work-product-component--WellboreTrajectory:1.3.0",
+  WellboreTrajectoryRepresentation22Manifest
+);
 
 ResqmlOSDU.add(
   "resqml20.obj_Activity",

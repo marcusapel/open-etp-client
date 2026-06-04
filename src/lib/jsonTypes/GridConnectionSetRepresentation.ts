@@ -44,7 +44,7 @@ export class GridConnectionSetRepresentationOSDU
     }
     const gridUris = xml.Grid.map(d =>
       ResqmlWorkProductComponent.dorToUri(ReservoirDMSUrl, d)
-    );
+    ).filter((u): u is string => u !== undefined);
     const grids = await client.getResolvedObjects(gridUris);
 
     const InterpretationIDs = [];

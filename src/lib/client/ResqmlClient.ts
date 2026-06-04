@@ -1581,10 +1581,17 @@ export class ResqmlClient {
       while (cURIs.length > 0) {
         const tUris = cURIs.filter(u => !objects.get(u));
         if (tUris.length > 0) {
-          (await this.getObjects(tUris)).forEach(
-            // eslint-disable-next-line no-loop-func
-            (o, i) => o && objects.set(tUris[i], o)
-          );
+          try {
+            (await this.getObjects(tUris)).forEach(
+              // eslint-disable-next-line no-loop-func
+              (o, i) => o && objects.set(tUris[i], o)
+            );
+          } catch (refErr) {
+            // Some referenced objects may not exist — continue with what we have
+            this.logger.warn(
+              `Failed to fetch ${tUris.length} referenced object(s), continuing with partial resolution`
+            );
+          }
         }
         const nUris = new Set<URI>();
         cURIs.forEach(uri => {
