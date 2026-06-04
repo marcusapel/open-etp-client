@@ -1,0 +1,1000 @@
+{
+  "kind": "osdu:wks:Manifest:1.0.0",
+  "Data": {
+    "Datasets": [
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:dataset--ETPDataspace:1.0.1",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T11:38:03.449Z",
+        "id": "opendes:dataset--ETPDataspace:maap-volve",
+        "modifyTime": "2026-06-04T11:38:16.479Z",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+          "DatasetProperties": {
+            "URI": "eml:///dataspace('maap/volve')"
+          },
+          "Name": "maap/volve",
+          "ExtensionProperties": {},
+          "TotalSize": "794624"
+        }
+      }
+    ],
+    "WorkProductComponents": [
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructureMap:1.0.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--StructureMap:2bcdc46c-2132-4cdf-beb2-711f6e5eda6c",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_Grid2dRepresentation(2bcdc46c-2132-4cdf-beb2-711f6e5eda6c)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "DepthExtractedHorizon",
+          "IndexableElementCount": [
+            {
+              "Count": 16240,
+              "IndexableElementID": "opendes:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:c9632fbe-4415-4a20-9e18-36f6dd8fd88a:",
+          "InterpretationName": "Sleipner_Fm._Top",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d:",
+          "NodeCountOnIAxis": 145,
+          "NodeCountOnJAxis": 112,
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": ""
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructureMap:1.0.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--StructureMap:48a2ee75-5f90-4f72-9bd0-d6b6577fef2d",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_Grid2dRepresentation(48a2ee75-5f90-4f72-9bd0-d6b6577fef2d)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "DepthExtractedHorizon",
+          "IndexableElementCount": [
+            {
+              "Count": 16240,
+              "IndexableElementID": "opendes:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:c54b4a5d-d7ef-4928-b9fa-56477017d9b0:",
+          "InterpretationName": "Hugin_Fm._Top",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d:",
+          "NodeCountOnIAxis": 145,
+          "NodeCountOnJAxis": 112,
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": ""
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructureMap:1.0.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--StructureMap:b19305b9-d5c0-44c9-a640-360ab7a68209",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_Grid2dRepresentation(b19305b9-d5c0-44c9-a640-360ab7a68209)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "DepthExtractedHorizon",
+          "IndexableElementCount": [
+            {
+              "Count": 16240,
+              "IndexableElementID": "opendes:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:26675010-e549-47c4-93c5-b7ceba6a2070:",
+          "InterpretationName": "BCU",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d:",
+          "NodeCountOnIAxis": 145,
+          "NodeCountOnJAxis": 112,
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": ""
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--StructureMap:1.0.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--StructureMap:fd8af510-d897-44f2-8d8f-6ac724e81456",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_Grid2dRepresentation(fd8af510-d897-44f2-8d8f-6ac724e81456)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "DepthExtractedHorizon",
+          "IndexableElementCount": [
+            {
+              "Count": 16240,
+              "IndexableElementID": "opendes:reference-data--IndexableElement:nodes:"
+            }
+          ],
+          "InterpretationID": "opendes:work-product-component--HorizonInterpretation:43325ed4-7745-47b3-9d16-dc218370c625:",
+          "InterpretationName": "SHETLAND_GP._Top",
+          "LocalModelCompoundCrsID": "opendes:work-product-component--LocalModelCompoundCrs:46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d:",
+          "NodeCountOnIAxis": 145,
+          "NodeCountOnJAxis": 112,
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:"
+        },
+        "meta": [
+          {
+            "kind": "CRS",
+            "persistableReference": ""
+          }
+        ]
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--HorizonInterpretation:26675010-e549-47c4-93c5-b7ceba6a2070",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_HorizonInterpretation(26675010-e549-47c4-93c5-b7ceba6a2070)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "BCU",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:de596803-9056-461e-aced-75e6de42eabb:",
+          "FeatureName": "BCU",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--HorizonInterpretation:43325ed4-7745-47b3-9d16-dc218370c625",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_HorizonInterpretation(43325ed4-7745-47b3-9d16-dc218370c625)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "SHETLAND_GP._Top",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:7bb30e24-708f-41f6-b375-7660696bbb8c:",
+          "FeatureName": "SHETLAND_GP._Top",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--HorizonInterpretation:c54b4a5d-d7ef-4928-b9fa-56477017d9b0",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_HorizonInterpretation(c54b4a5d-d7ef-4928-b9fa-56477017d9b0)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "Hugin_Fm._Top",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:fe469c7e-5f36-4170-9296-722175137d0e:",
+          "FeatureName": "Hugin_Fm._Top",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--HorizonInterpretation:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--HorizonInterpretation:c9632fbe-4415-4a20-9e18-36f6dd8fd88a",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_HorizonInterpretation(c9632fbe-4415-4a20-9e18-36f6dd8fd88a)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "Sleipner_Fm._Top",
+          "DomainTypeID": "opendes:reference-data--DomainType:Depth:",
+          "FeatureID": "opendes:work-product-component--LocalBoundaryFeature:b355f21f-c4cf-407e-992f-1c428986c1df:",
+          "FeatureName": "Sleipner_Fm._Top",
+          "StratigraphicRoleTypeID": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic:"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--Activity:1.4.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2026-06-04T11:38:16.474Z",
+        "createUser": "nobody",
+        "id": "opendes:work-product-component--Activity:bd741846-251a-4b1f-a6ec-ce9200d31db8",
+        "modifyTime": "2026-06-04T11:38:16.474Z",
+        "modifyUser": "nobody",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_Activity(bd741846-251a-4b1f-a6ec-ce9200d31db8)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2026-06-04T11:38:16.474Z",
+          "Name": "Scenario_automated_import_2026-06-04T11:38:16.474Z",
+          "ActivityTemplateID": "opendes:master-data--ActivityTemplate:1801db47-12c3-4f8b-8ae3-25baeb528c23:",
+          "Parameters": [
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:c9632fbe-4415-4a20-9e18-36f6dd8fd88a:",
+              "Index": 0
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:43325ed4-7745-47b3-9d16-dc218370c625:",
+              "Index": 1
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:26675010-e549-47c4-93c5-b7ceba6a2070:",
+              "Index": 2
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:48a2ee75-5f90-4f72-9bd0-d6b6577fef2d:",
+              "Index": 3
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:fd8af510-d897-44f2-8d8f-6ac724e81456:",
+              "Index": 4
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:b19305b9-d5c0-44c9-a640-360ab7a68209:",
+              "Index": 5
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:2bcdc46c-2132-4cdf-beb2-711f6e5eda6c:",
+              "Index": 6
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--LocalBoundaryFeature:fe469c7e-5f36-4170-9296-722175137d0e:",
+              "Index": 7
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--LocalBoundaryFeature:de596803-9056-461e-aced-75e6de42eabb:",
+              "Index": 8
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:c54b4a5d-d7ef-4928-b9fa-56477017d9b0:",
+              "Index": 9
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--LocalBoundaryFeature:b355f21f-c4cf-407e-992f-1c428986c1df:",
+              "Index": 10
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "imported",
+              "DataObjectParameter": "opendes:work-product-component--LocalBoundaryFeature:7bb30e24-708f-41f6-b375-7660696bbb8c:",
+              "Index": 11
+            }
+          ]
+        }
+      },
+      {
+        "id": "opendes:work-product-component--Activity:8b3a13a1-e3df-59be-91c6-4a8612afd34e",
+        "kind": "osdu:wks:work-product-component--Activity:1.4.0",
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "data": {
+          "Name": "RDDMS Manifest Build",
+          "Description": "Auto-generated lineage: 9 work-product-component(s) produced from ETP dataspace objects.",
+          "Parameters": [
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--Activity:bd741846-251a-4b1f-a6ec-ce9200d31db8:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:26675010-e549-47c4-93c5-b7ceba6a2070:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:43325ed4-7745-47b3-9d16-dc218370c625:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:c54b4a5d-d7ef-4928-b9fa-56477017d9b0:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--HorizonInterpretation:c9632fbe-4415-4a20-9e18-36f6dd8fd88a:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:2bcdc46c-2132-4cdf-beb2-711f6e5eda6c:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:48a2ee75-5f90-4f72-9bd0-d6b6577fef2d:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:b19305b9-d5c0-44c9-a640-360ab7a68209:"
+            },
+            {
+              "ParameterKindID": "opendes:reference-data--ParameterKind:DataObject:",
+              "Title": "Output",
+              "DataObjectParameter": "opendes:work-product-component--StructureMap:fd8af510-d897-44f2-8d8f-6ac724e81456:"
+            }
+          ],
+          "SoftwareSpecifications": [
+            {
+              "SoftwareName": "RDDMS",
+              "Version": "1.0"
+            }
+          ],
+          "ActivityTemplateID": "opendes:master-data--ActivityTemplate:RDDMSManifestBuild:"
+        },
+        "createTime": "2026-06-04T11:40:05.715Z",
+        "modifyTime": "2026-06-04T11:40:05.715Z"
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--LocalModelCompoundCrs:46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_LocalDepth3dCrs(46f85007-5e5f-41dc-8a6e-2bb9e94c1a2d)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "Local Depth CRS"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:de596803-9056-461e-aced-75e6de42eabb",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_GeneticBoundaryFeature(de596803-9056-461e-aced-75e6de42eabb)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "BCU"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:7bb30e24-708f-41f6-b375-7660696bbb8c",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_GeneticBoundaryFeature(7bb30e24-708f-41f6-b375-7660696bbb8c)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "SHETLAND_GP._Top"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:fe469c7e-5f36-4170-9296-722175137d0e",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_GeneticBoundaryFeature(fe469c7e-5f36-4170-9296-722175137d0e)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "Hugin_Fm._Top"
+        }
+      },
+      {
+        "acl": {
+          "owners": [
+            "data.default.owners@opendes.contoso.com"
+          ],
+          "viewers": [
+            "data.default.viewers@opendes.contoso.com"
+          ]
+        },
+        "kind": "osdu:wks:work-product-component--LocalBoundaryFeature:1.2.0",
+        "legal": {
+          "legaltags": [
+            "opendes-RDDMS-LegalTag"
+          ],
+          "otherRelevantDataCountries": [
+            "US"
+          ],
+          "status": "compliant"
+        },
+        "createTime": "2024-05-27T10:32:00.000Z",
+        "createUser": "maap",
+        "id": "opendes:work-product-component--LocalBoundaryFeature:b355f21f-c4cf-407e-992f-1c428986c1df",
+        "modifyTime": "2024-05-27T10:32:00.000Z",
+        "modifyUser": "maap",
+        "version": 1,
+        "data": {
+          "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+          "DDMSDatasets": [
+            "eml://reservoir-ddms1/dataspace('maap/volve')/resqml20.obj_GeneticBoundaryFeature(b355f21f-c4cf-407e-992f-1c428986c1df)"
+          ],
+          "IsDiscoverable": true,
+          "IsExtendedLoad": false,
+          "CreationDateTime": "2024-05-27T10:32:00.000Z",
+          "Name": "Sleipner_Fm._Top"
+        }
+      }
+    ]
+  },
+  "MasterData": [
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "kind": "osdu:wks:master-data--ActivityTemplate:1.1.0",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "createTime": "2026-06-04T11:38:16.474Z",
+      "createUser": "nobody",
+      "id": "opendes:master-data--ActivityTemplate:1801db47-12c3-4f8b-8ae3-25baeb528c23",
+      "modifyTime": "2026-06-04T11:38:16.474Z",
+      "modifyUser": "nobody",
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Prototype:",
+        "Parameters": [
+          {
+            "IsInput": false,
+            "IsOutput": true,
+            "MaxOccurs": -1,
+            "MinOccurs": 1,
+            "Title": "imported"
+          }
+        ]
+      }
+    }
+  ],
+  "ReferenceData": [
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--ExistenceKind:Actual",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "ExistenceKind-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--ExistenceKind:Prototype",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "ExistenceKind-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--IndexableElement:nodes",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "IndexableElement-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--DomainType:Depth",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "DomainType-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--StratigraphicRoleType:Chronostratigraphic",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "StratigraphicRoleType-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    },
+    {
+      "acl": {
+        "owners": [
+          "data.default.owners@opendes.contoso.com"
+        ],
+        "viewers": [
+          "data.default.viewers@opendes.contoso.com"
+        ]
+      },
+      "createTime": "2026-06-04T11:40:05.725Z",
+      "id": "opendes:reference-data--ParameterKind:DataObject",
+      "kind": "",
+      "legal": {
+        "legaltags": [
+          "opendes-RDDMS-LegalTag"
+        ],
+        "otherRelevantDataCountries": [
+          "US"
+        ],
+        "status": "compliant"
+      },
+      "version": 1,
+      "data": {
+        "ExistenceKind": "opendes:reference-data--ExistenceKind:Actual:",
+        "Name": "ParameterKind-undefined",
+        "CommitDate": "2026-06-04T11:40:05.725Z"
+      }
+    }
+  ]
+}

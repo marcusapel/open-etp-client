@@ -59,14 +59,35 @@ const M27_SCHEMA_KINDS = [
   "osdu:wks:work-product-component--FaultInterpretation:1.3.0",
   "osdu:wks:work-product-component--StructuralModel:1.0.0",
   "osdu:wks:work-product-component--StratigraphicColumn:1.2.0",
+  "osdu:wks:work-product-component--StratigraphicColumnRankInterpretation:1.2.0",
+  "osdu:wks:work-product-component--StratigraphicUnitInterpretation:1.2.0",
+  "osdu:wks:work-product-component--EarthModelInterpretation:1.2.0",
   // WPC - Properties / Generic
   "osdu:wks:work-product-component--GenericProperty:1.2.0",
   "osdu:wks:work-product-component--GenericRepresentation:1.2.0",
+  // WPC - Features
+  "osdu:wks:work-product-component--LocalBoundaryFeature:1.0.0",
+  "osdu:wks:work-product-component--LocalRockVolumeFeature:1.0.0",
+  "osdu:wks:work-product-component--LocalModelFeature:1.0.0",
   // WPC - CRS
   "osdu:wks:work-product-component--LocalModelCompoundCrs:1.2.0",
+  // WPC - Lineage
+  "osdu:wks:work-product-component--Activity:1.4.0",
   // WPC - WITSML specific
   "osdu:wks:work-product-component--FluidReport:1.0.0",
   "osdu:wks:work-product-component--MudLogReport:1.1.0",
+  // Reference data
+  "osdu:wks:reference-data--ExistenceKind:1.0.0",
+  "osdu:wks:reference-data--DomainType:1.0.0",
+  "osdu:wks:reference-data--IndexableElement:1.0.0",
+  "osdu:wks:reference-data--KDirectionType:1.0.0",
+  "osdu:wks:reference-data--PillarShapeType:1.0.0",
+  "osdu:wks:reference-data--RepresentationType:1.0.0",
+  "osdu:wks:reference-data--StratigraphicRoleType:1.0.0",
+  "osdu:wks:reference-data--CurveMainFamily:1.0.0",
+  "osdu:wks:reference-data--SamplingDomainType:1.0.0",
+  "osdu:wks:reference-data--UnitOfMeasure:1.0.0",
+  "osdu:wks:reference-data--ParameterKind:1.0.0",
 ];
 
 // ─── YAML Parser (K8s configmap/secret) ──────────────────────────────────────

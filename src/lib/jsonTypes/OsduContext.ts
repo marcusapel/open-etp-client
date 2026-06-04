@@ -727,7 +727,7 @@ export class ReferenceData {
     let Code: string | undefined;
     let kind = "";
     const idSplit = id.split(":");
-    if (idSplit.length !== 3) {
+    if (idSplit.length >= 3) {
       Code = idSplit[2];
       kind = `osdu:wks:${idSplit[1]}:1.0.0`;
     }
