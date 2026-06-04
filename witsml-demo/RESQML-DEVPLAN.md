@@ -19,6 +19,9 @@
 9. [Current Gaps & Pain Points](#9-current-gaps--pain-points)
 10. [Development Plan: Simplify, Optimize, Add, Reorganize](#10-development-plan)
 11. [Prioritized Backlog](#11-prioritized-backlog)
+- [Appendix H-1: ETP Server & Client Deficiencies](#appendix-h-1-etp-server--client-deficiencies--interop-validation-2026-06-04)
+- [Appendix I: GitLab Issue Fixes — Sprint 2026-06-04](#appendix-i-gitlab-issue-fixes--sprint-2026-06-04)
+- [Appendix H: RESQML 2.0.1 ↔ 2.2 Element Mapping Reference](#appendix-h-resqml-201--22-element-mapping-reference)
 
 ---
 
@@ -1135,6 +1138,74 @@ For true **lossless** RESQML round-trip (EPC → ETP → EPC with no data loss):
 | P3 | ETP Server | ExtraMetadata preservation | 1 week | 🟢 LOCAL |
 | P3 | OSDU Instance | Remove test-stub `Osdu_ingest` workflow registration | 1 day | 🟡 COORD |
 | P3 | Client | Update stale examples (Example1.ts, CreateJsonSchema.ts) | 2 days | 🟢 LOCAL |
+
+---
+
+## Appendix I: GitLab Issue Fixes — Sprint 2026-06-04
+
+> Issues resolved from [open-etp-client issues](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/open-etp-client/-/issues).
+> Criteria: low-risk, additive/bugfix, independent of other components, not deployment-specific.
+
+### #67 — Incorrect count of nodes for TriangulatedSurface GenericRepresentation
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/lib/jsonTypes/WorkProductComponent.ts` |
+| **Root Cause** | `pNodeCount++` incremented for every coordinate value (x, y, z) in the flat Point3d array instead of once per point. For N nodes → count was ~3N. |
+| **Fix** | Move `pNodeCount++` inside the `mod === 0` branch (fires only on the x-coordinate of each point). Applied to both `resqml20.Point3dHdf5Array` and `resqml22.Point3dExternalArray` paths. |
+| **Risk** | Low — purely corrects an arithmetic over-count |
+| **Test** | Verified no regressions (60 unit tests pass) |
+
+### #125 — SIGTERM not handled in RestServer; pod shutdown takes full terminationGracePeriodSeconds
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/lib/restApi/RestServer.ts`, `src/lib/restApi/ControllerUtils.ts` |
+| **Root Cause** | No `process.on('SIGTERM')` handler — Node.js process ignores the signal and Kubernetes waits the full grace period (up to 600s) before SIGKILL. |
+| **Fix** | Added `gracefulShutdown()` handler: (1) closes HTTP listener, (2) calls new `drainTransactions()` that rolls back all open ETP transactions via the existing `rollbackTransaction()` helper, (3) exits cleanly. 30s internal timeout guards against hangs. |
+| **Risk** | Low — additive; no behavior change when no SIGTERM is received |
+| **Note** | Although issue is labeled `AWS`, the fix is in generic code, not deployment-specific |
+
+### #126 — PutDataObject returns 500 (not 400) for invalid xsd:dateTime / eml20:TimeStamp
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/lib/mlTypes/Json2Xml.ts` |
+| **Root Cause** | `buildTextValueNode()` catches strict XSD dateTime parse failure, then calls `new Date(value).toISOString()` as fallback — but for truly garbage strings, `Invalid Date.toISOString()` throws unhandled `RangeError`, which maps to 500 in `httpErrorFromEtpError()`. |
+| **Fix** | Added `isNaN(d.getTime())` guard before `.toISOString()`. If invalid, throws `EtpError(EINVALID_ARGUMENT)` with field name and truncated value → maps to HTTP 400 via existing error mapping. |
+| **Risk** | Low — only changes behavior for invalid inputs (valid dates unaffected) |
+| **Existing MR** | !258 (running) — our fix is equivalent |
+
+### #91 — Response of /manifest/build in generated openAPI is incorrect
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/lib/restApi/read-etp.module/Manifest.controller.ts` |
+| **Root Cause** | `ManifestDto.Data` was typed as `Object` in the OpenAPI decorator — Swagger renders it as an opaque object with no inner structure. |
+| **Fix** | Introduced `ManifestDataDto` class with `Datasets`, `WorkProduct`, `WorkProductComponents` typed arrays. Changed `ManifestDto.Data` type from `Object` to `ManifestDataDto`. Swagger now renders the correct nested schema. |
+| **Risk** | Low — purely OpenAPI documentation fix; no runtime behavior change |
+
+### #130 — Client responds with 204 but locked dataspace is not actually deleted
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/lib/client/ResqmlClient.ts` |
+| **Root Cause** | `deleteDataspaces()` had a `.catch(reason => { logger.error(reason); return false; })` that swallowed ETP `ProtocolException` (error code 27: no permission to modify locked space). The controller saw a resolved promise and returned 204. |
+| **Fix** | Removed the `.catch()` swallow — errors now propagate to the controller's `catch(err) { throw httpErrorFromEtpError(err) }`, returning the appropriate HTTP error (403 Forbidden for permission denied). |
+| **Risk** | Low — callers that relied on `false` return value already had no way to distinguish "unsupported" from "permission denied" |
+
+### Issues Triaged but NOT Fixed (with rationale)
+
+| # | Title | Reason |
+|---|-------|--------|
+| 127 | Dead WebSocket → 410 Gone | Already has MR !259 in review (Rishabh/Philippe) |
+| 112 | Orphaned dataspace on clone failure | Already fixed in code (`.catch` rollback exists) |
+| 131 | Pin dependency versions | Assigned to Arnold; in progress |
+| 60 | OWASP vulnerable JS library | Requires dependency audit, not a code fix |
+| 61 | Internal Server Errors in REST API | Partially fixed (!183, !184 merged); remaining parts are deployment-specific |
+| 78 | Transactions API with non-existent dataspaceId | Needs broader design consideration (affects multiple controllers) |
+| 47–58 | ETP Certification test migration | Assigned to Wellcoms team (Jeffrey/Burhanuddin) |
+| 38–40 | REST multi-object, test config, store tests | Assigned to Laurent/Sahil |
 
 ---
 

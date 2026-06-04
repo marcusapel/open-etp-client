@@ -2,8 +2,8 @@
  * Import EPC file into ETP server via the ResqmlClient.
  * Usage: npx ts-node import_epc.ts <epc-path> <dataspace-path>
  */
-import { ResqmlClient } from "./src/lib/client/ResqmlClient";
-import { Energistics } from "./src/lib/common/Etp12";
+import { ResqmlClient } from "../src/lib/client/ResqmlClient";
+import { Energistics } from "../src/lib/common/Etp12";
 import * as AdmZipModule from "adm-zip";
 const AdmZip = (AdmZipModule as any).default || AdmZipModule;
 
