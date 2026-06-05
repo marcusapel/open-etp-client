@@ -568,7 +568,7 @@ Every OSDU record carries:
 | Item | What | How |
 |------|------|-----|
 | **O1** | PropertyKind alignment via PWLS | ✅ **DONE** — v2.2 `QuantityClass` → OSDU `UnitQuantityID` mapping implemented in `PropertyType23.ts`. v2.0.1 already uses `RepresentativeUom`. PWLS-3 manifest (3,629 PropertyTypes) already bundled. **PWLS v4 Curve Catalog** now integrated: `PwlsCurveCatalog.ts` provides 875 standard properties with QuantityClass + PropertyType UUID lookup, plus vendor mnemonic resolution (load SLB/Halliburton/Baker Hughes catalogs at runtime). Used in `WellboreFrameToWellLog.ts`, `WellboreFrameToWellLog22.ts`, and `WitsmlWellLog.ts` for `LogCurveMainFamilyID` enrichment. |
-| **O2** | CRS catalog federation | Expose OSDU CRS catalog to RDDMS via lightweight lookup API (or replicate on deploy) |
+| **O2** | CRS handling alignment | 🟡 **PARTIAL** — Projected EPSG lookup (`findProjectedEPSGCrs`) and BoundCRS lookup (`findBoundedEPSGCrs`) work when OSDU CRS Catalog is reachable. WGS84 conversion via CRS Converter v3 API works. **Gaps:** (1) No Vertical CRS lookup — `VerticalCoordinateReferenceSystemID` never populated, (2) WKT/LocalAuthority CRS not converted to OSDU records, (3) `LocalModelCompoundCrs` WPC has no CRS-specific fields (OSDU schema is a placeholder), (4) No `localFrame` metadata on OSDU dataset records, (5) CRS catalog not available in standalone/disconnected mode. See **Appendix J** for full analysis. |
 | **O3** | Selective manifest generation | ✅ **DONE** — Subsumed by S1. Default type filter now indexes interpretation-level objects only; representations + properties accessible via ETP but not catalog-indexed by default |
 | **O4** | Session survivability (client) | ✅ **DONE** — `Util.ts` provides `retry()` (exponential backoff, 6 retries) and `retryOnEtpErrors()` (error-code-specific). `ResqmlClient.putUsingPutDataArraysType()` already chunks large arrays: splits into sub-arrays when payload exceeds `negotiatedSize`, sends via `PutDataSubarrays`. Server M26 support provides session resumption. |
 | **O5** | S3/blob storage for large arrays | Production path for models >1GB (bypass PG TOAST for HDF5 chunks) |
@@ -954,6 +954,27 @@ For reliable manifest generation from RESQML 2.2 data on ADME instances:
 - **Do NOT rely on the REST API manifest builder** for types with DOR references stored on ADME
 - The REST API builder works correctly on the LOCAL ETP server (where DOR UUIDs are preserved in object bodies)
 
+### Geosiris Validation Results (2026-06-05)
+
+| EPC | energyml `validate_epc` | Notes |
+|-----|------------------------|-------|
+| `synthetic22.epc` (energyml-utils) | **0 errors** ✅ | Proper v2.2: `ExternalDataArrayPart`, PropertyKind DORs, `QualifiedType`/`Uuid` |
+| `synthetic201.epc` (energyml-utils) | **0 errors** ✅ | Proper v2.0.1: `Hdf5Dataset`/`PathInHdfFile`, inline `StandardPropertyKind` |
+| `drogon_demo_22.epc` (regex-converted) | **1,671 CRITICAL** ❌ | Hybrid v2.0/v2.2 — see below |
+
+**Drogon 2.2 failure breakdown (top issues):**
+- 254× `property_kind.uuid/qualified_type/title` — inline v2.0 `StandardPropertyKind/Kind` enum, NOT the v2.2 DOR
+- 222× `supporting_representation` — failed to parse due to hybrid array refs
+- 69× `.uom` — v2.0 `ResqmlUom` enum incompatible with v2.2
+- 28× `geometry.local_crs` — incomplete DOR conversion
+- 12× `.local_crs.content_type/uuid` — residual v2.0 `ContentType`/`UUID` not converted
+
+**Root cause:** `build_drogon22_epc.py` does regex-based cosmetic renaming (types, some DORs) but explicitly keeps:
+1. `PathInHdfFile`/`HdfProxy` (v2.0 array refs) — should be `ExternalDataArrayPart`/`PathInExternalFile`/`URI`
+2. `StandardPropertyKind/Kind` (v2.0 inline enum) — should be DOR to PropertyKind object
+
+**Fix path:** Rebuild drogon22 natively using `energyml-utils` (like synthetic22). The regex conversion approach cannot produce valid v2.2.
+
 ---
 
 ## Appendix H-1: ETP Server & Client Deficiencies — Interop Validation (2026-06-04)
@@ -1305,5 +1326,152 @@ For true **lossless** RESQML round-trip (EPC → ETP → EPC with no data loss):
 <resqml2:SlowestAxisCount>200</resqml2:SlowestAxisCount>
 <resqml2:Geometry>...</resqml2:Geometry>
 ```
+
+---
+
+## Appendix J: CRS Handling Analysis — RESQML ⇄ OSDU Alignment
+
+> Reference: [CrsHandler.md](https://community.opengroup.org/osdu/platform/domain-data-mgmt-services/reservoir/home/-/blob/main/Resources/CrsHandler.md)
+
+### J.1 RESQML CRS Model (Conceptual)
+
+RESQML uses a **two-level** CRS design:
+
+1. **Global Projected 2D CRS** — one per dataspace/EPC (e.g., EPSG:25832). Georeferences the entire package.
+2. **Local 3D CRS** — per-representation offsets, rotation, axis order, units, Z direction. References the global projected + a vertical CRS.
+
+Position composition: `X_global = X_offset + x_l·cosθ + y_l·sinθ`
+
+CRS reference forms in EnergyML Common:
+- `ProjectedEpsgCrs` / `VerticalEpsgCrs` — preferred
+- `ProjectedWktCrs` / `VerticalWktCrs` — for custom/non-EPSG
+- `ProjectedLocalAuthorityCrs` / `VerticalLocalAuthorityCrs` — company codes
+- `ProjectedUnknownCrs` / `VerticalUnknownCrs` — legacy/undocumented
+
+### J.2 OSDU CRS Model
+
+- CRS as **reference-data records**: `reference-data--CoordinateReferenceSystem:{Projected|Vertical|BoundProjected}:EPSG::<code>`
+- **Local frame stays with dataset metadata** (not in the CRS record):
+  ```json
+  { "localFrame": { "xOffset", "yOffset", "zOffset", "arealRotation", "projectedAxisOrder", "uomXY", "uomZ", "zIncreasingDownward" } }
+  ```
+- CRS Catalog v3: browse/search CRS records
+- CRS Convert v4: transforms using record IDs (Apache SIS engine)
+- BoundCRS: `BoundProjected:EPSG::<base>_EPSG::<ct>` — explicit datum shift
+
+### J.3 Current RDDMS Implementation Status
+
+| Capability | Status | File(s) |
+|-----------|--------|---------|
+| Projected EPSG → OSDU CRS lookup | ✅ Done | `OsduContext.findProjectedEPSGCrs()` |
+| BoundCRS lookup (projected + CT) | ✅ Done | `OsduContext.findBoundedEPSGCrs()` |
+| WGS84 coordinate transformation | ✅ Done | `OsduContext.convertPointsWGS84()` (CRS Convert v3) |
+| `SpatialPoint` + `SpatialArea` on WPCs | ✅ Done | `WorkProductComponent.createSpatialInfo()` |
+| `CoordinateReferenceSystemID` in AsIngested | ✅ Done | `WorkProductComponent.createSpatialInfoFrom2dPoints()` |
+| `persistableReferenceCrs` | ✅ Done | JSON-encoded `{authCode:{auth:"EPSG",code}}` |
+| Axis order handling (EN/NE) | ✅ Done | `SeismicBinGrid2Representation22.ts`, `WorkProductComponent.ts` |
+| **Vertical CRS lookup** | ❌ Missing | No `findVerticalEPSGCrs()` — `VerticalCoordinateReferenceSystemID` never set |
+| **WKT/GML CRS → OSDU record** | ❌ Missing | `ProjectedWktCrs`/`VerticalWktCrs` not converted |
+| **LocalAuthority CRS → OSDU record** | ❌ Missing | `ProjectedLocalAuthorityCrs` not converted |
+| **`localFrame` on dataset metadata** | ❌ Missing | OSDU expects offsets/rotation on WPC; not emitted |
+| **CRS catalog in standalone mode** | ❌ Missing | Requires live OSDU Search API connection |
+| **`LocalModelCompoundCrs` enrichment** | ❌ Placeholder | OSDU schema has no CRS-specific fields yet |
+
+### J.4 Gap Analysis — What Can Be Improved
+
+#### Gap 1: Vertical CRS Not Resolved (🟢 LOCAL — implement in etp-client)
+
+**Problem:** RESQML `LocalDepth3dCrs` always has `VerticalCrs` (EPSG, WKT, or Unknown). The current code extracts the projected EPSG but ignores the vertical.
+
+**OSDU expects:** `VerticalCoordinateReferenceSystemID` in `AsIngestedCoordinates` (e.g., `opendes:reference-data--CoordinateReferenceSystem:Vertical:EPSG::5714`)
+
+**Fix:** Add `findVerticalEPSGCrs(code)` to `OsduContext.ts`, call from `createSpatialInfoFrom2dPoints`, and populate `VerticalCoordinateReferenceSystemID` + `persistableReferenceVerticalCrs`.
+
+**Risk:** Low. Additive. OSDU vertical CRS catalog is standard.
+
+#### Gap 2: localFrame Not Emitted on WPC Records (🟢 LOCAL)
+
+**Problem:** The CrsHandler.md guide mandates that OSDU datasets carry `localFrame` metadata (offsets, rotation, axis order, Z direction). RDDMS generates `SpatialPoint`/`SpatialArea` but does NOT emit localFrame.
+
+**OSDU expects:**
+```json
+"localFrame": {
+  "xOffset": 420000.0, "yOffset": 6470000.0, "zOffset": 0.0,
+  "arealRotation": 0.0, "projectedAxisOrder": "easting northing",
+  "uomXY": "m", "uomZ": "m", "zIncreasingDownward": true
+}
+```
+
+**Fix:** In `createSpatialInfo`, extract localFrame fields from the resolved `LocalDepth3dCrs`/`LocalEngineeringCompoundCrs` and return them as part of the spatial info structure. Add to WPC `FrameOfReference` metadata.
+
+**Risk:** Low. All data already available in the CRS object.
+
+#### Gap 3: WKT/LocalAuthority CRS Not Handled (🟡 COORD — needs OSDU CRS Catalog)
+
+**Problem:** When a RESQML model uses `ProjectedWktCrs` or `ProjectedLocalAuthorityCrs`, the code cannot resolve it to an OSDU CRS ID. Falls back to no CRS reference.
+
+**OSDU expectation:** Register a `LocalAuthority` CRS record in the catalog, then reference by its ID.
+
+**Fix options:**
+- A) **Best-effort EPSG detection**: parse WKT, attempt to match known EPSG codes (many WKT definitions correspond to EPSG entries)
+- B) **Register CRS record**: POST to CRS Catalog to create a `LocalAuthority` record from the WKT
+- C) **Embed WKT in `persistableReferenceCrs`**: OSDU supports self-contained WKT as persistableReference
+
+**Recommendation:** Option C first (lossless, no external dependency), then B for environments with CRS Catalog access.
+
+**Risk:** Medium. Requires decision on whether RDDMS should create OSDU records.
+
+#### Gap 4: CRS Catalog Not Available Standalone (🔴 EXTERNAL)
+
+**Problem:** `findProjectedEPSGCrs` queries OSDU Search API. In standalone/dev mode (Docker, no OSDU), this fails silently and spatial info is incomplete.
+
+**Fix options:**
+- A) **Bundle static EPSG catalog** (like PWLS) — ship common EPSG codes with `persistableReference`
+- B) **Fallback `persistableReference`**: when OSDU unreachable, generate `{authCode:{auth:"EPSG",code}}` (already done)
+- C) **Optional CRS catalog file** loadable at startup (like PWLS vendor catalogs)
+
+**Current workaround:** The code already falls back to `JSON.stringify({authCode:{auth:"EPSG",code}})` when OSDU unavailable. This is acceptable per CrsHandler.md.
+
+**Risk:** Low. Current fallback is adequate for manifest generation. Full catalog needed only for coordinate transformation.
+
+#### Gap 5: LocalModelCompoundCrs WPC Has No CRS Fields (🔴 EXTERNAL — OSDU DD)
+
+**Problem:** OSDU's `LocalModelCompoundCrs.1.2.0` schema explicitly says "No attribute is present yet but could be added in next releases." It's a placeholder.
+
+**Impact:** The RDDMS `LocalModelCompoundCrs.ts` converter can only produce empty-ish WPCs. The real CRS semantics are preserved in RESQML (lossless in ETP) but not in the OSDU manifest.
+
+**Fix:** This requires OSDU Data Definitions working group to extend the schema. RDDMS can pre-populate `ExtensionProperties` with localFrame data until then.
+
+### J.5 Recommended Priority
+
+| Priority | Gap | Effort | Impact |
+|----------|-----|--------|--------|
+| 1 | Vertical CRS lookup (Gap 1) | S (1-2 days) | Completes spatial metadata — OSDU consumers can transform Z |
+| 2 | localFrame on WPC (Gap 2) | S (1-2 days) | OSDU compliance — CrsHandler.md mandates it |
+| 3 | WKT as persistableReference (Gap 3, option C) | M (3-5 days) | Handles non-EPSG models losslessly |
+| 4 | Static EPSG catalog (Gap 4) | M (3-5 days) | Standalone completeness |
+| 5 | OSDU DD schema extension (Gap 5) | External | Requires community contribution |
+
+### J.6 Design Principle: Harmonic Lossless Transfer
+
+The CrsHandler.md establishes the key principle: **RESQML local frame parameters stay with geometry metadata, not in CRS records.** The current RDDMS implementation aligns with this principle:
+
+```
+RESQML (full fidelity)          OSDU (reference catalog)
+─────────────────────           ────────────────────────
+LocalDepth3dCrs                 ┌─ CRS record (Projected:EPSG::25832)
+  ├─ XOffset: 420000     ──→   │  (pure reference, no offsets)
+  ├─ YOffset: 6470000          └─ CRS record (Vertical:EPSG::5714)
+  ├─ ArealRotation: 0          
+  ├─ ProjectedCrs: EPSG 25832  ┌─ WPC metadata
+  └─ VerticalCrs: EPSG 5714    │  coordinateReferenceSystemID: ...25832
+                                │  verticalCRSID: ...5714
+                                │  localFrame: {x:420000, y:6470000, ...}
+                                └─ SpatialArea: {AsIngested + WGS84}
+```
+
+**Current state is near-optimal for the EPSG path.** Gaps 1+2 complete the picture. Gaps 3-5 are edge cases or external dependencies.
+
+**No RESQML schema changes needed.** No OSDU schema changes needed for Gaps 1-4. The interface (`open-etp-client`) needs small additions only.
 
 Gz3xvhiIXahqMnZb8lkhqG86MQp1OjEwdQk.01.0z1a91wuy

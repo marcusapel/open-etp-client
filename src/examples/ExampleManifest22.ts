@@ -73,8 +73,8 @@ async function main() {
 
   // Summary
   const wpcs = manifest.Data?.WorkProductComponents || [];
-  const refs = manifest.Data?.ReferenceData || [];
-  const masters = manifest.Data?.MasterData || [];
+  const refs = manifest.ReferenceData || [];
+  const masters = manifest.MasterData || [];
   const datasets = manifest.Data?.Datasets || [];
 
   log(`\nManifest built:`);

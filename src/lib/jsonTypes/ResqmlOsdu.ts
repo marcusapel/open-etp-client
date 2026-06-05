@@ -48,6 +48,7 @@ import { PropertyTypeManifest } from "./PropertyType";
 import { PropertyType23Manifest } from "./PropertyType23";
 import { SeismicLatticeFeatureManifest } from "./SeismicLatticeFeature";
 import { SeismicLatticeFeature22Manifest } from "./SeismicLatticeFeature22";
+import { SeismicLineGeometryManifest } from "./SeismicLineGeometry";
 import { StratigraphicColumnManifest } from "./StratigraphicColumn";
 import { StratigraphicColumnRankInterpretationManifest } from "./StratigraphicColumnRankInterpretation";
 import { StratigraphicUnitInterpretationManifest } from "./StratigraphicUnitInterpretation";
@@ -334,6 +335,11 @@ ResqmlOSDU.add(
   "resqml22.SeismicLatticeFeature",
   () => "osdu:wks:master-data--SeismicAcquisitionSurvey.1.4.0",
   SeismicLatticeFeature22Manifest
+);
+ResqmlOSDU.add(
+  "resqml20.obj_SeismicLineFeature",
+  () => "osdu:wks:work-product-component--SeismicLineGeometry:1.2.0",
+  SeismicLineGeometryManifest
 );
 ResqmlOSDU.add(
   "resqml20.obj_StratigraphicColumn",
