@@ -1,4 +1,7 @@
 build/
+dist/
+node_modules/
+
 .cache/
 rddms_local.db
 compile_commands.json
