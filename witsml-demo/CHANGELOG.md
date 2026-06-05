@@ -6,6 +6,147 @@ official client with five new ETP 1.2 protocol handlers, two REST controller
 modules, a unified well search endpoint, and supporting test/certification
 infrastructure.
 
+### Test Coverage for Non-Additive / Risk Items
+
+All items marked 🐛/⚠️/🧪 are covered by `src/__tests__/TestCrsAndBugfixes.ts` (41 unit tests):
+
+| Change | Tests | What's Verified |
+|--------|-------|-----------------|
+| CRS Fix 2: ArealRotation | 4 tests | 0°/45°/90° rotation, rad vs dega units |
+| CRS Fix 1: Vertical CRS | 2 tests | EPSG extraction, missing CRS graceful |
+| CRS Fix 3: localFrame | 2 tests | All metadata fields, round-trip lossless |
+| CRS Fix 4: WKT | 3 tests | PROJCS/PROJCRS detection, non-WKT rejection |
+| #67 Node count | 3 tests | 1/3/100 points → correct count (not 3x) |
+| #126 dateTime | 4 tests | Valid/invalid/empty/partial date strings |
+| #130 Delete propagation | 2 tests | Error code 27 + generic error propagation |
+| S1 Type filter | 9 tests | Include/exclude patterns for all categories |
+| A2 StructureMap routing | 3 tests | Horizon+depth/horizon+lattice/fallback |
+| O4 Chunking | 5 tests | Boundary, exact-fit, reassembly, empty |
+| Manifest best-effort | 2 tests | Skip-and-continue, all-fail → empty |
+| #125 SIGTERM | 2 tests | Rollback all, survive partial failure |
+
+**Run:** `npx jest --testPathPattern=TestCrsAndBugfixes`
+
+### Risk Classification
+
+Items marked with risk tags:
+- 🐛 **BUGFIX** — Corrects incorrect behavior (output values change)
+- ⚠️ **NON-ADDITIVE** — Changes existing behavior or API contract (not purely new functionality)
+- 🧪 **NEEDS-TESTING** — Risk of backward incompatibility with server or downstream consumers; integration test recommended
+
+---
+
+## M27 Schema Upgrades: Phase 1 Complete (2026-06-05)
+
+All 9 high-priority M27 schemas now have dedicated converters producing their proper OSDU kind
+(previously mapped to approximate kinds like EarthModelInterpretation/GenericRepresentation).
+
+| RESQML Source | OSDU Kind | Converter File |
+|---|---|---|
+| `StructuralOrganizationInterpretation` | `StructuralOrganizationInterpretation:1.2.0` | `StructuralOrganizationInterpretation.ts` / `22.ts` |
+| `RockFluidOrganizationInterpretation` | `RockFluidOrganizationInterpretation:1.2.0` | `RockFluidOrganizationInterpretation.ts` / `22.ts` |
+| `RockFluidUnitInterpretation` | `RockFluidUnitInterpretation:1.3.0` | `RockFluidUnitInterpretation.ts` / `22.ts` |
+| `FluidBoundaryInterpretation` | `FluidBoundaryInterpretation:1.2.0` | `FluidBoundaryInterpretation.ts` / `22.ts` |
+| `SealedSurfaceFrameworkRepresentation` | `SealedSurfaceFramework:1.2.0` | `SealedSurfaceFramework.ts` / `22.ts` |
+| `SealedVolumeFrameworkRepresentation` | `SealedVolumeFramework:1.2.0` | `SealedVolumeFramework.ts` / `22.ts` |
+| `SubRepresentation` | `SubRepresentation:1.2.0` | `SubRepresentation.ts` / `22.ts` |
+| `GridConnectionSetRepresentation` | `GridConnectionSetRepresentation:1.2.0` | `GridConnectionSetRepresentation.ts` / `22.ts` |
+| `Grid2dRepresentation` (depth+horizon) | `StructureMap:1.0.0` | `StructureMap.ts` / `StructureMap22.ts` |
+
+---
+
+## GitLab Issue Fixes: #67, #91, #125, #126, #130 (2026-06-04)
+
+### #67 — Incorrect node count for TriangulatedSurface GenericRepresentation 🐛 ⚠️ 🧪
+- **File**: `src/lib/jsonTypes/WorkProductComponent.ts`
+- **Fix**: `pNodeCount++` was incrementing for every coordinate value (x,y,z) instead of per-point. Moved into `mod === 0` branch. Applied to both `resqml20.Point3dHdf5Array` and `resqml22.Point3dExternalArray`.
+- **Risk**: `IndexableElementCount` in existing manifests will differ (~3x reduction). Downstream systems caching old counts may see mismatches. Needs re-ingestion test.
+
+### #125 — SIGTERM not handled; pod shutdown takes full terminationGracePeriodSeconds ⚠️ 🧪
+- **Files**: `src/lib/restApi/RestServer.ts`, `src/lib/restApi/ControllerUtils.ts`
+- **Fix**: Added `gracefulShutdown()` handler: closes HTTP listener, drains open ETP transactions via `rollbackTransaction()`, exits. 30s internal timeout.
+- **Risk**: On SIGTERM, open transactions are now rolled back (previously left dangling). Verify Kubernetes `terminationGracePeriodSeconds` ≥ 30s. Test pod restart under load.
+
+### #126 — PutDataObject returns 500 (not 400) for invalid dateTime 🐛 ⚠️
+- **File**: `src/lib/mlTypes/Json2Xml.ts`
+- **Fix**: Added `isNaN(d.getTime())` guard in `buildTextValueNode()`. Invalid dates now throw `EtpError(EINVALID_ARGUMENT)` → HTTP 400 (not unhandled RangeError → 500).
+- **Risk**: Low. Clients relying on 500 status code for validation errors would need updating. Standard HTTP semantics (400 for bad input) is correct.
+
+### #91 — Response of /manifest/build in generated OpenAPI is incorrect
+- **File**: `src/lib/restApi/read-etp.module/Manifest.controller.ts`
+- **Fix**: Introduced `ManifestDataDto` class with typed `Datasets`, `WorkProduct`, `WorkProductComponents` arrays. Changed `ManifestDto.Data` type from `Object` to `ManifestDataDto`.
+
+### #130 — Client responds with 204 but locked dataspace is not actually deleted 🐛 ⚠️ 🧪
+- **File**: `src/lib/client/ResqmlClient.ts`
+- **Fix**: Removed `.catch()` that swallowed `ProtocolException` (error code 27). Errors now propagate → 403 Forbidden for permission denied.
+- **Risk**: REST clients that called DELETE on locked dataspaces and assumed success (204) will now receive 403. Any automation scripts doing dataspace cleanup need testing.
+
+---
+
+## CRS Handling: 5 Additive Fixes for Harmonic RESQML↔OSDU Transfer (2026-06-05)
+
+Implements the full CRS handling alignment described in Appendix L of RESQML-DEVPLAN.md.
+All changes are in `WorkProductComponent.createSpatialInfoFrom2dPoints()` and
+`createSpatialInfo()`. No existing behavior broken — all fixes are additive enrichments.
+
+### Fix 1: Vertical CRS Resolution
+- **v2.0.1**: Extracts `VerticalCrs.EpsgCode` from `AbstractLocal3dCrs` → populates `VerticalCoordinateReferenceSystemID` + `persistableReferenceVerticalCrs`
+- **v2.2**: Resolves `LocalEngineeringCompoundCrs.VerticalCrs` DOR → extracts EPSG or WKT from resolved object
+- OSDU consumers can now determine vertical datum for 3D coordinate transforms
+
+### Fix 2: ArealRotation Bugfix (coordinate computation) 🐛 ⚠️ 🧪
+- **Previously**: `SpatialArea` coordinates used simple `p + [XOffset, YOffset]` (incorrect for rotated local frames)
+- **Now**: Applies proper affine transform: `X_global = XOffset + x·cosθ + y·sinθ`, `Y_global = YOffset - x·sinθ + y·cosθ`
+- **v2.0.1**: Reads `ArealRotation` (PlaneAngleMeasure with unit — handles both `dega` and `rad`)
+- **v2.2**: Reads `LocalEngineering2dCrs.Azimuth` (degrees)
+- Same rotation applied to `SpatialPoint`
+- **Risk**: Any model with non-zero ArealRotation will produce different `SpatialArea`/`SpatialPoint` coordinates. Old manifests had incorrect coordinates; new ones are correct. Re-ingest affected datasets. **Test with known rotated CRS (e.g., North Sea ED50/UTM with survey rotation).**
+
+### Fix 3: localFrame in Return Value (for ExtensionProperties)
+- Returns `localFrame` metadata dictionary from `createSpatialInfoFrom2dPoints()` and `createSpatialInfo()`
+- **v2.0.1 fields**: xOffset, yOffset, zOffset, arealRotationDeg, projectedAxisOrder, projectedUom, verticalUom, zIncreasingDownward
+- **v2.2 fields**: xOffset, yOffset, zOffset, arealRotationDeg, crsVersion
+- Stored under `rddms/localFrame/` prefix — enables lossless OSDU→RESQML reconstruction
+- **Design note**: These are for RDDMS geomodelling round-trip only; OSDU search does not need them
+
+### Fix 4: WKT CRS Support
+- **v2.0.1**: Detects WKT content in `ProjectedUnknownCrs.Unknown` field (heuristic: starts with `PROJCS[` or `PROJCRS[`)
+- **v2.2**: Reads `ProjectedWktCrs.WellKnownText` directly
+- **v2.2 vertical**: Reads `VerticalWktCrs.WellKnownText`
+- WKT string used directly as `persistableReferenceCrs` (CRS Convert v4 accepts WKT)
+- Generates `Projected:WKT::{title}` reference-data ID
+
+### Fix 5: LocalAuthority CRS Support
+- **v2.2**: Reads `ProjectedLocalAuthorityCrs.LocalAuthorityCrsName` → extracts `Authority` + `Code`
+- Generates `Projected:LocalAuthority::{auth}-{code}` reference-data ID
+- `persistableReferenceCrs` set to JSON `{localAuthority:{codeSpace,code}}`
+
+### Structural Difference: v2.0.1 vs v2.2 Compound CRS
+
+| Aspect | RESQML 2.0.1 (Common v2.0) | RESQML 2.2 (Common v2.3) |
+|--------|---------------------------|--------------------------|
+| CRS object | `obj_LocalDepth3dCrs` (all-in-one) | `LocalEngineeringCompoundCrs` (decomposed) |
+| Projected CRS | Inline `ProjectedCrs` property | DOR → `LocalEngineering2dCrs.OriginProjectedCrs` |
+| Vertical CRS | Inline `VerticalCrs` property | DOR → resolved vertical CRS object |
+| Offsets | Direct `XOffset`/`YOffset`/`ZOffset` | `OriginProjectedCoordinate1/2` + `OriginVerticalCoordinate` |
+| Rotation | `ArealRotation` (PlaneAngleMeasure) | `LocalEngineering2dCrs.Azimuth` |
+| CRS forms | EPSG or Unknown only | EPSG, WKT, LocalAuthority, GML, Unknown |
+
+### Tests
+- 0 new test files (pure enrichment of existing spatial info path)
+- All 258 existing unit tests pass
+- TypeScript: 0 compilation errors
+
+---
+
+## Seismic 2D: SeismicLineGeometry Converter (#66) (2026-06-05)
+
+- New `SeismicLineGeometry.ts` converter: `obj_SeismicLineFeature` → `WPC--SeismicLineGeometry:1.2.0`
+- Maps: FirstTraceIndex→FirstCMP, computed LastCMP, HasCMPIncreaseByOne
+- Spatial from associated PolylineRepresentation (resolved via context)
+- New test: `TestSeismicLineGeometry.ts` (7 unit tests)
+- Registered in `ResqmlOsdu.ts`
+
 ---
 
 ## A3 + R3: Lineage & Boundary Definition (2026-06-04)
@@ -43,9 +184,11 @@ infrastructure.
 - Same dataspace always maps to same collaboration UUID (namespace: `6ba7b810-9dad-11d1-80b4-00c04fd430c8`)
 - Added `RDDMS_COLLABORATION_NAMESPACE` constant in `Manifest.ts`
 
-### O4: Session Survivability (Retry + Chunking)
+### O4: Session Survivability (Retry + Chunking) — CLIENT-SIDE
 - `Util.ts` provides `retry()` (exponential backoff, 6 retries) and `retryOnEtpErrors()`
 - `putUsingPutDataArraysType()` chunks arrays exceeding `negotiatedSize` into sub-arrays
+- **Scope**: Pure client logic. Server-side session resumption (M26) is independent. This adds client resilience against transient ETP errors and oversized payloads.
+- 🧪 **Test**: Verify chunking boundary (array split at exactly `negotiatedSize`) doesn't corrupt multi-dimensional arrays. Test retry behavior with unreachable server (should not hang).
 
 ### A4: WITSML Additional Type Converters
 - `WitsmlRig.ts` → `Rig:1.3.0`
@@ -151,10 +294,14 @@ builder now applies a default whitelist that indexes only discovery-worthy types
 10 CRS + timeseries) now generates ~50 WPC records instead of ~600. Reduces
 Storage API load, Elasticsearch noise, and ingestion time by ~90%.
 
-### A2: StructureMap Manifest from Grid2dRepresentation (Depth-Domain)
+⚠️ 🧪 **Risk**: Existing automation expecting all types in manifest output will get fewer records by default. **Opt-out**: pass `typePatterns: ["*"]`. Test any CI/CD pipelines that consume manifest output.
+
+### A2: StructureMap Manifest from Grid2dRepresentation (Depth-Domain) ⚠️ 🧪
 
 Added dedicated StructureMap converter for depth-domain `Grid2dRepresentation`
 objects that have a `HorizonInterpretation` and are NOT on a seismic lattice.
+
+**Risk**: Grid2d objects that previously fell through to `GenericRepresentation` will now produce `StructureMap:1.0.0` (different OSDU kind, different schema fields). Downstream consumers filtering by kind may miss or double-count these. **Test with Volve/Drogon depth horizons — verify OSDU Search finds them under the new kind.**
 
 **New files:**
 - `src/lib/jsonTypes/Generated/work-product-component/StructureMap.1.0.0.ts` — M27 schema interface
@@ -190,7 +337,7 @@ objects that have a `HorizonInterpretation` and are NOT on a seismic lattice.
 
 Registered in `src/lib/jsonTypes/ResqmlOsdu.ts` via `ResqmlOSDU.add(...)`.
 
-### Bug Fixes to Manifest Builder (`src/lib/jsonTypes/Manifest.ts`)
+### Bug Fixes to Manifest Builder (`src/lib/jsonTypes/Manifest.ts`) 🐛 ⚠️ 🧪
 
 - **`registerDMS` no longer aborts manifest** — `catch` was incorrectly returning
   `Promise.reject("Fail to register DMS")`. Now continues without DMS registration
@@ -201,6 +348,8 @@ Registered in `src/lib/jsonTypes/ResqmlOsdu.ts` via `ResqmlOSDU.add(...)`.
 - **Converter errors skip individual objects** — was `return Promise.reject("Manifest
   creation failed")` which aborted the entire manifest on any single converter error.
   Now `continue`s to next object.
+
+**Risk**: Behavior changes from "fail fast" to "best effort". Partial manifests may now be generated silently where previously the process would abort. Callers should check manifest WPC count vs expected. **Test with a dataspace containing objects that trigger converter errors — verify partial output is acceptable.**
 
 ### Critical Fix: `$type` on WITSML objects (`src/lib/mlTypes/XmlJsonUtil.ts`)
 

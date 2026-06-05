@@ -1280,6 +1280,7 @@ export class ResqmlWorkProductComponent<
     SpatialArea: AbstractSpatialLocation | undefined;
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
     Wgs84Coordinates: [number, number][] | undefined;
+    localFrame: { [key: string]: unknown } | undefined;
   }> {
     if (pointCoordinates.length === 0) {
       return Promise.reject(new Error("No geometry provided"));
@@ -1301,7 +1302,9 @@ export class ResqmlWorkProductComponent<
     }
 
     let CoordinateReferenceSystemID = undefined;
+    let VerticalCoordinateReferenceSystemID: string | undefined = undefined;
     let persistableReferenceCrs = "";
+    let persistableReferenceVerticalCrs: string | undefined = undefined;
     let Wgs84Coordinates = undefined;
     let SpatialPoint: AbstractSpatialLocation | undefined;
     let SpatialArea: AbstractSpatialLocation | undefined;
@@ -1310,6 +1313,9 @@ export class ResqmlWorkProductComponent<
 
     let XOffset = 0;
     let YOffset = 0;
+    let ZOffset = 0;
+    let arealRotationRad = 0;
+    let localFrame: { [key: string]: unknown } | undefined = undefined;
 
     if (crs.$type === "eml23.LocalEngineeringCompoundCrs") {
       const crs23 = crs as SimpleJson<eml23.LocalEngineeringCompoundCrs>;
@@ -1320,28 +1326,151 @@ export class ResqmlWorkProductComponent<
         context
       )) as SimpleJson<eml23.LocalEngineering2dCrs>;
       if (projectedCrs) {
-        if (
-          projectedCrs.OriginProjectedCrs.AbstractProjectedCrs.$type ===
-          "eml23.ProjectedEpsgCrs"
-        ) {
+        const projType = projectedCrs.OriginProjectedCrs.AbstractProjectedCrs.$type;
+        if (projType === "eml23.ProjectedEpsgCrs") {
           epsgCode = (
             projectedCrs.OriginProjectedCrs
               .AbstractProjectedCrs as SimpleJson<eml23.ProjectedEpsgCrs>
           ).EpsgCode;
+        } else if (projType === "eml23.ProjectedWktCrs") {
+          // Fix 4: WKT CRS support — use WKT directly as persistableReferenceCrs
+          persistableReferenceCrs = (
+            projectedCrs.OriginProjectedCrs
+              .AbstractProjectedCrs as SimpleJson<eml23.ProjectedWktCrs>
+          ).WellKnownText;
+          CoordinateReferenceSystemID = context.addReferenceData(
+            "CoordinateReferenceSystem",
+            `Projected:WKT::${(crs23.Citation?.Title || "custom").replace(/[^a-zA-Z0-9_-]/g, "_")}`
+          );
+        } else if (projType === "eml23.ProjectedLocalAuthorityCrs") {
+          // Fix 5: LocalAuthority CRS support
+          const la = (
+            projectedCrs.OriginProjectedCrs
+              .AbstractProjectedCrs as SimpleJson<eml23.ProjectedLocalAuthorityCrs>
+          ).LocalAuthorityCrsName;
+          const laCode = la.Code || la._ || "unknown";
+          const laAuth = la.Authority || "LocalAuthority";
+          CoordinateReferenceSystemID = context.addReferenceData(
+            "CoordinateReferenceSystem",
+            `Projected:LocalAuthority::${laAuth}-${laCode}`
+          );
+          persistableReferenceCrs = JSON.stringify({
+            localAuthority: { codeSpace: laAuth, code: laCode }
+          });
         }
         XOffset = projectedCrs.OriginProjectedCoordinate1;
         YOffset = projectedCrs.OriginProjectedCoordinate2;
+        // Fix 2: ArealRotation — extract azimuth from LocalEngineering2dCrs
+        if (projectedCrs.Azimuth != null) {
+          const azVal = typeof projectedCrs.Azimuth === "object"
+            ? (projectedCrs.Azimuth as { _: number })._ || 0
+            : projectedCrs.Azimuth;
+          arealRotationRad = azVal * Math.PI / 180; // Azimuth is typically in degrees
+        }
       }
+      ZOffset = crs23.OriginVerticalCoordinate || 0;
+
+      // Fix 1: Vertical CRS resolution for v2.2
+      if (crs23.VerticalCrs) {
+        const vertCrsObj = await this.getObjectFromDor(
+          client,
+          dataspaceUri,
+          crs23.VerticalCrs,
+          context
+        );
+        if (vertCrsObj) {
+          const vCrs = vertCrsObj as SimpleJson<eml23.VerticalCrs>;
+          if (vCrs.AbstractVerticalCrs?.$type === "eml23.VerticalEpsgCrs") {
+            const vCode = (vCrs.AbstractVerticalCrs as SimpleJson<eml23.VerticalEpsgCrs>).EpsgCode;
+            VerticalCoordinateReferenceSystemID = context.addReferenceData(
+              "CoordinateReferenceSystem",
+              `Vertical:EPSG::${vCode}`
+            );
+            persistableReferenceVerticalCrs = JSON.stringify({
+              authCode: { auth: "EPSG", code: vCode }
+            });
+          } else if (vCrs.AbstractVerticalCrs?.$type === "eml23.VerticalWktCrs") {
+            persistableReferenceVerticalCrs = (
+              vCrs.AbstractVerticalCrs as SimpleJson<eml23.VerticalWktCrs>
+            ).WellKnownText;
+          }
+        }
+      }
+
+      // Fix 3: localFrame for RDDMS geomodelling round-trip
+      localFrame = {
+        "rddms/localFrame/xOffset": XOffset,
+        "rddms/localFrame/yOffset": YOffset,
+        "rddms/localFrame/zOffset": ZOffset,
+        "rddms/localFrame/arealRotationDeg": arealRotationRad * 180 / Math.PI,
+        "rddms/localFrame/crsVersion": "eml23"
+      };
+
     } else {
       const crs20 = crs as SimpleJson<resqml20.AbstractLocal3dCrs>;
       if (crs20.ProjectedCrs.$type === "eml20.ProjectedCrsEpsgCode") {
         epsgCode = (
           crs20.ProjectedCrs as SimpleJson<eml20.ProjectedCrsEpsgCode>
         ).EpsgCode;
+      } else if (crs20.ProjectedCrs.$type === "eml20.ProjectedUnknownCrs") {
+        // Fix 4: WKT CRS support — v2.0 stores WKT in the Unknown field
+        const unknownStr = (
+          crs20.ProjectedCrs as SimpleJson<eml20.ProjectedUnknownCrs>
+        ).Unknown;
+        // Heuristic: if it looks like WKT (starts with PROJCS or PROJCRS), use it
+        if (unknownStr && /^PROJ(CS|CRS)\[/i.test(unknownStr.trim())) {
+          persistableReferenceCrs = unknownStr;
+          CoordinateReferenceSystemID = context.addReferenceData(
+            "CoordinateReferenceSystem",
+            `Projected:WKT::${(crs20.Citation?.Title || "custom").replace(/[^a-zA-Z0-9_-]/g, "_")}`
+          );
+        }
       }
       XOffset = crs20.XOffset;
       YOffset = crs20.YOffset;
+      ZOffset = crs20.ZOffset || 0;
+
+      // Fix 2: ArealRotation — extract rotation angle
+      if (crs20.ArealRotation != null) {
+        const rotVal = typeof crs20.ArealRotation === "object"
+          ? (crs20.ArealRotation as { _: number; Uom?: string })._ || 0
+          : crs20.ArealRotation;
+        const rotUom = typeof crs20.ArealRotation === "object"
+          ? (crs20.ArealRotation as { _: number; Uom?: string }).Uom || "rad"
+          : "rad";
+        arealRotationRad = rotUom === "dega" ? rotVal * Math.PI / 180 : rotVal;
+      }
+
+      // Fix 1: Vertical CRS resolution for v2.0.1
+      if (crs20.VerticalCrs) {
+        if (crs20.VerticalCrs.$type === "eml20.VerticalCrsEpsgCode") {
+          const vCode = (
+            crs20.VerticalCrs as SimpleJson<eml20.VerticalCrsEpsgCode>
+          ).EpsgCode;
+          VerticalCoordinateReferenceSystemID = context.addReferenceData(
+            "CoordinateReferenceSystem",
+            `Vertical:EPSG::${vCode}`
+          );
+          persistableReferenceVerticalCrs = JSON.stringify({
+            authCode: { auth: "EPSG", code: vCode }
+          });
+        }
+      }
+
+      // Fix 3: localFrame for RDDMS geomodelling round-trip
+      localFrame = {
+        "rddms/localFrame/xOffset": XOffset,
+        "rddms/localFrame/yOffset": YOffset,
+        "rddms/localFrame/zOffset": ZOffset,
+        "rddms/localFrame/arealRotationDeg": arealRotationRad * 180 / Math.PI,
+        "rddms/localFrame/projectedAxisOrder": crs20.ProjectedAxisOrder,
+        "rddms/localFrame/projectedUom": crs20.ProjectedUom,
+        "rddms/localFrame/verticalUom": crs20.VerticalUom,
+        "rddms/localFrame/zIncreasingDownward": crs20.ZIncreasingDownward,
+        "rddms/localFrame/crsVersion": "eml20"
+      };
     }
+
     if (epsgCode !== -1) {
       try {
         epsgCrs = await context.findProjectedEPSGCrs(epsgCode);
@@ -1382,20 +1511,30 @@ export class ResqmlWorkProductComponent<
         }
       }
 
+      // Fix 2: Apply areal rotation when computing global coordinates
+      const cosT = Math.cos(arealRotationRad);
+      const sinT = Math.sin(arealRotationRad);
+      const toGlobal = (p: [number, number]): [number, number] => [
+        XOffset + p[0] * cosT + p[1] * sinT,
+        YOffset - p[0] * sinT + p[1] * cosT
+      ];
+
       SpatialPoint = {
         AsIngestedCoordinates: {
           CoordinateReferenceSystemID,
+          VerticalCoordinateReferenceSystemID,
           features: [
             {
               type: FluffyType.AnyCRSFeature,
               geometry: {
                 type: AnyCRSGeoJSONPointType.AnyCRSPoint,
-                coordinates: pointCoordinates[0]
+                coordinates: toGlobal(pointCoordinates[0])
               },
               properties: {}
             }
           ],
           persistableReferenceCrs,
+          persistableReferenceVerticalCrs,
           type: AsIngestedCoordinatesType.AnyCRSFeatureCollection
         },
         Wgs84Coordinates:
@@ -1415,29 +1554,34 @@ export class ResqmlWorkProductComponent<
                 ]
               }
       };
+
+      const globalCoords = pointCoordinates.map(toGlobal);
+      const globalBbox = globalCoords.reduce(
+        (acc, p) => [
+          Math.min(acc[0], p[0]), Math.min(acc[1], p[1]),
+          Math.max(acc[2], p[0]), Math.max(acc[3], p[1])
+        ],
+        [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]
+      );
+
       SpatialArea = {
         AsIngestedCoordinates: {
           type: AsIngestedCoordinatesType.AnyCRSFeatureCollection,
           CoordinateReferenceSystemID,
+          VerticalCoordinateReferenceSystemID,
           persistableReferenceCrs,
+          persistableReferenceVerticalCrs,
           features: [
             {
               type: FluffyType.AnyCRSFeature,
               properties: {},
               geometry: {
                 type: AnyCRSGeoJSONPointType.AnyCRSPolygon,
-                coordinates: [
-                  pointCoordinates.map(p => [p[0] + XOffset, p[1] + YOffset])
-                ]
+                coordinates: [globalCoords]
               }
             }
           ],
-          bbox: [
-            aMinX + XOffset,
-            aMinY + YOffset,
-            aMaxX + XOffset,
-            aMaxY + YOffset
-          ]
+          bbox: globalBbox
         },
         Wgs84Coordinates:
           Wgs84Coordinates === undefined
@@ -1461,7 +1605,7 @@ export class ResqmlWorkProductComponent<
         context.spatialPoint = SpatialPoint;
       }
     }
-    return { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates };
+    return { SpatialPoint, SpatialArea, FrameOfReferenceCRS, Wgs84Coordinates, localFrame };
   }
 
   /**
@@ -1491,6 +1635,7 @@ export class ResqmlWorkProductComponent<
     FrameOfReferenceCRS: FrameOfReferenceMetaDataItem;
     NodeCount: number | undefined;
     Domain: string;
+    localFrame: { [key: string]: unknown } | undefined;
   }> {
     if (geometries.length < 1) {
       return Promise.reject(new Error("No geometry provided"));
@@ -1592,7 +1737,7 @@ export class ResqmlWorkProductComponent<
       }
     }
 
-    const { SpatialPoint, SpatialArea, FrameOfReferenceCRS } =
+    const { SpatialPoint, SpatialArea, FrameOfReferenceCRS, localFrame } =
       await this.createSpatialInfoFrom2dPoints(
         client,
         dataspaceUri,
@@ -1612,7 +1757,8 @@ export class ResqmlWorkProductComponent<
       SpatialArea,
       FrameOfReferenceCRS,
       NodeCount,
-      Domain
+      Domain,
+      localFrame
     };
   }
 
