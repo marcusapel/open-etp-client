@@ -26,50 +26,74 @@ import {
   Timer
 } from "../lib/common/ResponseHandlers";
 
-jest.setTimeout(150000);
-
-const createTimer = (
-  initialTime: number,
-  expectedTime: number,
-  done: jest.DoneCallback
-): Timer => {
-  const date = Date.now();
-  return new Timer(() => {
-    const time = (Date.now() - date) / 1000;
-    expect(time).toBeCloseTo(expectedTime, 0);
-    done();
-  }, initialTime * 1000);
-};
+jest.setTimeout(30000);
 
 describe("Timer", () => {
-  it("Normal 3s", done => {
-    const timer = createTimer(3, 3, done);
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("Normal 3s", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
     expect(timer.finished).toBeFalsy();
+    expect(called).toBe(false);
+    jest.advanceTimersByTime(3000);
+    expect(called).toBe(true);
   });
 
-  it("Add 2s", done => {
-    const timer = createTimer(3, 5, done);
-    timer.add(2000); // add 2s => 3+2
+  it("Add 2s", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
+    timer.add(2000); // total ~5s
+    jest.advanceTimersByTime(3000);
+    expect(called).toBe(false);
+    jest.advanceTimersByTime(2000);
+    expect(called).toBe(true);
   });
 
-  it("Add minimum 2s after 2s", done => {
-    const timer = createTimer(3, 4, done);
-    setTimeout(() => timer.noTimeoutBefore(2000), 2000); // add 2s => 2+2
+  it("Add minimum 2s after 2s", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
+    jest.advanceTimersByTime(2000);
+    timer.noTimeoutBefore(2000); // at t=2s, ensure at least 2s more => fires at t=4s
+    jest.advanceTimersByTime(1500);
+    expect(called).toBe(false);
+    jest.advanceTimersByTime(1000);
+    expect(called).toBe(true);
   });
 
-  it("Add maximum 1s after 1s", done => {
-    const timer = createTimer(3, 2, done);
-    setTimeout(() => timer.alwaysTimeoutBefore(1000), 1000); // add 1s => 1+1
+  it("Add maximum 1s after 1s", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
+    jest.advanceTimersByTime(1000);
+    timer.alwaysTimeoutBefore(1000); // at t=1s, cap at 1s more => fires at t=2s
+    jest.advanceTimersByTime(500);
+    expect(called).toBe(false);
+    jest.advanceTimersByTime(600);
+    expect(called).toBe(true);
   });
 
-  it("Reset", done => {
-    const timer = createTimer(3, 4, done);
-    setTimeout(() => timer.reset(), 1000); // reset after 1s => 1+3;
+  it("Reset", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
+    jest.advanceTimersByTime(1000);
+    timer.reset(); // reset after 1s => fires at t=4s (1+3)
+    jest.advanceTimersByTime(2500);
+    expect(called).toBe(false);
+    jest.advanceTimersByTime(1000);
+    expect(called).toBe(true);
   });
 
-  it("Cancel", done => {
-    const timer = createTimer(3, 0, done);
+  it("Cancel", () => {
+    let called = false;
+    const timer = new Timer(() => { called = true; }, 3000);
     timer.cancel(true);
+    expect(called).toBe(true);
+    expect(timer.finished).toBe(true);
   });
 });
 
@@ -79,215 +103,186 @@ finalHeader.messageFlags = MessageFlags.FINALPART;
 const intermediateHeader: Energistics.Etp.v12.Datatypes.MessageHeader =
   new Energistics.Etp.v12.Datatypes.MessageHeader();
 
-const checkTimeOutTime = (
-  time: number,
-  expectedInterval: number,
-  done: jest.DoneCallback,
-  reason: any
-) => {
-  expect(reason).toBeTruthy();
-  const interval = (Date.now() - time) / 1000;
-  expect(interval).toBeCloseTo(expectedInterval, 0);
-  done();
-};
-
-const checkValidArrayTime = (
-  time: number,
-  expectedInterval: number,
-  done: jest.DoneCallback,
-  value: (boolean | null)[]
-) => {
-  expect(value).toStrictEqual([true, false]);
-  const interval = (Date.now() - time) / 1000;
-  expect(interval).toBeCloseTo(expectedInterval, 1);
-  done();
-};
-
 describe("Single Handler", () => {
-  it(`On Valid Response`, done => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it(`On Valid Response`, async () => {
     const handler = new SingleResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .then(value => {
-        expect(value).toStrictEqual(true);
-        const interval = (Date.now() - time) / 1000;
-        expect(interval).toBeCloseTo(0, 1);
-        done();
-      })
-      .catch();
+    const promise = handler.waitForRequest(BigInt(0));
     handler.onResponse(finalHeader, true);
+    const value = await promise;
+    expect(value).toStrictEqual(true);
   });
 
-  it(`On Error`, done => {
+  it(`On Error`, async () => {
     const handler = new SingleResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 0, done));
+    const promise = handler.waitForRequest(BigInt(0));
     handler.onError(finalHeader, null);
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out`, done => {
+  it(`Time Out`, async () => {
     const handler = new SingleResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0));
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
-  it(`Time Out delayed by intermediate message`, done => {
+
+  it(`Time Out delayed by intermediate message`, async () => {
     const handler = new SingleResponseHandler<boolean>(2000, 1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0));
     handler.onResponse(intermediateHeader, true);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 });
 
 describe("Array Handler", () => {
-  it(`On Valid Response`, done => {
-    const handler = new ArrayResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .then(checkValidArrayTime.bind(this, time, 0, done))
-      .catch();
-    handler.onResponse(finalHeader, [true, false]);
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
-  it(`On Error`, done => {
+  it(`On Valid Response`, async () => {
     const handler = new ArrayResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 0, done));
+    const promise = handler.waitForRequest(BigInt(0));
+    handler.onResponse(finalHeader, [true, false]);
+    const value = await promise;
+    expect(value).toStrictEqual([true, false]);
+  });
+
+  it(`On Error`, async () => {
+    const handler = new ArrayResponseHandler<boolean>(1000);
+    const promise = handler.waitForRequest(BigInt(0));
     handler.onException(finalHeader, {
       error: { message: "error", code: 0 },
       errors: new Map()
     });
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out`, done => {
+  it(`Time Out`, async () => {
     const handler = new ArrayResponseHandler<boolean>(1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0));
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out delayed by intermediate message`, done => {
+  it(`Time Out delayed by intermediate message`, async () => {
     const handler = new ArrayResponseHandler<boolean>(2000, 1000);
-    const time = Date.now();
-    handler
-      .waitForRequest(BigInt(0))
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0));
     handler.onResponse(intermediateHeader, [true]);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 });
 
 describe("Map Handler", () => {
-  it(`On Valid Response`, done => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it(`On Valid Response`, async () => {
     const handler = new MapResponseHandler<boolean>(10000000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .then(checkValidArrayTime.bind(this, time, 0, done))
-      .catch();
+    const promise = handler.waitForRequest(BigInt(0), keys);
     const map = new Map<string, boolean>();
     map.set("key1", true);
     map.set("key2", false);
     handler.onResponse(finalHeader, map);
+    const value = await promise;
+    expect(value).toStrictEqual([true, false]);
   });
 
-  it(`On Error`, done => {
+  it(`On Error`, async () => {
     const handler = new MapResponseHandler<boolean>(1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 0, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
     handler.onException(finalHeader, {
       error: { message: "error", code: 0 },
       errors: new Map()
     });
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out`, done => {
+  it(`Time Out`, async () => {
     const handler = new MapResponseHandler<boolean>(1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out delayed by intermediate message`, done => {
+  it(`Time Out delayed by intermediate message`, async () => {
     const handler = new MapResponseHandler<boolean>(2000, 1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
     const map = new Map<string, boolean>();
     map.set("key1", true);
     handler.onResponse(intermediateHeader, map);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 });
 
 describe("Success Map Handler", () => {
-  it(`On Valid Response`, done => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it(`On Valid Response`, async () => {
     const handler = new SuccessMapResponseHandler(10000000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .then(value => {
-        expect(value[0].code).toStrictEqual(0);
-        expect(value[1].code).toStrictEqual(0);
-        const interval = (Date.now() - time) / 1000;
-        expect(interval).toBeCloseTo(0, 1);
-        done();
-      })
-      .catch();
+    const promise = handler.waitForRequest(BigInt(0), keys);
     const map = new Map<string, string>();
     map.set("key1", "");
     map.set("key2", "");
     handler.onResponse(finalHeader, map);
+    const value = await promise;
+    expect(value[0].code).toStrictEqual(0);
+    expect(value[1].code).toStrictEqual(0);
   });
 
-  it(`On Error`, done => {
+  it(`On Error`, async () => {
     const handler = new SuccessMapResponseHandler(1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 0, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
     handler.onException(finalHeader, {
       error: { message: "error", code: 0 },
       errors: new Map()
     });
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out`, done => {
+  it(`Time Out`, async () => {
     const handler = new SuccessMapResponseHandler(1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 
-  it(`Time Out delayed by intermediate message`, done => {
+  it(`Time Out delayed by intermediate message`, async () => {
     const handler = new SuccessMapResponseHandler(2000, 1000);
-    const time = Date.now();
     const keys = ["key1", "key2"];
-    handler
-      .waitForRequest(BigInt(0), keys)
-      .catch(checkTimeOutTime.bind(this, time, 1, done));
+    const promise = handler.waitForRequest(BigInt(0), keys);
     const map = new Map<string, string>();
     map.set("key1", "");
     handler.onResponse(intermediateHeader, map);
+    jest.advanceTimersByTime(1100);
+    await expect(promise).rejects.toBeTruthy();
   });
 });
