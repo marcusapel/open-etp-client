@@ -52,6 +52,11 @@ export class ETPClient extends ETPCore {
     [];
   private buffer: Buffer = Buffer.alloc(2048);
 
+  /** Check whether the server negotiated a given protocol in the current session. */
+  public isProtocolSupported(protocolId: number): boolean {
+    return this.serverProtocols[protocolId] !== undefined;
+  }
+
   constructor(config: IConfiguration) {
     super(config);
     this.dataSpaceSupported = false;
@@ -73,12 +78,12 @@ export class ETPClient extends ETPCore {
 
     const headers: { [key: string]: string } = config.clientId
       ? {
-          "client-id": config.clientId,
-          "etp-encoding": encoding
-        }
+        "client-id": config.clientId,
+        "etp-encoding": encoding
+      }
       : {
-          "etp-encoding": encoding
-        };
+        "etp-encoding": encoding
+      };
 
     if (config.noHeaders) {
       this.host = `${this.host}?etp-encoding=${encoding}`;
@@ -316,8 +321,8 @@ export class ETPClient extends ETPCore {
         );
         message = header
           ? reader.readDatum(
-              this.schemaCache.find(header.protocol, header.messageType)
-            )
+            this.schemaCache.find(header.protocol, header.messageType)
+          )
           : null;
       }
     } else {

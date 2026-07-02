@@ -583,8 +583,7 @@ export const HasDataPartitionGuard: () => CanActivate = () => {
  * @implements {PipeTransform<number>}
  */
 export class OptionalParseBoolPipe
-  implements PipeTransform<string | boolean, Promise<boolean | undefined>>
-{
+  implements PipeTransform<string | boolean, Promise<boolean | undefined>> {
   transform(value: string | boolean | undefined): Promise<boolean | undefined> {
     if (value === undefined) {
       Promise.resolve(undefined);
@@ -603,8 +602,7 @@ export class OptionalParseBoolPipe
  * @implements {PipeTransform<number>}
  */
 export class OptionalParseIntPipe
-  implements PipeTransform<string | number, Promise<number | undefined>>
-{
+  implements PipeTransform<string | number, Promise<number | undefined>> {
   transform(value: number | string | undefined): Promise<number | undefined> {
     if (value === undefined) {
       return Promise.resolve(undefined);
@@ -624,8 +622,7 @@ export class OptionalParseIntPipe
  * @implements {PipeTransform<string[]>}
  */
 export class OptionalParseIntArrayPipe
-  implements PipeTransform<string | string[]>
-{
+  implements PipeTransform<string | string[]> {
   transform(
     value: string | string[] | undefined
   ): Promise<number[] | number | undefined> {
@@ -644,8 +641,7 @@ export class OptionalParseIntArrayPipe
  * @implements {PipeTransform<number>}
  */
 export class OptionalParseDatePipe
-  implements PipeTransform<Date | string, Promise<Date | undefined>>
-{
+  implements PipeTransform<Date | string, Promise<Date | undefined>> {
   transform(value: Date | string | undefined): Promise<Date | undefined> {
     if (value === undefined) {
       return Promise.resolve(undefined);
@@ -777,6 +773,25 @@ export const getSchemasForType = (
   return additionalProperties
     ? values[0]
     : { ...values[0], additionalProperties: false };
+};
+
+const protocolNames: Record<number, string> = {
+  [Energistics.Etp.v12.Datatypes.Protocol.DiscoveryQuery]: "DiscoveryQuery (13)",
+  [Energistics.Etp.v12.Datatypes.Protocol.StoreQuery]: "StoreQuery (14)",
+  [Energistics.Etp.v12.Datatypes.Protocol.GrowingObject]: "GrowingObject (6)",
+  [Energistics.Etp.v12.Datatypes.Protocol.ChannelSubscribe]: "ChannelSubscribe (21)"
+};
+
+/**
+ * Throw 501 if the ETP server did not negotiate the given protocol.
+ */
+export const requireProtocol = (client: ResqmlClient, protocolId: number): void => {
+  if (!client.isProtocolSupported(protocolId)) {
+    const name = protocolNames[protocolId] ?? `Protocol ${protocolId}`;
+    throw new NotImplementedException(
+      `ETP server does not support ${name}`
+    );
+  }
 };
 
 /*!
@@ -1119,7 +1134,7 @@ const getContext = (
 
   const navigable: Energistics.Etp.v12.Datatypes.Object.RelationshipKind =
     Energistics.Etp.v12.Datatypes.Object.RelationshipKind[
-      context.navigableEdges || "Both"
+    context.navigableEdges || "Both"
     ];
 
   return {
