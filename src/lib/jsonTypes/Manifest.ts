@@ -116,6 +116,7 @@ export const DEFAULT_DATASPACE_TYPE_PATTERNS: string[] = [
   "*Feature",
   "*Interpretation*",
   "*Representation",
+  "*Property",
   "*StratigraphicColumn",
   "*Activity*",
   "*Collection",
