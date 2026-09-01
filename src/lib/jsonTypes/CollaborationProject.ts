@@ -7,11 +7,12 @@ import { getKind } from "./MilestoneKinds";
 
 import {
   CollaborationProject,
-  Data
+  Data,
+  LifecycleEvent
 } from "./Generated/master-data/CollaborationProject.1.0.0";
 
 /**
- * S5: CollaborationProject — maps an ETP dataspace to an OSDU
+ * S5: CollaborationProject - maps an ETP dataspace to an OSDU
  * master-data--CollaborationProject record.
  *
  * The dataspace IS the collaboration namespace: temporary/WIP objects live
@@ -57,6 +58,32 @@ class CollaborationProjectOSDU implements CollaborationProject {
     const etpUri = new EtpUri(dataspace.uri);
     const lifecycleStatus = isLocked ? "Closed" : "Open";
 
+    // Build lifecycle events from dataspace timestamps
+    const lifecycleEvents: LifecycleEvent[] = [
+      {
+        EventType: "Created",
+        EventDateTime: this.createTime,
+        EventDescription: `Dataspace '${etpUri.dataSpace}' created`
+      }
+    ];
+    if (
+      dataspace.storeLastWrite &&
+      dataspace.storeLastWrite !== dataspace.storeCreated
+    ) {
+      lifecycleEvents.push({
+        EventType: "LastModified",
+        EventDateTime: this.modifyTime,
+        EventDescription: `Dataspace '${etpUri.dataSpace}' last modified`
+      });
+    }
+    if (isLocked) {
+      lifecycleEvents.push({
+        EventType: "Locked",
+        EventDateTime: this.modifyTime,
+        EventDescription: `Dataspace '${etpUri.dataSpace}' locked (read-only)`
+      });
+    }
+
     this.data = {
       ExistenceKind: context.addReferenceData("ExistenceKind", "Actual"),
       Name: dataspace.path ?? etpUri.dataSpace,
@@ -65,6 +92,7 @@ class CollaborationProjectOSDU implements CollaborationProject {
       Namespace: etpUri.dataSpace,
       LifecycleStatusID: `${context.partition}:reference-data--CollaborationProjectLifecycleStatus:${lifecycleStatus}:`,
       CreationDateTime: this.createTime,
+      LifecycleEvents: lifecycleEvents,
       DefaultWIPACL: undefined,
       ProjectContributorACL: undefined,
       ExtensionProperties: {
@@ -89,10 +117,10 @@ class CollaborationProjectOSDU implements CollaborationProject {
 /**
  * Create a CollaborationProject manifest record from an ETP dataspace.
  *
- * @param dataspace — The ETP dataspace object
- * @param context — OSDU context (partition, ACLs, etc.)
- * @param collaborationId — The deterministic UUID for this collaboration
- * @param isLocked — Whether the dataspace is currently locked
+ * @param dataspace - The ETP dataspace object
+ * @param context - OSDU context (partition, ACLs, etc.)
+ * @param collaborationId - The deterministic UUID for this collaboration
+ * @param isLocked - Whether the dataspace is currently locked
  */
 export const CollaborationProjectManifest = (
   dataspace: Energistics.Etp.v12.Datatypes.Object.Dataspace,

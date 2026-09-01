@@ -69,7 +69,8 @@ import {
   IsBoolean,
   IsObject,
   ValidateNested,
-  Matches
+  Matches,
+  IsIn
 } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -79,7 +80,7 @@ import {
   ITechnicalAssurance,
   OSDUContext
 } from "../../jsonTypes/OsduContext";
-import { createManifest } from "../../jsonTypes/Manifest";
+import { createManifest, PropertyFilter } from "../../jsonTypes/Manifest";
 import { JwtPayload } from "jsonwebtoken";
 import { bigIntToString } from "../../mlTypes/XmlJsonUtil";
 import logging from "../../common/Logging";
@@ -339,6 +340,18 @@ export class ManifestInputDto {
   typePatterns?: string[];
 
   @ApiPropertyOptional({
+    name: "propertyFilter",
+    type: String,
+    enum: ["canonical", "none", "all"],
+    description: `Controls property inclusion when using default type patterns. "canonical" (default): include properties with standard names (PWLS, OSDU, simulator abbreviations like PORO, PERMX, SW). "none": exclude all properties. "all": include all properties regardless of name.`,
+    example: "canonical"
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(["canonical", "none", "all"])
+  propertyFilter?: PropertyFilter;
+
+  @ApiPropertyOptional({
     name: "technicalAssurances",
     type: [TechnicalAssuranceDto],
     maxItems: 1028,
@@ -377,6 +390,16 @@ export class ManifestInputDto {
   @IsOptional()
   @IsObject()
   tags?: Record<string, string>;
+
+  @ApiPropertyOptional({
+    name: "includeArrayData",
+    description: `When true, read bulk data arrays during manifest generation to compute spatial bounding boxes and active cell counts. When false (default), skip array reads for faster performance at the cost of missing SpatialArea and ActiveCellCount fields.`,
+    type: Boolean,
+    example: false
+  })
+  @IsOptional()
+  @IsBoolean()
+  includeArrayData?: boolean = false;
 }
 
 /**
@@ -441,7 +464,7 @@ export class ManifestDto {
   ReferenceData?: object[];
 }
 
-@ApiBearerAuth("access-token")
+@ApiBearerAuth("HTTPBearer")
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
@@ -478,8 +501,21 @@ export default class ObjectsManifestAPI {
     type: ManifestInputDto
   })
   @ApiOperation({
-    summary: "Create OSDU manifest.",
-    description: `Create the OSDU manifest for several resources.`,
+    summary: "Build OSDU manifest from ETP resources",
+    description: `Generate an OSDU-compatible manifest from ETP dataspace resources. Converts RESQML, WITSML, PRODML, and EML objects to OSDU record format.
+
+**Supported source domains**: RESQML 2.0.1 & 2.2, PRODML 2.3, WITSML 2.1, EML 2.3. Use \`GET /health/converters\` to list all registered mappings.
+
+**Type filtering**: Default includes common representation/interpretation types. Pass \`typePatterns: ["*"]\` for all types. Properties with canonical OSDU/PWLS names (porosity, permeability, saturation, etc.) are auto-included even without an explicit \`*Property\` pattern.
+
+**Key behaviors**:
+- Best-effort mode - partial results returned on converter errors (check \`errors[]\` in response)
+- Auto-generates deterministic collaboration UUID (v5 from dataspace name)
+- Uses \`OSDU_MILESTONE\` env var (default M27) for OSDU schema versions
+- GridConnectionSet records report \`HasTransmissibilityMultipliers\` when attached transmissibility properties are found
+- WellLog records populate TopMeasuredDepth/BottomMeasuredDepth from frame index arrays
+
+**createMissingReferences**: When true, creates placeholder records for unresolved data object references (DORs). When false, missing references appear in the error list.`,
     servers: swaggerServers
   })
   @ApiOkResponse({
@@ -524,7 +560,8 @@ export default class ObjectsManifestAPI {
         typeof partition === "string" ? partition : "osdu",
         jwt === null || typeof jwt === "string" ? undefined : jwt.unique_name,
         body.tags,
-        body.createMissingReferences
+        body.createMissingReferences,
+        body.includeArrayData
       );
 
       context.bearer = bearer;
@@ -553,7 +590,8 @@ export default class ObjectsManifestAPI {
         body.uris ?? [],
         context,
         body.typePatterns,
-        maxManifestSize
+        maxManifestSize,
+        body.propertyFilter ?? "canonical"
       );
       logger.info("Manifest creation successful.");
       await c.closeSession();

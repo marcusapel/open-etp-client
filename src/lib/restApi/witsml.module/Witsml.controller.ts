@@ -33,6 +33,7 @@ import {
   ApiBody,
   ApiDefaultResponse,
   ApiForbiddenResponse,
+  ApiGoneResponse,
   ApiHeader,
   ApiInternalServerErrorResponse,
   ApiNotAcceptableResponse,
@@ -79,7 +80,8 @@ import {
   patternString,
   swaggerServers,
   partitionPattern,
-  transactionIdQueryParam
+  transactionIdQueryParam,
+  webSocketSessionTerminatedSchema
 } from "../ControllerUtils";
 
 import { XMLBuilder } from "../../mlTypes/Json2Xml";
@@ -235,7 +237,7 @@ function parseWitsmlXml(xmlInput: string): ParsedWitsmlObject[] {
 
   if (!UUID_REGEX.test(uuid)) {
     throw new BadRequestException(
-      `Invalid UUID "${uuid}" — ETP requires standard UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)`
+      `Invalid UUID "${uuid}" - ETP requires standard UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)`
     );
   }
 
@@ -316,7 +318,7 @@ function wrapAs21(
   // Detect version from container namespace
   const isWitsml21 = containerXml.includes("energistics.org/energyml/data/witsmlv2");
   if (isWitsml21) {
-    // Already 2.1 format — just ensure uuid attribute
+    // Already 2.1 format - just ensure uuid attribute
     let xml = originalChildXml;
     if (!xml.match(/\buuid\s*=\s*"/)) {
       xml = xml.replace(/(<[\w:]+)/, `$1 uuid="${uuid}"`);
@@ -486,7 +488,7 @@ function extractChannelArrays(xml: string): ChannelArray[] {
             values[row * dim + d] = d < cell.length ? cell[d] : NaN;
           }
         } else {
-          // Missing row — fill with NaN
+          // Missing row - fill with NaN
           for (let d = 0; d < dim; d++) {
             values[row * dim + d] = NaN;
           }
@@ -593,9 +595,9 @@ function injectExternalArrayRefs(
 
 // ─── Controller ──────────────────────────────────────────────────────────────
 
-@ApiTags("Wells")
+@ApiTags("WITSML")
 @Controller("witsml")
-@ApiBearerAuth("access-token")
+@ApiBearerAuth("HTTPBearer")
 @UseGuards(HasBearerGuard("jwt"))
 @ApiHeader({
   name: "data-partition-id",
@@ -607,6 +609,7 @@ function injectExternalArrayRefs(
 @ApiForbiddenResponse(errorMessageSchema("Forbidden", 403))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
 @ApiTooManyRequestsResponse(errorMessageSchema("Too many requests", 429))
+@ApiGoneResponse(webSocketSessionTerminatedSchema())
 @ApiInternalServerErrorResponse(errorMessageSchema("Unknown Error", 500))
 @ApiDefaultResponse(errorMessageSchema("Unknown Error", 500))
 export default class WitsmlController {
@@ -614,7 +617,7 @@ export default class WitsmlController {
    * Store WITSML 2.1 XML objects via ETP PutDataObjects.
    *
    * If transactionId is provided, uses the existing transactional session
-   * (caller is responsible for commit/rollback — mirrors ObjectWrite pattern).
+   * (caller is responsible for commit/rollback - mirrors ObjectWrite pattern).
    * If transactionId is NOT provided, creates an internal transaction for
    * convenience (start → put → commit in a single request).
    */
@@ -623,9 +626,13 @@ export default class WitsmlController {
   @ApiOperation({
     summary: "Store WITSML 2.1 objects",
     description:
-      "Parse WITSML 2.1 XML and store as ETP data objects in the specified dataspace. " +
-      "If no transactionId is provided, automatically wraps the write in a transaction. " +
-      "If transactionId is provided, uses the existing transaction (caller commits).",
+      "Parse WITSML 2.1 (or 1.4.1 container) XML and store as ETP data objects. " +
+      "If no transactionId is provided, automatically wraps the write in a transaction (start → put → commit).\n\n" +
+      "**Key features**:\n" +
+      "- **WITSML 1.4.1 support**: Detects plural container wrappers (`<wells>`, `<logs>`, etc.) and splits into individual WITSML 2.1 objects with deterministic UUID v5 from uid\n" +
+      "- **Channel data extraction**: Automatically extracts `<logData><data>` rows (1.4.1) or ChannelSet data (2.1) as separate ETP data arrays\n" +
+      "- **Trajectory support**: Extracts MD/Inclination/Azimuth from `<trajectoryStation>` elements as arrays\n" +
+      "- **Auto-transaction**: If no `transactionId` is provided, the write is wrapped in an internal transaction. If provided, the caller manages commit/rollback.",
     servers: swaggerServers
   })
   @ApiBody({ type: WitsmlStoreDto })
@@ -738,7 +745,7 @@ export default class WitsmlController {
           await c.rollbackTransaction(txId).catch(() => { });
         }
         throw new BadRequestException(
-          "PutDataObjects failed — check UUID format (must be valid UUID) and dataspace existence"
+          "PutDataObjects failed - check UUID format (must be valid UUID) and dataspace existence"
         );
       }
 

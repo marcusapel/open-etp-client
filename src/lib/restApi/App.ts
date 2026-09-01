@@ -38,9 +38,12 @@ import Logging from "../common/Logging";
 
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
-import { restApiRoutePath, serverUIUrl, swaggerUIUrl } from "./ControllerUtils";
+import { restApiRoutePath, swaggerUIUrl } from "./ControllerUtils";
+
+import { normalizeDataspacePath } from "./dataspacePath";
 
 import ExceptionCounterFilter from "../restApi/monitoring.module/ExceptionCounter.filter";
+import GqlModule from "./graphql.module/graphql.module";
 
 Logging.getLogger("EtpClient");
 
@@ -61,6 +64,7 @@ const providers = requireDefaults("*.module/*.provider.+(js|ts)");
 const middleware = requireDefaults("*.module/*.middleware.+(js|ts)");
 
 @Module({
+  imports: [GqlModule],
   controllers,
   providers: [
     ...providers,
@@ -91,23 +95,29 @@ export default async function app(): Promise<NestExpressApplication> {
     await NestFactory.create<NestExpressApplication>(ApplicationModule);
 
   // allows for validation to be used
+  // Subclass that skips validation for GraphQL custom params (@Parent, @Context)
+  class GqlSafeValidationPipe extends ValidationPipe {
+    async transform(value: any, metadata: any) {
+      if (metadata.type === 'custom') return value;
+      return super.transform(value, metadata);
+    }
+  }
   nestApp.useGlobalPipes(
-    new ValidationPipe({
+    new GqlSafeValidationPipe({
       transform: true,
       skipUndefinedProperties: true,
       transformerPackage: require("class-transformer"),
       validatorPackage: require("class-validator"),
-      // Enhanced validation options to catch deserialization failures
-      whitelist: true, // Strip properties that don't have decorators
-      forbidNonWhitelisted: true, // Throw error for non-whitelisted properties
-      disableErrorMessages: false, // Enable detailed error messages
-      validateCustomDecorators: true, // Validate custom decorators
-      forbidUnknownValues: true, // Reject unknown values
-      stopAtFirstError: false, // Show all validation errors
-      dismissDefaultMessages: false, // Keep default error messages
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      disableErrorMessages: false,
+      validateCustomDecorators: false,
+      forbidUnknownValues: false,
+      stopAtFirstError: false,
+      dismissDefaultMessages: false,
       validationError: {
-        target: false, // Don't include the target object in error
-        value: false // Don't include the value in error (security)
+        target: false,
+        value: false
       }
     })
   );
@@ -117,29 +127,74 @@ export default async function app(): Promise<NestExpressApplication> {
   // allows for NestJS's auto documentation feature to be used
   const config = new DocumentBuilder()
     .setTitle("Reservoir DMS")
-    .setDescription("Rest API for OSDU Reservoir DMS")
-    .setVersion("1.2")
+    .setDescription(
+      `REST API for OSDU Reservoir DMS (M27).`
+    )
+    .setVersion("1.3.0-M27")
     .setLicense(
       "Apache 2.0",
       "https://www.apache.org/licenses/LICENSE-2.0.html"
     )
     .addBearerAuth(
-      { type: "http", scheme: "bearer", bearerFormat: "JWT" },
-      "access-token"
+      { type: "http", scheme: "bearer" },
+      "HTTPBearer"
     )
-    .addServer(`${serverUIUrl}`)
+    .addServer(restApiRoutePath.replace(/\/$/, ""))
+    .addTag("Health", "Liveness, readiness probes, and server metadata. Use `GET /health/converters` to list all registered RESQML/WITSML → OSDU converter mappings.")
     .addTag("Authentication", "Token info and session management")
-    .addTag("Health", "Liveness and readiness probes")
-    .addTag("Resources", "ETP dataspace and object read operations")
-    .addTag("Query & Growing Objects", "Deep search, growing object metadata and channel range queries")
-    .addTag("Write", "ETP object write (PutDataObjects, DeleteDataObjects)")
-    .addTag("Transactions", "ETP transaction lifecycle (start, commit, rollback)")
-    .addTag("Manifest", "OSDU manifest generation from ETP dataspaces")
-    .addTag("Wells", "Well search, WITSML query/store, and PWLS curve catalog")
     .addTag("Metrics", "Prometheus metrics endpoint")
+    .addTag("Resources",
+      "Read-only access to ETP dataspaces, objects, relationships, and data arrays. " +
+      "Use `dataspaceId` as a URL-encoded path (e.g., `foo%2Fdrogon` for `foo/drogon`). " +
+      "Graph endpoints (`/graph/…`) return edges between resources; flat endpoints (`/resources/…`) return lists without edges. " +
+      "No transaction required."
+    )
+    .addTag("Manifest",
+      "OSDU manifest generation from ETP dataspaces - read-only, no transaction required. " +
+      "Common use case: browse resources, then generate a manifest in a single call. " +
+      "Supported source domains: RESQML 2.0.1 & 2.2, PRODML 2.3, WITSML 2.1, EML 2.3. " +
+      "Use `GET /health/converters` to list all registered source types and their target OSDU kinds."
+    )
+    .addTag("Query & Growing Objects",
+      "Advanced search - read-only, no transaction required.\n\n" +
+      "**Graph scope**: `self` (direct), `targets` (referenced by), `sources` (referencing), `targetsOrSelf`, `sourcesOrSelf`. " +
+      "**Depth**: 1 = immediate, N = recursive, 0 = unlimited (may timeout).\n\n" +
+      "**Pagination**: `$skip`/`$top` are applied client-side after fetch (ETP has no server-side pagination)."
+    )
+    .addTag("Transactions",
+      "Start, commit, or rollback a transaction. Required before any write operation. " +
+      "Auto-rollback after timeout (default 300 s). One active transaction per dataspace."
+    )
+    .addTag("Write",
+      "Create, update, and delete objects, manage dataspaces, upload EPC+H5 files. " +
+      "**Requires a transaction** - start one first via Transactions, then pass `transactionId`. " +
+      "Typical flow: create dataspace → start transaction → put objects → put arrays → commit."
+    )
+    .addTag("Wells", "Well-centric search with hierarchy resolution across dataspaces. Domain-specific - not part of core ETP data management.")
+    .addTag("WITSML", "Query and store WITSML/EnergyML objects in ETP dataspaces. Domain-specific - supports WITSML 2.1 and 1.4.1 container formats.")
+    .addTag("PWLS", "PWLS v4.0 curve mnemonic resolution and validation. Domain-specific - maps vendor mnemonics to standard property names.")
     .build();
 
   const document = SwaggerModule.createDocument(nestApp, config);
+
+  // Sort paths by tag order so the generated JSON/YAML follows the same
+  // logical sequence as the Swagger UI (Health first, Metrics last).
+  if (document.tags && document.paths) {
+    const tagOrder = document.tags.map((t: any) => t.name);
+    const pathTagIndex = (pathObj: any): number => {
+      for (const method of Object.values(pathObj) as any[]) {
+        if (method?.tags?.[0]) {
+          const idx = tagOrder.indexOf(method.tags[0]);
+          if (idx >= 0) return idx;
+        }
+      }
+      return tagOrder.length;
+    };
+    const sorted = Object.entries(document.paths)
+      .sort(([, a], [, b]) => pathTagIndex(a) - pathTagIndex(b));
+    document.paths = Object.fromEntries(sorted);
+  }
+
   // Generate API file with 2 space indentation forced.
   // Do not generate the file in production
   if (process.env.NODE_ENV !== "production") {
@@ -161,6 +216,25 @@ export default async function app(): Promise<NestExpressApplication> {
   });
 
   nestApp.setGlobalPrefix(restApiRoutePath);
+
+  // Some ingress layers (e.g. Istio/Envoy path normalization) decode the "%2F"
+  // in a dataspace id (e.g. "demo/Volve" -> …/dataspaces/demo%2FVolve/…) back
+  // to a literal "/" before the request reaches this pod, which splits the id
+  // across path segments and breaks route matching (spurious 404s). Re-encode
+  // it here so slash-containing dataspace ids route correctly on every platform.
+  nestApp.use(
+    (
+      req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction
+    ) => {
+      const normalized = normalizeDataspacePath(req.url);
+      if (normalized !== req.url) {
+        req.url = normalized;
+      }
+      return next();
+    }
+  );
 
   nestApp.use(express.json({ limit: "50mb" }));
   nestApp.use(express.urlencoded({ limit: "50mb", extended: true }));

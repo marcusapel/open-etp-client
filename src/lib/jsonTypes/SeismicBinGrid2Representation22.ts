@@ -58,11 +58,25 @@ export class SeismicBinGrid22OSDU
    */
   static matchType(xml: SimpleJson<resqml22.Grid2dRepresentation>): boolean {
     const grid2d = xml as SimpleJson<resqml22.Grid2dRepresentation>;
-    return (
+    const isSeismicLattice =
       (
         grid2d.RepresentedObject
           ?._data as SimpleJson<resqml22.AbstractFeatureInterpretation>
-      )?.InterpretedFeature._data?.$type === "resqml22.SeismicLatticeFeature"
+      )?.InterpretedFeature._data?.$type === "resqml22.SeismicLatticeFeature";
+    if (!isSeismicLattice) {
+      return false;
+    }
+    // Require constant (regular) spacing - irregular grids cannot populate
+    // P6 bin grid fields and should fall through to GenericRepresentation.
+    const dims = grid2d.Geometry?.Points as SimpleJson<resqml22.Point3dLatticeArray>;
+    if (!dims?.Dimension || dims.Dimension.length < 2) {
+      return false;
+    }
+    const dim0 = dims.Dimension[0] as SimpleJson<resqml22.Point3dLatticeDimension>;
+    const dim1 = dims.Dimension[1] as SimpleJson<resqml22.Point3dLatticeDimension>;
+    return (
+      dim0.Spacing?.$type === DBL_CST_ARRAY &&
+      dim1.Spacing?.$type === DBL_CST_ARRAY
     );
   }
 
@@ -286,10 +300,10 @@ export class SeismicBinGrid22OSDU
  * SeismicHorizon, StructureMap or GenericRepresentation.
  *
  * Routing logic:
- * 1. SeismicBinGrid — the grid IS the seismic survey lattice definition
- * 2. SeismicHorizon — time-domain horizon on a seismic lattice
- * 3. StructureMap — depth-domain horizon surface (regular grid, not on seismic lattice)
- * 4. GenericRepresentation — fallback
+ * 1. SeismicBinGrid - the grid IS the seismic survey lattice definition
+ * 2. SeismicHorizon - time-domain horizon on a seismic lattice
+ * 3. StructureMap - depth-domain horizon surface (regular grid, not on seismic lattice)
+ * 4. GenericRepresentation - fallback
  *
  * @param {IResqmlDataObject} xml
  * @return {string}
@@ -330,9 +344,9 @@ export const Grid2dRepresentation22Manifest = async (
   GenericRepresentation22OSDU | SeismicBinGrid22OSDU | SeismicHorizon22OSDU | StructureMap22OSDU | GenericBinGrid22OSDU
 > => {
   const kind = Grid2dToOsduKind22(xml);
-  if (kind === getKindOrFallback("SeismicBinGrid")) {
+  if (kind === getKind("SeismicBinGrid")) {
     return new SeismicBinGrid22OSDU(xml, context).initData(uri, xml, client);
-  } else if (kind === getKindOrFallback("SeismicHorizon")) {
+  } else if (kind === getKind("SeismicHorizon")) {
     return new SeismicHorizon22OSDU(xml, context).initData(uri, xml, client);
   } else if (kind === getKind("StructureMap")) {
     return new StructureMap22OSDU(xml, context).initData(uri, xml, client);

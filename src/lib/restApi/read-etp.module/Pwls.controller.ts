@@ -22,7 +22,8 @@ import {
   ApiTooManyRequestsResponse
 } from "@nestjs/swagger";
 
-import { Allow, IsOptional } from "class-validator";
+import { Allow, IsOptional, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
 import { errorMessageSchema, swaggerServers } from "../ControllerUtils";
 
@@ -71,9 +72,11 @@ class PwlsResolveResultDto {
 }
 
 class CurveValidationEntry {
+  @Allow()
   @ApiProperty({ example: "GR", description: "Curve mnemonic or property name" })
   mnemonic!: string;
 
+  @Allow()
   @ApiPropertyOptional({ example: "gAPI", description: "Unit of measurement (optional)" })
   uom?: string;
 }
@@ -98,13 +101,15 @@ class CurveValidationResultEntry {
   mnemonicResolved!: boolean;
 
   @ApiPropertyOptional({
-    example: ["UOM 'gAPI' provided but QuantityClass is 'API gamma ray' — verify compatibility"],
+    example: ["UOM 'gAPI' provided but QuantityClass is 'API gamma ray' - verify compatibility"],
     description: "Validation warnings"
   })
   warnings?: string[];
 }
 
 class CurveValidationRequestDto {
+  @ValidateNested({ each: true })
+  @Type(() => CurveValidationEntry)
   @ApiProperty({
     type: [CurveValidationEntry],
     description: "Array of curves to validate",
@@ -180,7 +185,7 @@ class VendorCatalogUploadDto {
  * Provides mnemonic resolution, property lookup, curve validation,
  * and vendor catalog management.
  */
-@ApiTags("Wells")
+@ApiTags("PWLS")
 @ApiNotFoundResponse(errorMessageSchema("Not found", 404))
 @ApiNotAcceptableResponse(errorMessageSchema("Not acceptable response", 406))
 @ApiTooManyRequestsResponse(errorMessageSchema("Too many request", 429))
@@ -306,7 +311,7 @@ export default class PwlsController {
       if (entry.uom && result.quantityClass) {
         const warnings: string[] = [];
         warnings.push(
-          `UOM '${entry.uom}' provided — QuantityClass is '${result.quantityClass}'. Verify compatibility.`
+          `UOM '${entry.uom}' provided - QuantityClass is '${result.quantityClass}'. Verify compatibility.`
         );
         result.warnings = warnings;
       } else if (!result.property) {
@@ -332,6 +337,7 @@ export default class PwlsController {
    * Load an additional vendor curve catalog (PWLS v4 format).
    */
   @Post("catalog")
+  @HttpCode(200)
   @ApiOkResponse({
     description: "Catalog loaded",
     schema: {

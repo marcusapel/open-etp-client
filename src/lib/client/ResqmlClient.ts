@@ -61,11 +61,7 @@ import { StoreCustomer } from "../protocols/StoreCustomer";
 import { StoreNotificationCustomer } from "../protocols/StoreNotificationCustomer";
 import { SupportedTypesCustomer } from "../protocols/SupportedTypesCustomer";
 import { TransactionCustomer } from "../protocols/TransactionCustomer";
-import { DiscoveryQueryCustomer } from "../protocols/DiscoveryQueryCustomer";
 import { StoreQueryCustomer } from "../protocols/StoreQueryCustomer";
-import { GrowingObjectCustomer } from "../protocols/GrowingObjectCustomer";
-import { GrowingObjectNotificationCustomer } from "../protocols/GrowingObjectNotificationCustomer";
-import { ChannelSubscribeCustomer } from "../protocols/ChannelSubscribeCustomer";
 
 import { ResourceGraph, Timer } from "../common/ResponseHandlers";
 import { SimpleJson, simpleJson, xml2typescript } from "../mlTypes/XmlJsonUtil";
@@ -227,17 +223,7 @@ export class ResqmlClient {
   private readonly transaction: TransactionCustomer = new TransactionCustomer(
     this.client
   );
-  readonly discoveryQuery: DiscoveryQueryCustomer = new DiscoveryQueryCustomer(
-    this.client
-  );
   readonly storeQuery: StoreQueryCustomer = new StoreQueryCustomer(this.client);
-  readonly growingObject: GrowingObjectCustomer = new GrowingObjectCustomer(
-    this.client
-  );
-  readonly growingObjectNotification: GrowingObjectNotificationCustomer =
-    new GrowingObjectNotificationCustomer(this.client);
-  readonly channelSubscribe: ChannelSubscribeCustomer =
-    new ChannelSubscribeCustomer(this.client);
   private connected = false;
 
   private readonly overhead = 1024; // Represents the overhead to add on top of array size
@@ -289,28 +275,9 @@ export class ResqmlClient {
       Energistics.Etp.v12.Datatypes.Protocol.DataspaceOSDU,
       this.dataspaceOSDU
     );
-    // Extended protocols — always registered; the ETP session negotiation
-    // determines which ones the server actually supports.  REST endpoints
-    // check `isProtocolSupported()` and return 501 when unavailable.
-    this.client.registerHandler(
-      Energistics.Etp.v12.Datatypes.Protocol.DiscoveryQuery,
-      this.discoveryQuery
-    );
     this.client.registerHandler(
       Energistics.Etp.v12.Datatypes.Protocol.StoreQuery,
       this.storeQuery
-    );
-    this.client.registerHandler(
-      Energistics.Etp.v12.Datatypes.Protocol.GrowingObject,
-      this.growingObject
-    );
-    this.client.registerHandler(
-      Energistics.Etp.v12.Datatypes.Protocol.GrowingObjectNotification,
-      this.growingObjectNotification
-    );
-    this.client.registerHandler(
-      Energistics.Etp.v12.Datatypes.Protocol.ChannelSubscribe,
-      this.channelSubscribe
     );
     if (opt) {
       this.options = opt;
@@ -1614,7 +1581,7 @@ export class ResqmlClient {
               (o, i) => o && objects.set(tUris[i], o)
             );
           } catch (refErr: any) {
-            // Some referenced objects may not exist — continue with what we have
+            // Some referenced objects may not exist - continue with what we have
             this.logger.warn(
               `Failed to fetch ${tUris.length} referenced object(s): ${refErr?.message ?? refErr}`
             );
@@ -2189,7 +2156,7 @@ export class ResqmlClient {
     ) {
       const data = ArrayCustomer.createDataFromValues(
         array,
-        Array.prototype.slice.call(array)
+        array as unknown as number[]
       );
       const da: Energistics.Etp.v12.Datatypes.DataArrayTypes.PutDataArraysType =
       {
@@ -2246,13 +2213,9 @@ export class ResqmlClient {
           ? nbSliceExtraPart
           : nbSliceInPart;
       const sliceLength = counts.reduce((p, c) => p * c, 1);
-      const values: number[] = Array.from({
-        length: sliceLength
-      });
       const start = d * maxSliceLength;
-      for (let i = 0; i < sliceLength; i++) {
-        values[i] = array[start + i] as number;
-      }
+      // Zero-copy view into the source TypedArray (data is stable during upload)
+      const values = (array as Exclude<typeof array, string>).subarray(start, start + sliceLength);
 
       promises.push(
         this.dataArray.sendSubArray(
@@ -2260,7 +2223,7 @@ export class ResqmlClient {
           [...starts],
           [...counts],
           array,
-          values
+          values as unknown as number[]
         )
       );
     }
@@ -2873,7 +2836,10 @@ export class ResqmlClient {
   ): void {
     const etpUri = new EtpUri(uri);
 
-    if (obj.$type && obj.$type.lastIndexOf("Hdf5Dataset") !== -1) {
+    if (
+      (obj.$type && obj.$type.lastIndexOf("Hdf5Dataset") !== -1) ||
+      (!obj.$type && obj.PathInHdfFile && obj.HdfProxy)
+    ) {
       let contentType = "obj_EpcExternalPartReference";
       if (obj.HdfProxy?.ContentType) {
         contentType = obj.HdfProxy.ContentType.substring(
@@ -2975,9 +2941,8 @@ export class ResqmlClient {
           }
         } else if (obj[key] && typeof obj[key] === "object") {
           if (
-            obj[key].$type &&
-            obj[key].$type.lastIndexOf("DataObjectReference") === -1 &&
-            typeof obj[key] === "object"
+            !obj[key].$type ||
+            obj[key].$type.lastIndexOf("DataObjectReference") === -1
           ) {
             this.findDataArrays(etpUri.uriPath, obj[key], dataArrays);
           }
@@ -3259,7 +3224,7 @@ export class ResqmlClient {
     // Track objects currently being resolved to detect circular refs
     if (!inProgress) inProgress = new Set<string>();
     if (inProgress.has(etpUri.uriPath)) {
-      // Circular reference detected — return obj as-is without further resolution
+      // Circular reference detected - return obj as-is without further resolution
       return obj;
     }
     inProgress.add(etpUri.uriPath);
@@ -3381,7 +3346,7 @@ export class ResqmlClient {
               // Skip if this reference is currently being resolved (cycle)
               const refPath = new EtpUri(nURI.uri).uriPath;
               if (inProgress!.has(refPath)) {
-                // Circular ref — leave DataObjectReference without _data
+                // Circular ref - leave DataObjectReference without _data
               } else {
                 const res = this.resolveReferences(
                   nURI.uri,

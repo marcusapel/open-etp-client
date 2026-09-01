@@ -8,6 +8,7 @@ import {
 
 import {
   ApiBearerAuth,
+  ApiGoneResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -29,7 +30,8 @@ import {
   extractToken,
   findResources,
   httpErrorFromEtpError,
-  swaggerServers
+  swaggerServers,
+  webSocketSessionTerminatedSchema
 } from "../ControllerUtils";
 
 import logging from "../../common/Logging";
@@ -65,9 +67,10 @@ function parseResource(res: Energistics.Etp.v12.Datatypes.Object.Resource) {
 
 @Controller("wells")
 @ApiTags("Wells")
-@ApiBearerAuth("access-token")
+@ApiBearerAuth("HTTPBearer")
 @UseGuards(HasBearerGuard("jwt"))
 @UseGuards(HasDataPartitionGuard())
+@ApiGoneResponse(webSocketSessionTerminatedSchema())
 export default class WellsController {
 
   @Get()
@@ -84,12 +87,12 @@ export default class WellsController {
       "Specify `dataspace` when you know where the wells reside.",
     servers: swaggerServers
   })
-  @ApiQuery({ name: "name", required: true, description: "Well name pattern. Use * as wildcard (e.g., 'DROGON*', '*-1', '*'). Case-insensitive.", example: "DROGON*" })
+  @ApiQuery({ name: "name", required: false, description: "Well name pattern. Use * as wildcard (e.g., 'DROGON*', '*-1', '*'). Case-insensitive. Defaults to '*' (all wells).", example: "DROGON*" })
   @ApiQuery({ name: "dataspace", required: false, description: "Restrict search to a single dataspace path (e.g., 'test/drogon'). Omit to search all dataspaces.", example: "test/drogon" })
   @ApiQuery({ name: "include", required: false, description: "Comma-separated list of child types to resolve: logs, trajectories, channelSets. Omit to include all.", example: "logs,trajectories" })
   @ApiOkResponse({ description: "Array of wells, each with resolved child objects (wellbores always included)" })
   async findWells(
-    @Query("name") namePattern: string,
+    @Query("name") namePattern: string = "*",
     @Query("dataspace") dataspace?: string,
     @Query("include") include?: string,
     @Req() request?: express.Request

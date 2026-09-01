@@ -18,6 +18,8 @@ import {
   CollaborationProjectManifest,
   deriveCollaborationId
 } from "./CollaborationProject";
+import { getPropertyTypeIDFromResqmlAlias, PropertyTypesIds } from "./PropertyTypes";
+import { isKnownPwlsProperty } from "./PwlsCurveCatalog";
 
 import { ErrorCode, EtpError } from "../common/EtpTypes";
 
@@ -36,7 +38,6 @@ import {
 import { etpServerPath, osduUrl } from "../common/config";
 
 import serverSchema from "./server-schema.json";
-import { PropertyTypesIds } from "./PropertyTypes";
 
 export const dataspaceUriPattern =
   /^(?:eml:\/\/\/|^eml:\/\/\/dataspace\('[^'"]*?(?:''[^'"]*?)*'\))$/;
@@ -108,12 +109,12 @@ const getACLForDataspace = (
 /**
  * Default type patterns applied when indexing entire dataspaces without
  * explicit typePatterns. Focuses on discovery-worthy types (features,
- * interpretations, representations, wells) and excludes support objects
- * (properties, CRS, time series, property kinds) to avoid manifest bloat.
+ * interpretations, representations, wells) and excludes bulk properties
+ * to avoid manifest bloat. Properties with canonical OSDU names are
+ * included automatically via a secondary filter (see createManifest).
  *
- * To include grid properties, pass typePatterns explicitly:
- *   ["*Property", ...DEFAULT_DATASPACE_TYPE_PATTERNS]
- * Or pass ["*"] to index all types.
+ * Pass ["*"] to index all types, or ["*Property", ...DEFAULT_DATASPACE_TYPE_PATTERNS]
+ * to include ALL properties regardless of name.
  */
 export const DEFAULT_DATASPACE_TYPE_PATTERNS: string[] = [
   "*Feature",
@@ -125,6 +126,64 @@ export const DEFAULT_DATASPACE_TYPE_PATTERNS: string[] = [
   "witsml21.*"
 ];
 
+/** Property type pattern for secondary filter matching */
+const PROPERTY_TYPE_PATTERN = /Property$/i;
+
+/**
+ * Common reservoir-simulation property name abbreviations.
+ * These are the short names used by Eclipse, OPM, tNavigator, etc.
+ * that don't appear in PWLS or OSDU PropertyType catalogs.
+ */
+const RESSIM_PROPERTY_NAMES = new Set([
+  // Porosity & net-to-gross
+  "poro", "porosity", "ntg", "multpv",
+  // Permeability
+  "permx", "permy", "permz", "permxy", "permyz", "permzx",
+  "perm", "kx", "ky", "kz",
+  // Saturations
+  "sw", "sg", "so", "swat", "sgas", "soil",
+  "swl", "swu", "sgl", "sgu", "sowcr", "sogcr", "swcr", "sgcr",
+  // Region numbers
+  "satnum", "eqlnum", "fipnum", "pvtnum", "imbnum", "actnum",
+  "endnum", "rocknum", "fluxnum",
+  // Transmissibility & multipliers
+  "tranx", "trany", "tranz", "multx", "multy", "multz",
+  "multx-", "multy-", "multz-", "multregt",
+  // Pressure & depth
+  "pressure", "depth", "tops", "dz", "dx", "dy",
+  // Rock mechanics
+  "young", "poisson", "biot",
+  // Common output / init
+  "rporv", "porv", "fipoil", "fipgas", "fipwat",
+]);
+
+/** Property filter mode for manifest generation */
+export type PropertyFilter = "canonical" | "none" | "all";
+
+/**
+ * Check if a resource is a Property with a canonical or common name.
+ * Used as a secondary inclusion filter so that simulation-critical
+ * properties are included in manifests without pulling in every
+ * unnamed/local property.
+ *
+ * A property is "canonical" if its Citation.Title (exposed as Resource.name
+ * in ETP Discovery) matches any of:
+ * - A common reservoir-simulation abbreviation (PORO, PERMX, SW, SATNUM, …)
+ * - A known PWLS v4 standard property name (875 entries)
+ * - An OSDU PropertyType from the reference-data manifest
+ */
+export function isCanonicalProperty(dataObjectType: string, name: string): boolean {
+  if (!PROPERTY_TYPE_PATTERN.test(dataObjectType)) return false;
+  if (!name) return false;
+  // Check common simulator abbreviations (case-insensitive)
+  if (RESSIM_PROPERTY_NAMES.has(name.toLowerCase())) return true;
+  // Check PWLS catalog (875 standard property names)
+  if (isKnownPwlsProperty(name)) return true;
+  // Check OSDU PropertyType reference-data (RESQML alias or Code)
+  if (getPropertyTypeIDFromResqmlAlias(name) !== undefined) return true;
+  return false;
+}
+
 /**
  * Create a manifest for a list of uris
  *
@@ -135,6 +194,10 @@ export const DEFAULT_DATASPACE_TYPE_PATTERNS: string[] = [
  *   When undefined, DEFAULT_DATASPACE_TYPE_PATTERNS is used for dataspace-level URIs.
  *   Pass ["*"] to index all types.
  * @param {number} [maxManifestSize] Optional maximum size of the manifest in MB, default is 1000
+ * @param {PropertyFilter} [propertyFilter] Controls property inclusion:
+ *   - "canonical" (default): include properties with standard names (PWLS, OSDU, simulator)
+ *   - "none": exclude all properties
+ *   - "all": include all properties regardless of name
  * @return {Promise<Manifest>}
  */
 export const createManifest = async (
@@ -142,7 +205,8 @@ export const createManifest = async (
   uris: URI[],
   context: OSDUContext,
   typePatterns?: string[],
-  maxManifestSize: number = 1000
+  maxManifestSize: number = 1000,
+  propertyFilter: PropertyFilter = "canonical"
 ): Promise<Manifest> => {
   if (uris.length === 0) {
     return Promise.reject("No URI provided");
@@ -152,7 +216,7 @@ export const createManifest = async (
     try {
       await registerDMS(context);
     } catch {
-      // Ignore registration errors — continue without DMS registration
+      // Ignore registration errors - continue without DMS registration
     }
     logger.info(`[perf] registerDMS: ${Date.now() - tManifestStart}ms`);
     const manifests: Manifest = {
@@ -190,6 +254,13 @@ export const createManifest = async (
               if (u.dataObjectType.match(p)) {
                 return true;
               }
+            }
+            // Property inclusion based on propertyFilter setting
+            if (PROPERTY_TYPE_PATTERN.test(u.dataObjectType)) {
+              if (propertyFilter === "none") return false;
+              if (propertyFilter === "all") return true;
+              // "canonical": include only properties with standard names
+              return isCanonicalProperty(u.dataObjectType, f.name);
             }
             return false;
           });
@@ -287,7 +358,7 @@ export const createManifest = async (
           collabId
         ) as any;
 
-        // Check if CP already exists in OSDU — version bump for consistency
+        // Check if CP already exists in OSDU - version bump for consistency
         const existingVersion = await context
           .getOSDUResourceVersion(cpRecord.id)
           .catch(() => undefined);
@@ -350,7 +421,7 @@ export const createManifest = async (
           }
           resolvedObjects = resolvedObjects.concat(arr);
         } catch (e: any) {
-          logger.error(`getResolvedObjects failed for batch: ${batch.map(u => u.substring(u.lastIndexOf('/') + 1)).join(', ')} — ${e?.message ?? e}`);
+          logger.error(`getResolvedObjects failed for batch: ${batch.map(u => u.substring(u.lastIndexOf('/') + 1)).join(', ')} - ${e?.message ?? e}`);
         }
       }
 
@@ -393,6 +464,31 @@ export const createManifest = async (
           const convertMs = Date.now() - tObj;
           if (convertMs > 200) {
             logger.warn(`[perf] Slow converter: ${etpUri.dataObjectType} took ${convertMs}ms`);
+          }
+          // Override record.kind with the dynamically resolved version.
+          // The converter constructor hardcodes a compile-time version, but the
+          // platform may have a different version registered. The resolved kind
+          // from the registry ensures the record references a schema version
+          // that actually exists on the target platform.
+          // Also fix record.id prefix when the converter uses a different
+          // resource type than the schema (e.g. WPC base class for master-data schemas).
+          if (res !== undefined) {
+            const resolvedKind = c.osduKind(resolvedObjects[i]!);
+            if (resolvedKind) {
+              res.kind = resolvedKind;
+              // Ensure record.id uses the correct resource-type--Entity prefix
+              const kindParts = resolvedKind.split(":");
+              // kindParts = ["osdu", "wks", "resource-type--Entity", "X.Y.Z"]
+              const typeEntity = kindParts[2]; // e.g. "master-data--BHARun"
+              if (typeEntity && res.id) {
+                const idParts = res.id.split(":");
+                // idParts = ["partition", "old-type--Entity", "uuid"]
+                if (idParts.length >= 3) {
+                  idParts[1] = typeEntity;
+                  res.id = idParts.join(":");
+                }
+              }
+            }
           }
           const dataspaceUri = EtpUri.createDataSpaceUri(etpUri.dataSpace).uri;
           const aclLegal = context.dataspaceACLs.get(dataspaceUri);
@@ -574,6 +670,22 @@ export const createManifest = async (
 
           try {
             const res = await c.convert(objUri, obj, context, client);
+            // Override record.kind with resolved version (same as primary loop)
+            if (res !== undefined) {
+              const resolvedKind = c.osduKind(obj);
+              if (resolvedKind) {
+                res.kind = resolvedKind;
+                const kindParts = resolvedKind.split(":");
+                const typeEntity = kindParts[2];
+                if (typeEntity && res.id) {
+                  const idParts = res.id.split(":");
+                  if (idParts.length >= 3) {
+                    idParts[1] = typeEntity;
+                    res.id = idParts.join(":");
+                  }
+                }
+              }
+            }
             const srn = context.uriToSrn(objUri, obj);
             if (srn === undefined || res === undefined || res.id === undefined) {
               unknownSrn.add(k);
@@ -626,8 +738,22 @@ export const createManifest = async (
       }
     });
 
+    // Deduplicate records by .id before assembling manifest arrays.
+    // The generatedSrn Map is keyed by SRN, but the kind override in the
+    // primary and reference loops can produce entries with different SRN keys
+    // that share the same record .id — the Storage API rejects duplicate IDs
+    // within a single PUT batch.
+    const seenRecordIds = new Set<string>();
+
     for (const res of generatedSrn) {
       const id: string = res[0];
+      const recordId: string | undefined = res[1]?.id;
+      if (recordId && seenRecordIds.has(recordId)) {
+        continue; // skip duplicate record
+      }
+      if (recordId) {
+        seenRecordIds.add(recordId);
+      }
       if (id.includes("master-data")) {
         manifests.MasterData.push(res[1] as GenericMasterData);
       } else if (id.includes("reference-data")) {

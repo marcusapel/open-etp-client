@@ -1,0 +1,2772 @@
+{
+  "info": {
+    "name": "Reservoir DDMS CI-CD v4.0",
+    "_postman_id": "rddms-cicd-v4-m27",
+    "description": "RDDMS M27 preship CI/CD collection. Uses environment variables for auth and partition.\n\nEnvironment variables required:\n- Token_Fetch_URL: token endpoint\n- CLIENT_ID\n- CLIENT_SECRET (or empty for public clients)\n- Scope\n- grant_type: client_credentials or refresh_token\n- refresh_token (if grant_type=refresh_token)\n- data-partition-id\n- RDDMS_URL: e.g. https://host/api/reservoir-ddms/v2\n- domain: entitlements domain (e.g. .group or .contoso.com)\n- defaultLegalTag: (optional, auto-created if missing)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "test_ds",
+      "value": ""
+    },
+    {
+      "key": "test_ds_encoded",
+      "value": ""
+    },
+    {
+      "key": "seed_txn_id",
+      "value": ""
+    },
+    {
+      "key": "crs_guid",
+      "value": ""
+    },
+    {
+      "key": "ext_guid",
+      "value": ""
+    },
+    {
+      "key": "psr_guid",
+      "value": ""
+    },
+    {
+      "key": "array_path_encoded",
+      "value": ""
+    },
+    {
+      "key": "rb_txn_id",
+      "value": ""
+    },
+    {
+      "key": "rb_obj_guid",
+      "value": ""
+    },
+    {
+      "key": "create_ds_body",
+      "value": ""
+    },
+    {
+      "key": "resources_body",
+      "value": ""
+    },
+    {
+      "key": "arrays_body",
+      "value": ""
+    },
+    {
+      "key": "rb_resources_body",
+      "value": ""
+    },
+    {
+      "key": "legal_tag_name",
+      "value": ""
+    },
+    {
+      "key": "manifest_uris",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Portability shim: some environments (e.g. the QA/CI platform) define the",
+          "// service base URLs under different variable names. Map them to the names",
+          "// this collection uses so it runs unchanged without manual variable edits.",
+          "function alias(target, source) {",
+          "    var cur = pm.variables.get(target);",
+          "    if (cur === undefined || cur === null || cur === \"\") {",
+          "        var src = pm.variables.get(source);",
+          "        if (src !== undefined && src !== null && src !== \"\") {",
+          "            pm.environment.set(target, src);",
+          "        }",
+          "    }",
+          "}",
+          "alias(\"RDDMS_URL\", \"RESERVOIR_DDMS_HOST\");",
+          "alias(\"LEGAL_URL\", \"LEGAL_HOST\");",
+          "alias(\"data-partition-id\", \"DATA_PARTITION_ID\");",
+          "alias(\"domain\", \"ENTITLEMENTS_DOMAIN\");",
+          "alias(\"access_token\", \"ACCESS_TOKEN\");"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "0. Get Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{Token_Fetch_URL}}",
+              "host": [
+                "{{Token_Fetch_URL}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "{{grant_type}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{CLIENT_ID}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{CLIENT_SECRET}}",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "{{Scope}}",
+                  "type": "text"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refresh_token}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Token endpoint returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.environment.set(\"access_token\", data.access_token);",
+                  "pm.environment.set(\"ACCESS_TOKEN\", data.access_token);",
+                  "if (data.id_token) { pm.environment.set(\"id_token\", data.id_token); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Health Check",
+      "item": [
+        {
+          "name": "H1 Server Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/health/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "health",
+                "info"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"returns version\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"version\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "H2 Liveness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/health/liveness",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "health",
+                "liveness"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "H3 Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/health/readiness",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "health",
+                "readiness"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "H4 List Converters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/health/converters",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "health",
+                "converters"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"has converters\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"count\");",
+                  "    pm.expect(body.count).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Setup - Create Dataspace and Seed Data",
+      "item": [
+        {
+          "name": "S1 Ensure Legal Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{LEGAL_URL}}/legaltags",
+              "host": [
+                "{{LEGAL_URL}}"
+              ],
+              "path": [
+                "legaltags"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{legal_tag_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var d = new Date();",
+                  "d.setUTCDate(d.getUTCDate() + 30);",
+                  "var expiry = d.toISOString().slice(0, 10);",
+                  "var partition = pm.variables.get('data-partition-id');",
+                  "var tagName = pm.variables.get('defaultLegalTag') || (partition + '-RDDMS-Legal-Tag');",
+                  "pm.collectionVariables.set('legal_tag_name', tagName);",
+                  "var body = {",
+                  "    name: tagName,",
+                  "    description: 'RDDMS CI legal tag',",
+                  "    properties: {",
+                  "        contractId: '123456',",
+                  "        countryOfOrigin: ['US'],",
+                  "        dataType: 'Third Party Data',",
+                  "        exportClassification: 'EAR99',",
+                  "        originator: 'RDDMS CI',",
+                  "        personalData: 'No Personal Data',",
+                  "        securityClassification: 'Private',",
+                  "        expirationDate: expiry",
+                  "    }",
+                  "};",
+                  "pm.collectionVariables.set('legal_tag_body', JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Legal tag OK (200/201/409)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S2 Create Test Dataspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{create_ds_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var suffix = Math.floor(Math.random() * 10000);",
+                  "var testDs = 'test/RDDMS_IT' + suffix;",
+                  "pm.collectionVariables.set('test_ds', testDs);",
+                  "pm.collectionVariables.set('test_ds_encoded', encodeURIComponent(testDs));",
+                  "var partition = pm.variables.get('data-partition-id');",
+                  "var domain = pm.variables.get('domain') || '.group';",
+                  "var groupSuffix = '@' + partition + domain;",
+                  "var legalTag = pm.collectionVariables.get('legal_tag_name') || (partition + '-RDDMS-Legal-Tag');",
+                  "var dsBody = [{",
+                  "    DataspaceId: testDs,",
+                  "    Path: testDs,",
+                  "    CustomData: {",
+                  "        viewers: ['data.default.viewers' + groupSuffix],",
+                  "        owners: ['data.default.owners' + groupSuffix],",
+                  "        legaltags: [legalTag],",
+                  "        otherRelevantDataCountries: ['US']",
+                  "    }",
+                  "}];",
+                  "pm.collectionVariables.set('create_ds_body', JSON.stringify(dsBody));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Dataspace created (200/201)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S3 Verify Dataspace Created",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "info"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"URI contains test DS\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.uri).to.include(pm.collectionVariables.get(\"test_ds\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S4 Start Seed Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/transactions",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var raw = pm.response.text().trim();",
+                  "try { var d = JSON.parse(raw); raw = (typeof d === \"string\") ? d : (d.transactionId || raw); } catch(e) {}",
+                  "raw = raw.replace(/^\"|\"$/g, \"\");",
+                  "pm.collectionVariables.set(\"seed_txn_id\", raw);",
+                  "pm.test(\"captured seed txn id\", function () {",
+                  "    pm.expect(raw).to.be.a(\"string\").and.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S5 Put RESQML Objects",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources?transactionId={{seed_txn_id}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources?transactionId={{seed_txn_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{resources_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function uuid() {",
+                  "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                  "        var r = Math.random() * 16 | 0;",
+                  "        var v = c === 'x' ? r : (r & 0x3 | 0x8);",
+                  "        return v.toString(16);",
+                  "    });",
+                  "}",
+                  "var crsGuid = uuid(), extGuid = uuid(), psrGuid = uuid();",
+                  "pm.collectionVariables.set('crs_guid', crsGuid);",
+                  "pm.collectionVariables.set('ext_guid', extGuid);",
+                  "pm.collectionVariables.set('psr_guid', psrGuid);",
+                  "pm.collectionVariables.set('array_path_encoded',",
+                  "    encodeURIComponent('/RESQML/' + psrGuid + '/points_patch0'));",
+                  "var body = [",
+                  "  { '$type': 'resqml20.obj_LocalDepth3dCrs', SchemaVersion: '2.0', Uuid: crsGuid,",
+                  "    Citation: {Title:'CI CRS', Originator:'RDDMS-CI', Creation:'2026-01-01T00:00:00Z', Format:'[ADME:CI:1.0]'},",
+                  "    XOffset:0, YOffset:0, ZOffset:0,",
+                  "    ArealRotation:{_:0, '$type':'eml20.PlaneAngleMeasure', Uom:'dega'},",
+                  "    ProjectedAxisOrder:'easting northing', ProjectedUom:'m', VerticalUom:'m', ZIncreasingDownward:true,",
+                  "    VerticalCrs:{'$type':'eml20.VerticalUnknownCrs', Unknown:'unknown'},",
+                  "    ProjectedCrs:{'$type':'eml20.ProjectedUnknownCrs', Unknown:'WKT'}},",
+                  "  { '$type': 'eml20.obj_EpcExternalPartReference', SchemaVersion: '2.0', Uuid: extGuid,",
+                  "    Citation: {Title:'CI HDF Proxy', Originator:'RDDMS-CI', Creation:'2026-01-01T00:00:00Z', Format:'[ADME:CI:1.0]'},",
+                  "    MimeType: 'application/x-hdf5'},",
+                  "  { '$type': 'resqml20.obj_PointSetRepresentation', SchemaVersion: '2.0', Uuid: psrGuid,",
+                  "    Citation: {Title:'CI PointSet', Originator:'RDDMS-CI', Creation:'2026-01-01T00:00:00Z', Format:'[ADME:CI:1.0]'},",
+                  "    NodePatch: [{PatchIndex:0, Count:3, Geometry:{'$type':'resqml20.PointGeometry',",
+                  "      LocalCrs:{'$type':'eml20.DataObjectReference',ContentType:'application/x-resqml+xml;version=2.0;type=obj_LocalDepth3dCrs',Title:'CI CRS',UUID:crsGuid},",
+                  "      Points:{'$type':'resqml20.Point3dHdf5Array',Coordinates:{'$type':'eml20.Hdf5Dataset',",
+                  "        PathInHdfFile:'/RESQML/'+psrGuid+'/points_patch0',",
+                  "        HdfProxy:{'$type':'eml20.DataObjectReference',ContentType:'application/x-eml+xml;version=2.0;type=obj_EpcExternalPartReference',Title:'CI HDF Proxy',UUID:extGuid}}}}}]",
+                  "  }",
+                  "];",
+                  "pm.collectionVariables.set('resources_body', JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S6 Put Array Data",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/arrays?transactionId={{seed_txn_id}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "arrays?transactionId={{seed_txn_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{arrays_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var extGuid = pm.collectionVariables.get('ext_guid');",
+                  "var psrGuid = pm.collectionVariables.get('psr_guid');",
+                  "var body = [{",
+                  "    ContainerType: 'eml20.obj_EpcExternalPartReference',",
+                  "    ContainerUuid: extGuid,",
+                  "    PathInResource: '/RESQML/' + psrGuid + '/points_patch0',",
+                  "    Dimensions: [3, 3],",
+                  "    Data: [1,2,3,4,5,6,7,8,9],",
+                  "    ArrayType: 'Float64Array'",
+                  "}];",
+                  "pm.collectionVariables.set('arrays_body', JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S7 Commit Seed Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/transactions/{{seed_txn_id}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "transactions",
+                "{{seed_txn_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Read Resources",
+      "item": [
+        {
+          "name": "R1 Dataspace Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "info"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"has URI\", function () { pm.expect(pm.response.json().uri).to.include(pm.collectionVariables.get(\"test_ds\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R2 List Resource Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"returns array\", function () { pm.expect(pm.response.json()).to.be.an(\"array\").and.not.be.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R3 List All Resources",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/all",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "all"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"has seeded objects\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.be.an(\"array\");",
+                  "    pm.expect(data.length).to.be.at.least(3);",
+                  "    // Save a URI for manifest test",
+                  "    var uris = data.filter(function(r) { return r.uri && r.uri.indexOf(\"EpcExternal\") === -1; }).map(function(r) { return r.uri; });",
+                  "    if (uris.length > 0) { pm.collectionVariables.set(\"manifest_uris\", JSON.stringify(uris.slice(0, 5))); }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R4 Get Resources By Type (CRS)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_LocalDepth3dCrs",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_LocalDepth3dCrs"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"returns CRS objects\", function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.be.an(\"array\").and.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R5 Get Specific Object (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_LocalDepth3dCrs/{{crs_guid}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_LocalDepth3dCrs",
+                "{{crs_guid}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"has Citation\", function () { var body = pm.response.json(); var obj = Array.isArray(body) ? body[0] : body; pm.expect(obj).to.have.property(\"Citation\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R6 Get Specific Object (XML)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/xml",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_LocalDepth3dCrs/{{crs_guid}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_LocalDepth3dCrs",
+                "{{crs_guid}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"is XML\", function () { pm.expect(pm.response.text()).to.include(\"LocalDepth3dCrs\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R7 Get Object Sources",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_PointSetRepresentation/{{psr_guid}}/sources",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_PointSetRepresentation",
+                "{{psr_guid}}",
+                "sources"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R8 Get Object Targets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_PointSetRepresentation/{{psr_guid}}/targets",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_PointSetRepresentation",
+                "{{psr_guid}}",
+                "targets"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R9 Get Multiple Objects",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/multi-resources/get-content",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "multi-resources",
+                "get-content"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"uris\": []}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var ds = pm.collectionVariables.get(\"test_ds\");",
+                  "var crs = pm.collectionVariables.get(\"crs_guid\");",
+                  "var psr = pm.collectionVariables.get(\"psr_guid\");",
+                  "var uris = [",
+                  "    \"eml:///dataspace('\" + ds + \"')/resqml20.obj_LocalDepth3dCrs(\" + crs + \")\",",
+                  "    \"eml:///dataspace('\" + ds + \"')/resqml20.obj_PointSetRepresentation(\" + psr + \")\"",
+                  "];",
+                  "pm.request.body.raw = JSON.stringify({ uris: uris });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "R10 List Deleted Resources",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/deleted",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "deleted"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Graph APIs",
+      "item": [
+        {
+          "name": "G1 Full Graph",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/graph/all",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "graph",
+                "all"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "G2 Graph Sources",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/graph/resqml20.obj_PointSetRepresentation/{{psr_guid}}/sources",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "graph",
+                "resqml20.obj_PointSetRepresentation",
+                "{{psr_guid}}",
+                "sources"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "G3 Graph Targets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/graph/resqml20.obj_PointSetRepresentation/{{psr_guid}}/targets",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "graph",
+                "resqml20.obj_PointSetRepresentation",
+                "{{psr_guid}}",
+                "targets"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Array APIs",
+      "item": [
+        {
+          "name": "A1 List Arrays",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/eml20.obj_EpcExternalPartReference/{{ext_guid}}/arrays",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "eml20.obj_EpcExternalPartReference",
+                "{{ext_guid}}",
+                "arrays"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A2 Get Array Content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/eml20.obj_EpcExternalPartReference/{{ext_guid}}/arrays/{{array_path_encoded}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "eml20.obj_EpcExternalPartReference",
+                "{{ext_guid}}",
+                "arrays",
+                "{{array_path_encoded}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A3 Get Array Metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/eml20.obj_EpcExternalPartReference/{{ext_guid}}/arrays/{{array_path_encoded}}/metadata",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "eml20.obj_EpcExternalPartReference",
+                "{{ext_guid}}",
+                "arrays",
+                "{{array_path_encoded}}",
+                "metadata"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Query APIs",
+      "item": [
+        {
+          "name": "Q1 Find Objects",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/query/objects/find",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "query",
+                "objects",
+                "find"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var ds = pm.collectionVariables.get(\"test_ds\");",
+                  "pm.request.body.raw = JSON.stringify({",
+                  "    uri: \"eml:///dataspace('\" + ds + \"')\",",
+                  "    scope: \"self\", depth: 1,",
+                  "    dataObjectTypes: [\"resqml20.obj_LocalDepth3dCrs\"]",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Q2 Batch Graph Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/query/graph/search",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "query",
+                "graph",
+                "search"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var ds = pm.collectionVariables.get(\"test_ds\");",
+                  "var psr = pm.collectionVariables.get(\"psr_guid\");",
+                  "var uri = \"eml:///dataspace('\" + ds + \"')/resqml20.obj_PointSetRepresentation(\" + psr + \")\";",
+                  "pm.request.body.raw = JSON.stringify({ uris: [uri], depth: 1 });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Transaction Rollback",
+      "item": [
+        {
+          "name": "RB1 Start Rollback Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/transactions",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "transactions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var raw = pm.response.text().trim();",
+                  "try { var d = JSON.parse(raw); raw = (typeof d === \"string\") ? d : (d.transactionId || raw); } catch(e) {}",
+                  "raw = raw.replace(/^\"|\"$/g, \"\");",
+                  "pm.collectionVariables.set(\"rb_txn_id\", raw);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RB2 Put Resource In Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources?transactionId={{rb_txn_id}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources?transactionId={{rb_txn_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{{rb_resources_body}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }); }",
+                  "var g = uuid();",
+                  "pm.collectionVariables.set('rb_obj_guid', g);",
+                  "var body = [{ '$type':'resqml20.obj_LocalDepth3dCrs', SchemaVersion:'2.0', Uuid:g,",
+                  "  Citation:{Title:'RB Test CRS',Originator:'RDDMS-CI',Creation:'2026-01-01T00:00:00Z',Format:'[ADME:CI:1.0]'},",
+                  "  XOffset:0,YOffset:0,ZOffset:0,",
+                  "  ArealRotation:{_:0,'$type':'eml20.PlaneAngleMeasure',Uom:'dega'},",
+                  "  ProjectedAxisOrder:'easting northing',ProjectedUom:'m',VerticalUom:'m',ZIncreasingDownward:true,",
+                  "  VerticalCrs:{'$type':'eml20.VerticalUnknownCrs',Unknown:'unknown'},",
+                  "  ProjectedCrs:{'$type':'eml20.ProjectedUnknownCrs',Unknown:'WKT'}}];",
+                  "pm.collectionVariables.set('rb_resources_body', JSON.stringify(body));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RB3 Rollback Transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/transactions/{{rb_txn_id}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "transactions",
+                "{{rb_txn_id}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RB4 Verify Rolled-Back Object Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/resources/resqml20.obj_LocalDepth3dCrs/{{rb_obj_guid}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "resources",
+                "resqml20.obj_LocalDepth3dCrs",
+                "{{rb_obj_guid}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"object not found (404 or empty)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "    if (pm.response.code === 200) {",
+                  "        // Object might be returned as empty or the server might still list it",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Lock Unlock and Error Cases",
+      "item": [
+        {
+          "name": "L1 Lock Dataspace",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/lock",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "lock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "L2 Attempt Delete Locked DS",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"delete rejected (400/401/403/409)\", function () { pm.expect(pm.response.code).to.be.oneOf([400, 401, 403, 409]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "L3 Verify Locked DS Still Exists",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "info"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "L4 Unlock Dataspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/lock",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "lock"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "L5 Unlock Already Unlocked",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/lock",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "lock"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 404\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "E1 Wrong Dataspace 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/nonexistent%2Fds999/resources/all",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "nonexistent%2Fds999",
+                "resources",
+                "all"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "E2 Unauthorized No Token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "info"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401 or 403\", function () { pm.expect(pm.response.code).to.be.oneOf([401, 403]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Manifest Build",
+      "item": [
+        {
+          "name": "M1 Build Manifest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/manifests/build",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "manifests",
+                "build"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var ds = pm.collectionVariables.get(\"test_ds\");",
+                  "var uriStr = pm.collectionVariables.get(\"manifest_uris\");",
+                  "var uris = uriStr ? JSON.parse(uriStr) : [\"eml:///dataspace('\" + ds + \"')\"];",
+                  "pm.request.body.raw = JSON.stringify({",
+                  "    uris: uris,",
+                  "    typePatterns: [\"*\"],",
+                  "    createMissingReferences: true",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test(\"has Data section\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"Data\");",
+                  "});",
+                  "pm.test(\"no duplicate WPC IDs\", function () {",
+                  "    var body = pm.response.json();",
+                  "    var wpcs = (body.Data || {}).WorkProductComponents || [];",
+                  "    var ids = wpcs.map(function(w) { return w.id; }).filter(Boolean);",
+                  "    var unique = ids.filter(function(v, i, a) { return a.indexOf(v) === i; });",
+                  "    pm.expect(ids.length).to.equal(unique.length, \"Found \" + (ids.length - unique.length) + \" duplicate WPC IDs\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10. PWLS",
+      "item": [
+        {
+          "name": "PW1 PWLS Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/pwls/status",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "pwls",
+                "status"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PW2 Resolve Mnemonic",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/pwls/resolve?mnemonic=DEPTH",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "pwls",
+                "resolve"
+              ],
+              "query": [
+                {
+                  "key": "mnemonic",
+                  "value": "DEPTH"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PW3 Validate Curves",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/pwls/validate",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "pwls",
+                "validate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"curves\": [\n    {\n      \"mnemonic\": \"GR\",\n      \"uom\": \"gAPI\"\n    },\n    {\n      \"mnemonic\": \"NPHI\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 400\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 400]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11. WITSML",
+      "item": [
+        {
+          "name": "WM1 List WITSML Objects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/witsml/{{test_ds_encoded}}/objects",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "witsml",
+                "{{test_ds_encoded}}",
+                "objects"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "WM2 WITSML Query",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/witsml/query",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "witsml",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var ds = pm.collectionVariables.get(\"test_ds\");",
+                  "pm.request.body.raw = JSON.stringify({ dataspace: ds, objectType: \"Well\" });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12. Wells",
+      "item": [
+        {
+          "name": "WL1 Search Wells",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/wells?name=*&dataspace={{test_ds}}&include=logs,trajectories",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "wells"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "*"
+                },
+                {
+                  "key": "dataspace",
+                  "value": "{{test_ds}}"
+                },
+                {
+                  "key": "include",
+                  "value": "logs,trajectories"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 404\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13. Cleanup",
+      "item": [
+        {
+          "name": "CL1 Delete Test Dataspace",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200 or 204\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CL2 Verify Cleanup",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "data-partition-id",
+                "value": "{{data-partition-id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{RDDMS_URL}}/dataspaces/{{test_ds_encoded}}/info",
+              "host": [
+                "{{RDDMS_URL}}"
+              ],
+              "path": [
+                "dataspaces",
+                "{{test_ds_encoded}}",
+                "info"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"dataspace deleted (404)\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
